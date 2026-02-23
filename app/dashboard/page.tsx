@@ -293,7 +293,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* REVISION */}
+        {/* REVISION SECTION */}
         {mode === "revision" && (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow space-y-4">
             <div className="space-x-4">
@@ -314,10 +314,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* EXAM */}
+        {/* EXAM SECTION */}
         {mode === "exam" && (
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow space-y-6">
-
             <div className="space-x-4">
               <button onClick={generateMCQs} className="bg-green-600 text-white px-4 py-2 rounded">
                 Generate MCQs
@@ -379,7 +378,7 @@ export default function DashboardPage() {
                     >
                       <div className="font-semibold mb-1">
                         {selected === q.correct
-                          ? "✅ Correct Answer!"
+                          ? "✅ Correct! Great work."
                           : `❌ Incorrect. Correct Answer: ${q.correct}`}
                       </div>
                       {q.explanation}
@@ -397,7 +396,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ASK AI */}
+        {/* ASK AI SECTION */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow space-y-4">
           <h3 className="font-semibold">Ask AI (Concept Doubts)</h3>
 
