@@ -12,20 +12,35 @@ import {
 } from "recharts";
 
 export default function DashboardOverview() {
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL!;
+  const userId = "student1"; // Later replace with auth user id
+
   const [progress, setProgress] = useState({
     totalTests: 0,
     totalQuestions: 0,
     totalCorrect: 0,
     xp: 0,
+    streak: 0,
   });
 
+  const [loading, setLoading] = useState(true);
+
+  // =============================
+  // FETCH PROGRESS FROM BACKEND
+  // =============================
   useEffect(() => {
-    const saved = localStorage.getItem("ai-progress");
-    if (saved) {
-      setProgress(JSON.parse(saved));
-    }
+    fetch(`${backendURL}/get-progress/${userId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data) setProgress(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
+  // =============================
+  // LEVEL SYSTEM
+  // =============================
   const level =
     progress.xp < 100
       ? 1
@@ -35,6 +50,8 @@ export default function DashboardOverview() {
       ? 3
       : 4;
 
+  const xpToNextLevel = 100 - (progress.xp % 100);
+
   const accuracy =
     progress.totalQuestions === 0
       ? 0
@@ -42,10 +59,22 @@ export default function DashboardOverview() {
           (progress.totalCorrect / progress.totalQuestions) * 100
         );
 
+  // =============================
+  // CHART DATA
+  // =============================
   const chartData = [
-    { name: "Start", accuracy: 0 },
-    { name: "Now", accuracy: accuracy },
+    { name: "Tests", value: progress.totalTests },
+    { name: "Correct", value: progress.totalCorrect },
+    { name: "XP", value: progress.xp },
   ];
+
+  if (loading) {
+    return (
+      <div className="text-white text-lg p-10">
+        Loading Dashboard...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">
@@ -54,7 +83,7 @@ export default function DashboardOverview() {
       <div>
         <h1 className="text-3xl font-bold">Dashboard Overview</h1>
         <p className="text-gray-400 mt-2">
-          Welcome back! Continue building your mastery 🚀
+          Welcome back! Continue your learning journey 🚀
         </p>
       </div>
 
@@ -62,88 +91,73 @@ export default function DashboardOverview() {
       <div className="grid md:grid-cols-3 gap-6">
 
         {/* LEVEL CARD */}
-        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-xl shadow text-white">
-          <h2 className="text-lg font-semibold">Level</h2>
-          <p className="text-4xl font-bold mt-2">{level}</p>
-          <p className="mt-2 text-sm opacity-80">
+        <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-6 rounded-xl shadow">
+          <h2 className="text-lg font-semibold text-white">Level</h2>
+          <p className="text-3xl font-bold text-white mt-2">
+            {level}
+          </p>
+          <p className="text-white mt-2">
             XP: {progress.xp}
           </p>
-        </div>
-
-        {/* TOTAL TESTS */}
-        <div className="bg-gray-800 p-6 rounded-xl shadow">
-          <h2 className="text-gray-400 text-sm">Total Tests</h2>
-          <p className="text-3xl font-bold mt-2 text-white">
-            {progress.totalTests}
+          <p className="text-white">
+            XP to next level: {xpToNextLevel}
           </p>
+
+          <div className="w-full bg-white/30 rounded h-3 mt-3">
+            <div
+              className="bg-yellow-300 h-3 rounded transition-all duration-500"
+              style={{ width: `${progress.xp % 100}%` }}
+            />
+          </div>
         </div>
 
-        {/* ACCURACY */}
+        {/* PERFORMANCE */}
         <div className="bg-gray-800 p-6 rounded-xl shadow">
-          <h2 className="text-gray-400 text-sm">Accuracy</h2>
-          <p className="text-3xl font-bold mt-2 text-white">
+          <h2 className="text-gray-400">Accuracy</h2>
+          <p className="text-3xl font-bold text-white mt-2">
             {accuracy}%
           </p>
+          <p className="text-gray-400 mt-2">
+            Total Tests: {progress.totalTests}
+          </p>
+          <p className="text-gray-400">
+            Correct Answers: {progress.totalCorrect}
+          </p>
+        </div>
+
+        {/* STREAK */}
+        <div className="bg-gray-800 p-6 rounded-xl shadow">
+          <h2 className="text-gray-400">🔥 Streak</h2>
+          <p className="text-3xl font-bold text-white mt-2">
+            {progress.streak} Days
+          </p>
+          <p className="text-gray-400 mt-2">
+            Keep learning daily to grow streak!
+          </p>
         </div>
       </div>
 
-      {/* PROGRESS BAR */}
+      {/* PERFORMANCE CHART */}
       <div className="bg-gray-800 p-6 rounded-xl shadow">
-        <h2 className="text-lg font-semibold mb-4 text-white">
-          XP Progress
-        </h2>
-        <div className="w-full bg-gray-700 rounded h-3">
-          <div
-            className="bg-yellow-400 h-3 rounded transition-all duration-700"
-            style={{ width: `${progress.xp % 100}%` }}
-          />
-        </div>
-        <p className="text-sm text-gray-400 mt-2">
-          {100 - (progress.xp % 100)} XP to next level
-        </p>
-      </div>
-
-      {/* ACCURACY CHART */}
-      <div className="bg-gray-800 p-6 rounded-xl shadow">
-        <h2 className="text-lg font-semibold mb-4 text-white">
-          Accuracy Growth
+        <h2 className="text-xl font-semibold mb-4">
+          Performance Overview
         </h2>
 
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-            <XAxis dataKey="name" stroke="#ccc" />
-            <YAxis stroke="#ccc" />
+            <XAxis dataKey="name" stroke="#aaa" />
+            <YAxis stroke="#aaa" />
             <Tooltip />
             <Line
               type="monotone"
-              dataKey="accuracy"
-              stroke="#6366f1"
+              dataKey="value"
+              stroke="#8884d8"
               strokeWidth={3}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
-
-      {/* ACTIVITY PANEL */}
-      <div className="bg-gray-800 p-6 rounded-xl shadow">
-        <h2 className="text-lg font-semibold text-white mb-4">
-          Recent Activity
-        </h2>
-
-        {progress.totalTests === 0 ? (
-          <p className="text-gray-400">
-            No tests taken yet. Start practicing!
-          </p>
-        ) : (
-          <ul className="space-y-2 text-gray-300 text-sm">
-            <li>✅ Tests Taken: {progress.totalTests}</li>
-            <li>🎯 Questions Solved: {progress.totalQuestions}</li>
-            <li>🏆 Correct Answers: {progress.totalCorrect}</li>
-          </ul>
-        )}
-      </div>
-
     </div>
   );
 }
