@@ -11,31 +11,67 @@ import {
   CartesianGrid,
 } from "recharts";
 
+interface Progress {
+  total_tests: number;
+  total_questions: number;
+  total_correct: number;
+  xp: number;
+  streak: number;
+}
+
+interface LeaderboardUser {
+  user_id: string;
+  xp: number;
+  streak: number;
+}
+
 export default function DashboardOverview() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL!;
-  const userId = "student1"; // Later replace with auth user id
+  const userId = "student1"; // Replace with auth user later
 
-  const [progress, setProgress] = useState({
-    totalTests: 0,
-    totalQuestions: 0,
-    totalCorrect: 0,
+  const [progress, setProgress] = useState<Progress>({
+    total_tests: 0,
+    total_questions: 0,
+    total_correct: 0,
     xp: 0,
     streak: 0,
   });
 
+  const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   // =============================
-  // FETCH PROGRESS FROM BACKEND
+  // FETCH DATA
   // =============================
+  const fetchData = async () => {
+    try {
+      const progressRes = await fetch(
+        `${backendURL}/get-progress/${userId}`
+      );
+      const progressData = await progressRes.json();
+      if (progressData) setProgress(progressData);
+
+      const leaderboardRes = await fetch(
+        `${backendURL}/leaderboard`
+      );
+      const leaderboardData = await leaderboardRes.json();
+      if (leaderboardData) setLeaderboard(leaderboardData);
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetch(`${backendURL}/get-progress/${userId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data) setProgress(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    fetchData();
+
+    // 🔥 Auto refresh leaderboard every 30 seconds
+    const interval = setInterval(() => {
+      fetchData();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // =============================
@@ -50,21 +86,33 @@ export default function DashboardOverview() {
       ? 3
       : 4;
 
-  const xpToNextLevel = 100 - (progress.xp % 100);
+  const xpProgressPercent = progress.xp % 100;
+  const xpToNextLevel = 100 - xpProgressPercent;
 
   const accuracy =
-    progress.totalQuestions === 0
+    progress.total_questions === 0
       ? 0
       : Math.round(
-          (progress.totalCorrect / progress.totalQuestions) * 100
+          (progress.total_correct / progress.total_questions) * 100
         );
+
+  // =============================
+  // BADGES SYSTEM
+  // =============================
+  const badges: string[] = [];
+
+  if (progress.xp >= 100) badges.push("🥉 Bronze Learner");
+  if (progress.xp >= 300) badges.push("🥈 Silver Scholar");
+  if (progress.xp >= 600) badges.push("🥇 Gold Master");
+  if (progress.streak >= 7) badges.push("🔥 Consistency King");
+  if (progress.streak >= 30) badges.push("💎 Discipline Legend");
 
   // =============================
   // CHART DATA
   // =============================
   const chartData = [
-    { name: "Tests", value: progress.totalTests },
-    { name: "Correct", value: progress.totalCorrect },
+    { name: "Tests", value: progress.total_tests },
+    { name: "Correct", value: progress.total_correct },
     { name: "XP", value: progress.xp },
   ];
 
@@ -96,9 +144,7 @@ export default function DashboardOverview() {
           <p className="text-3xl font-bold text-white mt-2">
             {level}
           </p>
-          <p className="text-white mt-2">
-            XP: {progress.xp}
-          </p>
+          <p className="text-white mt-2">XP: {progress.xp}</p>
           <p className="text-white">
             XP to next level: {xpToNextLevel}
           </p>
@@ -106,7 +152,7 @@ export default function DashboardOverview() {
           <div className="w-full bg-white/30 rounded h-3 mt-3">
             <div
               className="bg-yellow-300 h-3 rounded transition-all duration-500"
-              style={{ width: `${progress.xp % 100}%` }}
+              style={{ width: `${xpProgressPercent}%` }}
             />
           </div>
         </div>
@@ -118,10 +164,10 @@ export default function DashboardOverview() {
             {accuracy}%
           </p>
           <p className="text-gray-400 mt-2">
-            Total Tests: {progress.totalTests}
+            Total Tests: {progress.total_tests}
           </p>
           <p className="text-gray-400">
-            Correct Answers: {progress.totalCorrect}
+            Correct Answers: {progress.total_correct}
           </p>
         </div>
 
@@ -135,6 +181,27 @@ export default function DashboardOverview() {
             Keep learning daily to grow streak!
           </p>
         </div>
+      </div>
+
+      {/* BADGES */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow">
+        <h2 className="text-xl font-semibold mb-4">Your Badges</h2>
+        {badges.length === 0 ? (
+          <p className="text-gray-400">
+            No badges earned yet.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-4">
+            {badges.map((badge, index) => (
+              <div
+                key={index}
+                className="bg-yellow-500 text-black px-4 py-2 rounded-full font-semibold"
+              >
+                {badge}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* PERFORMANCE CHART */}
@@ -158,6 +225,39 @@ export default function DashboardOverview() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* LEADERBOARD */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow">
+        <h2 className="text-xl font-semibold mb-4">
+          🏆 Leaderboard (Top 10)
+        </h2>
+
+        <div className="space-y-3">
+          {leaderboard.map((user, index) => (
+            <div
+              key={user.user_id}
+              className={`flex justify-between p-4 rounded-lg ${
+                user.user_id === userId
+                  ? "bg-purple-600"
+                  : "bg-gray-700"
+              }`}
+            >
+              <div>
+                <span className="font-bold mr-2">
+                  #{index + 1}
+                </span>
+                {user.user_id}
+              </div>
+
+              <div className="flex gap-6">
+                <span>XP: {user.xp}</span>
+                <span>🔥 {user.streak}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }
