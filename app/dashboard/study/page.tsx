@@ -116,8 +116,18 @@ const fetchProgress = async (id: string) => {
     setScore(0);
   }, [chapter, topic]);
 
+  // ================= TYPES =================
+type ProgressPayload = {
+  totalTests: number;
+  totalQuestions: number;
+  totalCorrect: number;
+  xp: number;
+  streak: number;
+};
+
+
   // ================= SAVE PROGRESS =================
-  const saveProgress = async (updated: any) => {
+const saveProgress = async (updated: ProgressPayload) => {
   if (!userId) return;
 
   const payload = {
@@ -132,15 +142,21 @@ const fetchProgress = async (id: string) => {
   try {
     const res = await fetch(`${backendURL}/update-progress`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify(payload),
     });
 
-    if (res.ok) {
-      fetchProgress(userId); // 🔥 IMPORTANT → sync again from backend
+    if (!res.ok) {
+      console.error("Failed to update progress");
+      return;
     }
-  } catch {
-    console.log("Backend sync failed");
+
+    // 🔥 VERY IMPORTANT — sync again from backend
+    await fetchProgress(userId);
+  } catch (err) {
+    console.error("Backend sync failed:", err);
   }
 };
 
