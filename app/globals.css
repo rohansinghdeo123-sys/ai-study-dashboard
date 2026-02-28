@@ -20,7 +20,7 @@
 }
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at top, #0f172a, #020617);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
