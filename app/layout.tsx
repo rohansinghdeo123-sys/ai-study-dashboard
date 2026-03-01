@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
@@ -15,17 +16,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-gray-950 text-white">
-        <div className="flex">
-          <Sidebar />
+        <AuthProvider>
+          <div className="flex">
+            <Sidebar />
 
-          <div className="flex-1 flex flex-col min-h-screen">
-            <Navbar />
+            <div className="flex-1 flex flex-col min-h-screen">
+              <Navbar />
 
-            <main className="flex-1 p-8 bg-gray-950">
-              {children}
-            </main>
+              <main className="flex-1 p-8 bg-gray-950">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        </AuthProvider>
       </body>
     </html>
   );
