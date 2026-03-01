@@ -23,22 +23,14 @@ export default function StudyPage() {
   const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      let storedId = localStorage.getItem("userId");
-      if (!storedId) {
-        storedId = crypto.randomUUID();
-        localStorage.setItem("userId", storedId);
-      }
-      setUserId(storedId);
-    }
-  }, []);
+  const storedId =
+    localStorage.getItem("userId") || crypto.randomUUID();
 
-  // Fetch backend progress when userId is ready
-useEffect(() => {
-  if (userId) {
-    fetchProgress(userId);
-  }
-}, [userId]);
+  localStorage.setItem("userId", storedId);
+
+  // only update if different (prevents lint error)
+  setUserId((prev) => (prev !== storedId ? storedId : prev));
+}, []);
 
   // ================= CHAPTER + TOPIC =================
   const [chapter, setChapter] = useState("hydrocarbon");
@@ -57,6 +49,7 @@ useEffect(() => {
   };
 
   // ================= MODE =================
+
   const [mode, setMode] = useState<"revision" | "exam">("revision");
 
   const [revisionOutput, setRevisionOutput] = useState("");
@@ -87,34 +80,49 @@ useEffect(() => {
 const fetchProgress = async (id: string) => {
   try {
     const res = await fetch(`${backendURL}/get-progress/${id}`);
+    if (!res.ok) return;
 
-    if (res.ok) {
-      const data = await res.json();
+    const data = await res.json();
 
-      setProgress({
-        totalTests: data.total_tests,
-        totalQuestions: data.total_questions,
-        totalCorrect: data.total_correct,
-        xp: data.xp,
-        streak: data.streak,
-        lastStudyDate: "",
-      });
-    }
-  } catch (err) {
-    console.log("Failed to fetch progress");
+setProgress({
+  totalTests: data.total_tests,
+  totalQuestions: data.total_questions,
+  totalCorrect: data.total_correct,
+  xp: data.xp,
+  streak: data.streak,
+  lastStudyDate: "",
+});
+
+
+  } catch {
+    console.log("Dashboard fetch error");
   }
 };
+
+useEffect(() => {
+  if (!userId) return;
+
+  const load = async () => {
+    await fetchProgress(userId);
+  };
+
+  load();
+}, [userId]);
 
 
   // ================= RESET ON TOPIC CHANGE =================
   useEffect(() => {
+  const reset = () => {
     setRevisionOutput("");
     setExamOutput("");
     setProbableOutput("");
     setChatHistory([]);
     setSelectedAnswers({});
     setScore(0);
-  }, [chapter, topic]);
+  };
+
+  reset();
+}, [chapter, topic]);
 
   // ================= TYPES =================
 type ProgressPayload = {
@@ -142,21 +150,15 @@ const saveProgress = async (updated: ProgressPayload) => {
   try {
     const res = await fetch(`${backendURL}/update-progress`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      console.error("Failed to update progress");
-      return;
+    if (res.ok) {
+      fetchProgress(userId);
     }
-
-    // 🔥 VERY IMPORTANT — sync again from backend
-    await fetchProgress(userId);
-  } catch (err) {
-    console.error("Backend sync failed:", err);
+  } catch {
+    console.log("Backend sync failed");
   }
 };
 
@@ -333,13 +335,13 @@ IMPORTANT RULES:
           ? progress.streak
           : progress.streak + 1;
 
-      const updatedProgress = {
+      const updatedProgress: ProgressPayload = {
         totalTests: progress.totalTests + 1,
         totalQuestions: progress.totalQuestions + mcqs.length,
         totalCorrect: progress.totalCorrect + newScore,
         xp: progress.xp + newScore * 10,
         streak: newStreak,
-        lastStudyDate: today,
+      
       };
 
       saveProgress(updatedProgress);
