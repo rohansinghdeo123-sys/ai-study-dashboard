@@ -193,69 +193,153 @@ export default function DashboardPage() {
       </div>
 
       {/* PERFORMANCE OVERVIEW */}
-      <div className="bg-gray-800 p-6 rounded-xl shadow">
-        <h2 className="text-xl font-semibold mb-6">
-          Performance Overview
-        </h2>
+<div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
 
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-            <XAxis dataKey="name" stroke="#aaa" />
-            <YAxis stroke="#aaa" />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="value"
-              stroke="#a855f7"
-              strokeWidth={3}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
+  <div className="flex items-center justify-between mb-8">
+    <div>
+      <h2 className="text-2xl font-semibold">
+        Performance Overview
+      </h2>
+      <p className="text-gray-400 text-sm mt-1">
+        Snapshot of your learning metrics
+      </p>
+    </div>
 
-      {/* LEADERBOARD */}
-      <div className="bg-gray-800 p-6 rounded-xl shadow">
-        <h2 className="text-xl font-semibold mb-4">
-          🏆 Leaderboard (Top 10)
-        </h2>
-        
-        <input
-  type="text"
-  placeholder="🔎 Search by User ID..."
-  value={searchTerm}
-  onChange={(e) => setSearchTerm(e.target.value)}
-  className="w-full mb-4 p-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-/>
+    <div className="text-sm bg-purple-600/20 text-purple-400 px-4 py-2 rounded-full">
+      Level {level}
+    </div>
+  </div>
 
-        {leaderboard.length === 0 ? (
-          <p className="text-gray-400">
-            No leaderboard data available.
-          </p>
-        ) : (
-          leaderboard
-  .filter(user =>
-    user.user_id.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-  .map((user, index) => (
+  {/* SUMMARY STATS */}
+  <div className="grid md:grid-cols-3 gap-6 mb-10">
+
+    <div className="bg-gray-800 p-4 rounded-xl">
+      <p className="text-gray-400 text-sm">Total Tests</p>
+      <p className="text-2xl font-bold mt-1">{progress.total_tests}</p>
+    </div>
+
+    <div className="bg-gray-800 p-4 rounded-xl">
+      <p className="text-gray-400 text-sm">Correct Answers</p>
+      <p className="text-2xl font-bold mt-1">{progress.total_correct}</p>
+    </div>
+
+    <div className="bg-gray-800 p-4 rounded-xl">
+      <p className="text-gray-400 text-sm">Total XP</p>
+      <p className="text-2xl font-bold mt-1">{progress.xp}</p>
+    </div>
+
+  </div>
+
+  {/* CHART */}
+  <ResponsiveContainer width="100%" height={280}>
+    <LineChart data={chartData}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+      <XAxis dataKey="name" stroke="#aaa" />
+      <YAxis stroke="#aaa" />
+      <Tooltip
+        contentStyle={{
+          backgroundColor: "#111827",
+          border: "1px solid #374151",
+          borderRadius: "10px",
+        }}
+      />
+      <Line
+        type="monotone"
+        dataKey="value"
+        stroke="#8b5cf6"
+        strokeWidth={4}
+        dot={{ r: 6 }}
+        activeDot={{ r: 8 }}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
+
+     {/* LEADERBOARD */}
+<div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-xl border border-gray-700">
+  <h2 className="text-2xl font-semibold mb-6">
+    🏆 Leaderboard
+  </h2>
+
+  <input
+    type="text"
+    placeholder="🔎 Search by User ID..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full mb-6 p-3 rounded-lg bg-gray-900 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
+  />
+
+  {leaderboard.length === 0 ? (
+    <p className="text-gray-400">
+      No leaderboard data available.
+    </p>
+  ) : (
+    <div>
+
+      {/* TOP 3 PODIUM */}
+      <div className="grid md:grid-cols-3 gap-6 mb-10">
+        {leaderboard.slice(0, 3).map((user, index) => {
+          const medals = ["🥇", "🥈", "🥉"];
+          const isCurrentUser = user.user_id === userId;
+
+          return (
             <div
               key={user.user_id}
-              className={`flex justify-between p-4 rounded-lg transition-all duration-300 hover:scale-[1.01] ${
-                user.user_id === userId
-                  ? "bg-gradient-to-r from-purple-600 to-pink-600"
-                  : "bg-gray-700"
+              className={`bg-gray-800 p-6 rounded-2xl text-center ${
+                isCurrentUser ? "ring-2 ring-purple-500" : ""
               }`}
             >
-              <div>
-                #{index + 1} {user.user_id}
+              <div className="text-2xl mb-2">{medals[index]}</div>
+
+              <div className="font-semibold truncate">
+                {user.user_id}
               </div>
-              <div>
-                XP: {user.xp} 🔥 {user.streak}
+
+              <div className="mt-2 font-bold">
+                {user.xp} XP
+              </div>
+
+              <div className="text-sm text-gray-400">
+                🔥 {user.streak} days
               </div>
             </div>
-          ))
-        )}
+          );
+        })}
       </div>
+
+      {/* REMAINING USERS */}
+      <div className="space-y-4">
+        {leaderboard
+          .filter(user =>
+            user.user_id.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+          .slice(3)
+          .map((user, index) => {
+            const rank = index + 4;
+            const isCurrentUser = user.user_id === userId;
+
+            return (
+              <div
+                key={user.user_id}
+                className={`p-4 rounded-lg flex justify-between bg-gray-800 ${
+                  isCurrentUser ? "ring-2 ring-purple-500" : ""
+                }`}
+              >
+                <div>
+                  #{rank} {user.user_id}
+                </div>
+
+                <div>
+                  {user.xp} XP 🔥 {user.streak}
+                </div>
+              </div>
+            );
+          })}
+      </div>
+
     </div>
+  )}
+</div>
+</div>
   );
 }
