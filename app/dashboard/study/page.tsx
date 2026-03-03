@@ -24,7 +24,7 @@ export default function StudyPage() {
 
   useEffect(() => {
   const storedId =
-    localStorage.getItem("userId") || crypto.randomUUID();
+    localStorage.getItem("userId") || crypto.randomUUID(); 
 
   localStorage.setItem("userId", storedId);
 
@@ -429,12 +429,17 @@ IMPORTANT RULES:
         <div>
           <h2 className="text-lg font-semibold mb-2">Select Chapter</h2>
           <select
-            value={chapter}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-  const selected = e.target.value as string;
-  setChapter(selected);
-  setTopic(topicsByChapter[selected][0]);
-}}
+  value={chapter}
+  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selected = e.target.value;
+    setChapter(selected);
+
+    // FIX: use .value because topics are objects
+    const firstTopic =
+      topicsByChapter[selected]?.[0]?.value ?? "alkanes";
+
+    setTopic(firstTopic);
+  }}
             className="w-full p-3 rounded bg-gray-900"
           >
             {chapters.map((c) => (
