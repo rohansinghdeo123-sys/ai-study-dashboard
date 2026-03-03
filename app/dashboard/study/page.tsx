@@ -430,11 +430,11 @@ IMPORTANT RULES:
           <h2 className="text-lg font-semibold mb-2">Select Chapter</h2>
           <select
             value={chapter}
-            onChange={(e) => {
-              const selected = e.target.value;
-              setChapter(selected);
-              setTopic(topicsByChapter[selected][0]);
-            }}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+  const selected = e.target.value as string;
+  setChapter(selected);
+  setTopic(topicsByChapter[selected][0]);
+}}
             className="w-full p-3 rounded bg-gray-900"
           >
             {chapters.map((c) => (
@@ -449,7 +449,9 @@ IMPORTANT RULES:
           <h2 className="text-lg font-semibold mb-2">Select Topic</h2>
           <select
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+  setTopic(e.target.value)
+}
             className="w-full p-3 rounded bg-gray-900"
           >
             {topicsByChapter[chapter].map((t) => (
