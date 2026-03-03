@@ -38,15 +38,17 @@ export default function StudyPage() {
 
   const chapters = ["hydrocarbon"];
 
-  const topicsByChapter: Record<string, string[]> = {
-    hydrocarbon: [
-      "alkanes",
-      "alkenes",
-      "alkynes",
-      "aromatic hydrocarbons",
-      "isomerism",
-    ],
-  };
+  const topicsByChapter: Record<
+  string,
+  { label: string; value: string }[]
+> = {
+  hydrocarbon: [
+    { label: "Alkanes", value: "alkanes" },
+    { label: "Alkenes", value: "alkenes" },
+    { label: "Alkynes", value: "alkynes" },
+    { label: "Aromatic Hydrocarbons", value: "aromatics" },
+  ],
+};
 
   // ================= MODE =================
 
@@ -451,8 +453,8 @@ IMPORTANT RULES:
             className="w-full p-3 rounded bg-gray-900"
           >
             {topicsByChapter[chapter].map((t) => (
-              <option key={t} value={t}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+              <option key={t.value} value={t.value}>
+                {t.label}
               </option>
             ))}
           </select>
