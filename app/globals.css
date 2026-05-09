@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+/* --- BLOOMBERG TERMINAL THEME CONFIGURATION --- */
+@theme {
+  /* Bloomberg Palette */
+  --color-terminal-black: #000000;
+  --color-terminal-orange: #FFA500;
+  --color-terminal-green: #00FF00;
+  --color-terminal-red: #FF3B30;
+  --color-terminal-blue: #007AFF;
+  
+  /* High-Contrast Grays */
+  --color-terminal-gray-900: #0A0A0A;
+  --color-terminal-gray-800: #111111;
+  --color-terminal-gray-700: #222222;
+  --color-terminal-gray-600: #333333;
+  --color-terminal-gray-400: #666666;
+
+  /* Typography */
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Geist Sans", Inter, system-ui, sans-serif;
+}
+
+/* --- BASE STYLES --- */
+:root {
+  --background: #000000;
+  --foreground: #ededed;
+}
+
+body {
+  background: radial-gradient(circle at top, #0A0A0A, #000000);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* --- BLOOMBERG UI COMPONENTS --- */
+
+/* Ultra-thin Terminal Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #000000;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FFA500;
+}
+
+/* High-Density Panel System */
+.terminal-panel {
+  background-color: #0A0A0A;
+  border: 1px solid #222222;
+  transition: border-color 0.2s ease;
+}
+.terminal-panel:hover {
+  border-color: #444444;
+}
+
+/* Terminal Header Bar */
+.terminal-header {
+  background-color: #111111;
+  border-bottom: 1px solid #222222;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #666666;
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Subtle Grid Overlay Effect */
+.terminal-grid {
+  background-image: 
+    linear-gradient(to right, #80808008 1px, transparent 1px),
+    linear-gradient(to bottom, #80808008 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Animations */
+@keyframes terminal-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.animate-terminal-pulse {
+  animation: terminal-pulse 2s infinite ease-in-out;
+}
+
+/* --- ADMIN PANEL SPECIFIC STYLES --- */
+
+/* Agent Status Indicator Glow */
+@keyframes agent-active-glow {
+  0%, 100% { box-shadow: 0 0 4px rgba(0, 255, 0, 0.3); }
+  50% { box-shadow: 0 0 8px rgba(0, 255, 0, 0.6); }
+}
+.agent-active {
+  animation: agent-active-glow 2s infinite ease-in-out;
+}
+
+/* Log Stream Highlight on New Entry */
+@keyframes log-flash {
+  0% { background-color: rgba(255, 165, 0, 0.15); }
+  100% { background-color: transparent; }
+}
+.log-new {
+  animation: log-flash 1s ease-out;
+}
+
+/* Pipeline Step Connector Line */
+.pipeline-connector {
+  position: relative;
+}
+.pipeline-connector::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: #222222;
+}
+
+/* Admin Select Dropdowns */
+.admin-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23666' d='M0 2l4 4 4-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 18px;
+}
+
+/* WebSocket Connection Indicator */
+@keyframes ws-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.ws-connected {
+  animation: ws-pulse 3s infinite ease-in-out;
+}
+
+/* Admin Chat Bubble Styles */
+.admin-chat-admin {
+  border-radius: 2px 8px 8px 8px;
+}
+.admin-chat-agent {
+  border-radius: 8px 2px 8px 8px;
+}
