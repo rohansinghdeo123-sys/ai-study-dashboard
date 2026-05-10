@@ -106,7 +106,6 @@ function ParticleCanvas() {
 
     ctx.clearRect(0, 0, width, height);
 
-    // Draw bonds
     ctx.strokeStyle = "rgba(0, 163, 255, 0.12)";
     ctx.lineWidth = 0.5;
     for (let i = 0; i < particles.length; i++) {
@@ -202,9 +201,6 @@ export default function LoginPage() {
 
   const formattedPhone = useMemo(() => normalizePhoneNumber(phoneNumber), [phoneNumber]);
 
-  // The new headline – brand‑focused
-  const typedHeadline = useTypingEffect("Welcome to\nAgentifyAI");
-
   useEffect(() => {
     if (!loading && user) {
       setGranted(true);
@@ -299,11 +295,10 @@ export default function LoginPage() {
 
       <div className="relative z-10">
         <main className="grid min-h-screen grid-cols-1 gap-0 px-6 py-8 lg:grid-cols-[minmax(0,1.05fr)_520px] lg:px-14 xl:px-20">
-          {/* Left panel – Brand showcase */}
+          {/* Left panel – Clean and bold */}
           <section className="flex flex-col justify-center">
             <div className="mb-8 flex flex-wrap items-center gap-3">
               <TerminalBadge tone="blue">AI TERMINAL</TerminalBadge>
-              <TerminalBadge tone="amber">PERSONAL AI AGENT</TerminalBadge>
               <TerminalBadge tone="green">AUTH ONLINE</TerminalBadge>
               <TerminalBadge tone="neutral">v1.0.4-STABLE</TerminalBadge>
             </div>
@@ -313,31 +308,21 @@ export default function LoginPage() {
                 Learning Intelligence Console
               </div>
 
-              {/* ========== BRAND & USP BLOCK ========== */}
-              <h1 className="text-5xl font-black leading-[1.05] tracking-tight md:text-6xl">
-                <span className="whitespace-pre-line">{typedHeadline}</span>
-                <span className="ml-1 animate-pulse text-[#00A3FF]">|</span>
+              {/* === SINGLE BRAND LOCKUP === */}
+              <h1 className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00A3FF] to-amber-400">
+                AgentifyAI
               </h1>
 
-              <div className="mt-2 flex items-center gap-3">
-                <span className="text-xs font-mono tracking-wider text-gray-500 uppercase">
-                  by
-                </span>
-                <span className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#00A3FF] to-amber-400">
-                  AgentifyAI
-                </span>
-              </div>
-
-              <p className="mt-6 text-2xl font-semibold text-amber-400 font-mono tracking-tight">
+              <p className="mt-4 text-2xl font-semibold text-amber-400 font-mono tracking-tight">
                 Personal AI Agent
               </p>
               <p className="mt-2 max-w-2xl text-base leading-8 text-gray-400">
-                Your own AI coach. Trained on your progress. Always ready.  
-                One private agent that learns from every session, spots weak areas, and guides you daily – just like a personal tutor.
+                One private AI coach that learns from every session, spots weak areas, and guides you daily — just like a personal tutor.
               </p>
-              {/* ========================================== */}
+              {/* =============================== */}
             </div>
 
+            {/* Live status tiles */}
             <div className="mt-10 grid max-w-4xl grid-cols-2 border border-[#1A1A1A] md:grid-cols-4">
               <MetricTile label="Daily XP" value="LIVE" active />
               <MetricTile label="MCQ Engine" value="READY" />
@@ -345,35 +330,23 @@ export default function LoginPage() {
               <MetricTile label="Personal AI" value="ACTIVE" />
             </div>
 
+            {/* USP highlights */}
             <div className="mt-8 grid max-w-4xl gap-3 md:grid-cols-2">
               {[
                 [
                   "PERSONAL_AI_COACH",
-                  "Every student gets a dedicated AI agent that learns from your sessions, spots weak areas, and guides you daily.",
+                  "Every student gets a dedicated AI agent that adapts to your performance and creates a personalised study path.",
                 ],
                 [
-                  "MCQ_PRACTICE",
-                  "One-question-at-a-time exam training with instant feedback.",
-                ],
-                [
-                  "WEAK_TOPIC_SIGNAL",
-                  "Find concepts that need urgent revision.",
-                ],
-                [
-                  "SESSION_LEDGER",
-                  "Track every attempt, score, XP, and accuracy.",
+                  "SMART_REVISION",
+                  "Weak‑topic detection and intelligent revision sessions that maximise retention.",
                 ],
               ].map(([label, detail]) => (
                 <div
                   key={label}
                   className="border border-[#1A1A1A] bg-[#080808]/90 p-4 hover:border-[#00A3FF]/30 transition-colors duration-200"
                 >
-                  <div
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-[0.22em] font-mono",
-                      label === "PERSONAL_AI_COACH" ? "text-amber-400" : "text-[#00A3FF]",
-                    )}
-                  >
+                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-400 font-mono">
                     {label}
                   </div>
                   <div className="mt-2 text-sm text-[#9A9A9A]">{detail}</div>
@@ -416,11 +389,10 @@ export default function LoginPage() {
                         Sign in module
                       </div>
                       <h2 className="mt-3 text-2xl font-bold text-[#E6E6E6]">
-                        AgentifyAI Terminal
+                        Welcome back
                       </h2>
                       <p className="mt-2 text-sm leading-6 text-[#9A9A9A]">
-                        Continue with Google or verify your mobile number using
-                        Firebase OTP.
+                        Continue with Google or verify your mobile number.
                       </p>
                     </div>
 
