@@ -255,7 +255,7 @@ function normalizeLeaderboard(source: unknown): LeaderboardUser[] {
         total_tests: toNumber(row.total_tests),
       };
     })
-    .filter((item): item is LeaderboardUser => Boolean(item));
+    .filter((user) => user !== null) as LeaderboardUser[];
 }
 
 function normalizeSessions(source: unknown): SessionRecord[] {
