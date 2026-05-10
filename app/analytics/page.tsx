@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 
-// @ts-ignore
+
 const Plot = dynamic(() => import("react-plotly.js"), {
   ssr: false,
 });
