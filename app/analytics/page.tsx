@@ -444,7 +444,7 @@ function formatTextLines(text: any): string[] {
    MAIN COMPONENT
    ================================================================ */
 export default function AnalyticsPage() {
-  const backendURL = "http://127.0.0.1:8000";
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   const [analytics, setAnalytics] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
