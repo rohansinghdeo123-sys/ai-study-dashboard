@@ -4,9 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 
 
-const Plot = dynamic(() => import("react-plotly.js"), {
-  ssr: false,
-});
+const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as any;
 
 import {
   LineChart,
