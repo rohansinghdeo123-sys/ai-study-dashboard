@@ -202,7 +202,8 @@ export default function LoginPage() {
 
   const formattedPhone = useMemo(() => normalizePhoneNumber(phoneNumber), [phoneNumber]);
 
-  const typedHeadline = useTypingEffect("Master Your Subjects\nwith AI Terminal.", 60);
+  // The new headline – brand‑focused
+  const typedHeadline = useTypingEffect("Welcome to\nAgentifyAI");
 
   useEffect(() => {
     if (!loading && user) {
@@ -298,7 +299,7 @@ export default function LoginPage() {
 
       <div className="relative z-10">
         <main className="grid min-h-screen grid-cols-1 gap-0 px-6 py-8 lg:grid-cols-[minmax(0,1.05fr)_520px] lg:px-14 xl:px-20">
-          {/* Left panel */}
+          {/* Left panel – Brand showcase */}
           <section className="flex flex-col justify-center">
             <div className="mb-8 flex flex-wrap items-center gap-3">
               <TerminalBadge tone="blue">AI TERMINAL</TerminalBadge>
@@ -312,20 +313,29 @@ export default function LoginPage() {
                 Learning Intelligence Console
               </div>
 
+              {/* ========== BRAND & USP BLOCK ========== */}
               <h1 className="text-5xl font-black leading-[1.05] tracking-tight md:text-6xl">
                 <span className="whitespace-pre-line">{typedHeadline}</span>
                 <span className="ml-1 animate-pulse text-[#00A3FF]">|</span>
               </h1>
 
-              {/* USP statement */}
-              <p className="mt-4 text-lg font-semibold text-amber-400 font-mono">
-                Your own AI coach. Trained on your progress. Always ready.
-              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-xs font-mono tracking-wider text-gray-500 uppercase">
+                  by
+                </span>
+                <span className="text-2xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#00A3FF] to-amber-400">
+                  AgentifyAI
+                </span>
+              </div>
 
-              <p className="mt-2 max-w-2xl text-base leading-8 text-[#9A9A9A]">
-                Personalized quizzes, smart revision, MCQ analytics, weak-topic
-                detection, and a private AI agent that learns from every session.
+              <p className="mt-6 text-2xl font-semibold text-amber-400 font-mono tracking-tight">
+                Personal AI Agent
               </p>
+              <p className="mt-2 max-w-2xl text-base leading-8 text-gray-400">
+                Your own AI coach. Trained on your progress. Always ready.  
+                One private agent that learns from every session, spots weak areas, and guides you daily – just like a personal tutor.
+              </p>
+              {/* ========================================== */}
             </div>
 
             <div className="mt-10 grid max-w-4xl grid-cols-2 border border-[#1A1A1A] md:grid-cols-4">
@@ -406,7 +416,7 @@ export default function LoginPage() {
                         Sign in module
                       </div>
                       <h2 className="mt-3 text-2xl font-bold text-[#E6E6E6]">
-                        AI Study Dashboard
+                        AgentifyAI Terminal
                       </h2>
                       <p className="mt-2 text-sm leading-6 text-[#9A9A9A]">
                         Continue with Google or verify your mobile number using
