@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 // ── Typing animation hook ─────────────────────────────────────────────────
 function useTypingEffect(text: string, speed = 50) {
@@ -24,51 +25,9 @@ function useTypingEffect(text: string, speed = 50) {
   return displayed;
 }
 
-// ── Agent pool (subject‑agnostic, human‑like personal assistants) ──────────
-const AGENT_POOL = [
-  {
-    name: "Arya",
-    description:
-      "A perceptive strategist who identifies your strengths and gaps across any subject, then crafts a learning path that adapts as you evolve.",
-  },
-  {
-    name: "Nova",
-    description:
-      "An energetic, curiosity‑driven mentor who connects ideas across disciplines and keeps your motivation high, no matter what you're studying.",
-  },
-  {
-    name: "Riven",
-    description:
-      "A calm, analytical mind that turns mistakes into deep understanding, helping you master not just topics but how you learn best.",
-  },
-  {
-    name: "Kael",
-    description:
-      "A patient and insightful coach who empowers you with the tools to tackle any challenge — exams, projects, or personal growth.",
-  },
-  {
-    name: "Sera",
-    description:
-      "A warm, encouraging presence that celebrates every milestone and ensures you never feel alone on your learning journey.",
-  },
-];
-
-function pickAgent() {
-  // If the user already has an agent assigned, keep it
-  const stored = localStorage.getItem("agentify_agent");
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      // fall through and assign a new one
-    }
-  }
-
-  // Assign a random agent the first time
-  const agent = AGENT_POOL[Math.floor(Math.random() * AGENT_POOL.length)];
-  localStorage.setItem("agentify_agent", JSON.stringify(agent));
-  return agent;
-}
+// ── Fallback agent descriptions (used only if backend hasn't assigned one) ─
+const FALLBACK_DESCRIPTION =
+  "Your personal AI coach – ready to guide you through every subject and every challenge.";
 
 // ── Notification Component ────────────────────────────────────────────────
 interface AgentNotificationProps {
@@ -76,13 +35,81 @@ interface AgentNotificationProps {
 }
 
 export default function AgentifiedNotification({ onDismiss }: AgentNotificationProps) {
+  const { user, getAuthHeaders } = useAuth();
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
   const [agent, setAgent] = useState<{ name: string; description: string } | null>(null);
+  const [loadingCoach, setLoadingCoach] = useState(true);
   const [show, setShow] = useState(true);
   const typedHeadline = useTypingEffect("You have been Agentified.", 60);
 
+  // Fetch the real coach data from the backend
   useEffect(() => {
-    setAgent(pickAgent());
-  }, []);
+    if (!user) return;
+
+    const fetchCoach = async () => {
+      try {
+        const headers = await getAuthHeaders();
+        // Try the coach dashboard endpoint (which returns profile + memories)
+        const response = await fetch(`${backendURL}/coach/${user.uid}`, {
+          headers,
+          cache: "no-store",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const profile = data.profile;
+          if (profile && profile.coach_name) {
+            setAgent({
+              name: profile.coach_name,
+              description:
+                profile.long_term_summary ||
+                profile.daily_strategy ||
+                FALLBACK_DESCRIPTION,
+            });
+            setLoadingCoach(false);
+            return;
+          }
+        }
+
+        // Fallback: call the bootstrap endpoint to ensure a coach exists
+        const bootstrapRes = await fetch(`${backendURL}/coach/bootstrap`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            user_id: user.uid,
+            student_display_name: user.displayName || "Student",
+          }),
+        });
+
+        if (bootstrapRes.ok) {
+          const bootstrapData = await bootstrapRes.json();
+          if (bootstrapData.coach_name) {
+            setAgent({
+              name: bootstrapData.coach_name,
+              description: bootstrapData.coach_tone
+                ? `A coach with a ${bootstrapData.coach_tone} approach, dedicated to your growth.`
+                : FALLBACK_DESCRIPTION,
+            });
+          } else {
+            // Absolute fallback – use a generic name
+            setAgent({
+              name: "Ari",
+              description: FALLBACK_DESCRIPTION,
+            });
+          }
+        } else {
+          setAgent({ name: "Ari", description: FALLBACK_DESCRIPTION });
+        }
+      } catch {
+        setAgent({ name: "Ari", description: FALLBACK_DESCRIPTION });
+      } finally {
+        setLoadingCoach(false);
+      }
+    };
+
+    fetchCoach();
+  }, [user, backendURL, getAuthHeaders]);
 
   const handleClose = () => {
     localStorage.setItem("agentify_notification_seen", "true");
@@ -90,7 +117,7 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
     onDismiss();
   };
 
-  if (!show || !agent) return null;
+  if (!show) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
@@ -119,8 +146,16 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
                 Personal AI Agent Assigned
               </span>
             </div>
-            <div className="text-2xl font-bold text-white">{agent.name}</div>
-            <p className="text-sm text-gray-400 leading-relaxed">{agent.description}</p>
+            {loadingCoach ? (
+              <div className="text-sm text-gray-400 animate-pulse">Establishing neural link…</div>
+            ) : agent ? (
+              <>
+                <div className="text-2xl font-bold text-white">{agent.name}</div>
+                <p className="text-sm text-gray-400 leading-relaxed">{agent.description}</p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400">Your personal AI coach is synchronised.</p>
+            )}
           </div>
 
           {/* Status badges */}
@@ -136,9 +171,10 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
           {/* CTA */}
           <button
             onClick={handleClose}
-            className="w-full rounded-lg border border-[#00A3FF]/40 bg-[#00A3FF]/10 px-4 py-3 text-sm font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all uppercase tracking-wider font-mono"
+            disabled={loadingCoach}
+            className="w-full rounded-lg border border-[#00A3FF]/40 bg-[#00A3FF]/10 px-4 py-3 text-sm font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all uppercase tracking-wider font-mono disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            MEET YOUR AGENT
+            {loadingCoach ? "SYNCHRONISING…" : "MEET YOUR AGENT"}
           </button>
         </div>
       </div>
