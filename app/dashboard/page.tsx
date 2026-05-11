@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import AgentifiedNotification from "@/components/AgentifiedNotification";
+import CoachWidget from "@/components/CoachWidget";
 
 // ─── Types (unchanged) ─────────────────────────────────────────────────────
 interface Progress {
@@ -1094,6 +1095,9 @@ export default function DashboardPage() {
           </div>
         </GlassPanel>
       </div>
+
+      {/* Coach Widget – persistent across dashboard */}
+      <CoachWidget />
     </div>
   );
 }
