@@ -184,6 +184,10 @@ export default function CoachWidget() {
     inputRef.current?.focus();
   };
 
+  const clearChat = () => {
+    setMessages([]);
+  };
+
   if (!user) return null;
 
   return (
@@ -212,12 +216,22 @@ export default function CoachWidget() {
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
                 <span className="text-sm font-bold text-[#00A3FF] font-mono">{coachName}</span>
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-white/40 hover:text-white"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-1">
+                {/* Clear chat button */}
+                <button
+                  onClick={clearChat}
+                  className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-red-400/40 hover:text-red-400"
+                  title="Clear chat"
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => setOpen(false)}
+                  className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-white/40 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {/* Greeting & dynamic suggestion */}
