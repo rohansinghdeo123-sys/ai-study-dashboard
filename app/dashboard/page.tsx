@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import AgentifiedNotification from "@/components/AgentifiedNotification";
 
 // ─── Types (unchanged) ─────────────────────────────────────────────────────
 interface Progress {
@@ -516,6 +517,7 @@ export default function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRankId, setSelectedRankId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [showAgentNotification, setShowAgentNotification] = useState(false);
 
   const [data, setData] = useState<{
     progress: Progress;
@@ -536,6 +538,13 @@ export default function DashboardPage() {
     loading: true,
     error: null,
   });
+
+  // Agentified notification trigger
+  useEffect(() => {
+    if (!authLoading && user && !localStorage.getItem("agentify_notification_seen")) {
+      setShowAgentNotification(true);
+    }
+  }, [authLoading, user]);
 
   // Auto‑refresh every 60 seconds
   const fetchAllData = useCallback(async () => {
@@ -714,11 +723,11 @@ export default function DashboardPage() {
 
   // Quick action handler
   const goToTopic = useCallback(
-  (topic: string) => {
-    router.push(`/dashboard/study?chapter=hydrocarbon&topic=${topic}`);
-  },
-  [router],
-);
+    (topic: string) => {
+      router.push(`/dashboard/study?chapter=hydrocarbon&topic=${topic}`);
+    },
+    [router],
+  );
 
   // Loading state
   if (authLoading || data.loading) {
@@ -729,6 +738,11 @@ export default function DashboardPage() {
         </div>
       </div>
     );
+  }
+
+  // Agentified notification (shown only once after login)
+  if (showAgentNotification) {
+    return <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />;
   }
 
   return (
