@@ -52,6 +52,40 @@ interface ChatMessage {
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 const POLL_INTERVAL_MS = 1500;
 
+// ─── Agent hierarchy & voice config ────────────────────────────────────────
+const AGENT_ROLES: Record<string, { role: string; reportsTo: string | null; voice: { name?: string; lang: string; pitch: number; rate: number } }> = {
+  orchestrator: {
+    role: "Lead Agent",
+    reportsTo: null,
+    voice: { name: "Google UK English Male", lang: "en-GB", pitch: 1.1, rate: 0.9 },
+  },
+  tutor: {
+    role: "Specialist",
+    reportsTo: "orchestrator",
+    voice: { name: "Google US English Female", lang: "en-US", pitch: 1.0, rate: 1.0 },
+  },
+  revision: {
+    role: "Specialist",
+    reportsTo: "orchestrator",
+    voice: { name: "Google UK English Female", lang: "en-GB", pitch: 1.05, rate: 0.95 },
+  },
+  exam: {
+    role: "Specialist",
+    reportsTo: "orchestrator",
+    voice: { name: "Google US English Male", lang: "en-US", pitch: 0.9, rate: 1.1 },
+  },
+  planner: {
+    role: "Specialist",
+    reportsTo: "orchestrator",
+    voice: { name: "Google UK English Male", lang: "en-GB", pitch: 1.0, rate: 1.0 },
+  },
+  coach: {
+    role: "Specialist",
+    reportsTo: "orchestrator",
+    voice: { name: "Google US English Female", lang: "en-US", pitch: 1.1, rate: 0.9 },
+  },
+};
+
 const HEALTH_COLORS: Record<string, string> = {
   healthy: "#10B981",
   warning: "#F59E0B",
@@ -112,6 +146,7 @@ function getAgentColor(agentId: string) {
   if (agentId === "revision") return "#10B981";
   if (agentId === "exam") return "#EF4444";
   if (agentId === "planner") return "#A78BFA";
+  if (agentId === "coach") return "#EC4899";
   return "#9CA3AF";
 }
 
@@ -185,6 +220,24 @@ function GlassPanel({
   );
 }
 
+// ─── Voice synthesis helper ─────────────────────────────────────────────────
+function speakAgentMessage(agentId: string, text: string) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const config = AGENT_ROLES[agentId]?.voice;
+  if (!config) return;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = config.lang;
+  utterance.pitch = config.pitch;
+  utterance.rate = config.rate;
+  // Try to pick a matching voice
+  const voices = window.speechSynthesis.getVoices();
+  if (config.name) {
+    const match = voices.find((v) => v.name === config.name);
+    if (match) utterance.voice = match;
+  }
+  window.speechSynthesis.speak(utterance);
+}
+
 // ─── Main Ops Page ─────────────────────────────────────────────────────────
 export default function InternalOpsPage() {
   const { isAdmin, loading, claimsLoading, getAuthHeaders, profile } = useAuth();
@@ -209,6 +262,11 @@ export default function InternalOpsPage() {
   const [meetingAgentIds, setMeetingAgentIds] = useState<string[]>([]);
   const [meetingInput, setMeetingInput] = useState("");
   const [meetingLoading, setMeetingLoading] = useState<Record<string, boolean>>({});
+
+  // Voice states
+  const [isListening, setIsListening] = useState(false);
+  const [voiceTranscript, setVoiceTranscript] = useState("");
+  const recognitionRef = useRef<any>(null);
 
   const versionRef = useRef(0);
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -277,6 +335,37 @@ export default function InternalOpsPage() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
   useEffect(() => { meetingEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages, meetingLoading]);
 
+  // Voice recognition setup
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setVoiceTranscript(transcript);
+      setChatInput((prev) => prev + " " + transcript);
+      setIsListening(false);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
   // Command sender
   const sendCommand = async (agentId: string, command: string) => {
     try {
@@ -286,7 +375,7 @@ export default function InternalOpsPage() {
     } catch (error) { console.error("Command error:", error); }
   };
 
-  // Single-agent chat (unchanged)
+  // Single-agent chat (enhanced with voice output)
   const sendChatMessage = async () => {
     if (!chatInput.trim() || !selectedAgent || chatLoading) return;
 
@@ -315,16 +404,19 @@ export default function InternalOpsPage() {
         }),
       });
 
+      const agentAnswer = data.answer || JSON.stringify(data);
       setChatMessages((prev) => [
         ...prev,
         {
           role: "agent",
           agent_id: selectedAgent,
-          content: data.answer || JSON.stringify(data),
+          content: agentAnswer,
           timestamp: new Date().toISOString(),
           metadata: data.metadata,
         },
       ]);
+      // Speak the agent's response
+      speakAgentMessage(selectedAgent, agentAnswer);
     } catch {
       setChatMessages((prev) => [
         ...prev,
@@ -339,6 +431,13 @@ export default function InternalOpsPage() {
       setChatLoading(false);
       poll();
     }
+  };
+
+  // Report request: opens chat with selected agent and sends a report prompt
+  const requestReport = (agentId: string) => {
+    setSelectedAgent(agentId);
+    setActiveTab("chat");
+    setChatInput("Provide a concise status report of your current tasks, performance metrics, and any issues that need attention.");
   };
 
   // Meeting broadcast message
@@ -433,6 +532,40 @@ export default function InternalOpsPage() {
     [chatMessages, meetingAgentIds],
   );
 
+  // Hierarchy tree (simple inline)
+  const hierarchyTree = (
+    <div className="text-[10px] font-mono text-gray-500 space-y-1">
+      {["orchestrator", "tutor", "revision", "exam", "planner", "coach"].map((id, idx) => {
+        const agent = agents.find((a) => a.agent_id === id);
+        const roleInfo = AGENT_ROLES[id] || { role: "Unknown", reportsTo: null };
+        const color = getAgentColor(id);
+        if (idx === 0) {
+          return (
+            <div key={id} className="flex items-center gap-2">
+              <span className="text-amber-400 font-bold">├─ CEO</span>
+              <span className="text-gray-600">│</span>
+              <span style={{ color }}>└─ {agent?.display_name || id} <span className="text-gray-500">({roleInfo.role})</span></span>
+            </div>
+          );
+        }
+        return (
+          <div key={id} className="flex items-center gap-2 ml-4">
+            <span className="text-gray-600">│</span>
+            <span style={{ color }}>├─ {agent?.display_name || id} <span className="text-gray-500">({roleInfo.role})</span></span>
+            {agent && (
+              <span
+                className="rounded px-1.5 py-0.5 text-[8px] font-bold uppercase"
+                style={{ color: STATUS_COLORS[agent.status] || "#6B7280", backgroundColor: `${STATUS_COLORS[agent.status]}20` }}
+              >
+                {agent.status}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+
   if (loading || claimsLoading) {
     return (
       <div className="flex min-h-[70vh] items-center justify-center bg-[#0A0A0F] text-sm uppercase tracking-wider text-[#00A3FF] animate-pulse">
@@ -459,56 +592,73 @@ export default function InternalOpsPage() {
 
       {/* Main grid */}
       <div className="grid flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[380px_1fr]">
-        {/* Left: Agent Registry */}
-        <GlassPanel title="Agent Registry" tag="LIVE" right={<span className="text-xs text-gray-500 font-mono">{agents.length} AGENTS</span>}>
-          <div className="space-y-2 h-full overflow-y-auto pr-1">
-            {agents.length === 0 ? (
-              <div className="py-8 text-center text-xs text-gray-600">NO AGENTS REGISTERED</div>
-            ) : (
-              agents.map((agent) => (
-                <button
-                  key={agent.agent_id}
-                  onClick={() => setSelectedAgent(agent.agent_id)}
-                  className={cn(
-                    "w-full text-left rounded-lg border p-3 transition-all",
-                    selectedAgent === agent.agent_id
-                      ? "border-[#00A3FF] bg-[#0F1A24] shadow-[0_0_10px_rgba(0,163,255,0.15)]"
-                      : "border-white/10 bg-white/5 hover:border-white/20",
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: HEALTH_COLORS[agent.health] || "#6B7280" }} />
-                      <span className="text-xs font-bold text-white uppercase font-mono">{agent.display_name}</span>
-                    </div>
-                    <span
-                      className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase font-mono"
-                      style={{ color: STATUS_COLORS[agent.status] || "#6B7280", backgroundColor: `${STATUS_COLORS[agent.status]}20` }}
+        {/* Left: Agent Registry + Hierarchy */}
+        <div className="flex flex-col gap-4 overflow-hidden">
+          <GlassPanel title="Agent Registry" tag="LIVE" right={<span className="text-xs text-gray-500 font-mono">{agents.length} AGENTS</span>}>
+            <div className="space-y-2 h-full overflow-y-auto pr-1">
+              {agents.length === 0 ? (
+                <div className="py-8 text-center text-xs text-gray-600">NO AGENTS REGISTERED</div>
+              ) : (
+                agents.map((agent) => (
+                  <div key={agent.agent_id} className="space-y-2">
+                    <button
+                      onClick={() => setSelectedAgent(agent.agent_id)}
+                      className={cn(
+                        "w-full text-left rounded-lg border p-3 transition-all",
+                        selectedAgent === agent.agent_id
+                          ? "border-[#00A3FF] bg-[#0F1A24] shadow-[0_0_10px_rgba(0,163,255,0.15)]"
+                          : "border-white/10 bg-white/5 hover:border-white/20",
+                      )}
                     >
-                      {agent.status}
-                    </span>
-                  </div>
-                  {agent.current_task && <div className="text-[10px] text-emerald-400 truncate mb-1">{agent.current_task}</div>}
-                  <div className="grid grid-cols-5 gap-1 text-[10px]">
-                    <div><span className="text-gray-500">REQ</span><div className="text-gray-200">{agent.total_requests}</div></div>
-                    <div><span className="text-gray-500">OK</span><div className="text-emerald-400">{agent.total_success}</div></div>
-                    <div><span className="text-gray-500">ERR</span><div className="text-red-400">{agent.total_errors}</div></div>
-                    <div><span className="text-gray-500">LAT</span><div className="text-amber-400">{agent.avg_latency_ms}ms</div></div>
-                    <div><span className="text-gray-500">Q</span>
-                      <div style={{ color: agent.last_quality_score >= 0.7 ? "#10B981" : agent.last_quality_score > 0 ? "#F59E0B" : "#6B7280" }}>
-                        {agent.last_quality_score > 0 ? agent.last_quality_score.toFixed(2) : "--"}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: HEALTH_COLORS[agent.health] || "#6B7280" }} />
+                          <span className="text-xs font-bold text-white uppercase font-mono">{agent.display_name}</span>
+                          <span className="text-[8px] text-gray-500 font-mono">({AGENT_ROLES[agent.agent_id]?.role || "Specialist"})</span>
+                        </div>
+                        <span
+                          className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase font-mono"
+                          style={{ color: STATUS_COLORS[agent.status] || "#6B7280", backgroundColor: `${STATUS_COLORS[agent.status]}20` }}
+                        >
+                          {agent.status}
+                        </span>
                       </div>
+                      {agent.current_task && <div className="text-[10px] text-emerald-400 truncate mb-1">{agent.current_task}</div>}
+                      <div className="grid grid-cols-5 gap-1 text-[10px]">
+                        <div><span className="text-gray-500">REQ</span><div className="text-gray-200">{agent.total_requests}</div></div>
+                        <div><span className="text-gray-500">OK</span><div className="text-emerald-400">{agent.total_success}</div></div>
+                        <div><span className="text-gray-500">ERR</span><div className="text-red-400">{agent.total_errors}</div></div>
+                        <div><span className="text-gray-500">LAT</span><div className="text-amber-400">{agent.avg_latency_ms}ms</div></div>
+                        <div><span className="text-gray-500">Q</span>
+                          <div style={{ color: agent.last_quality_score >= 0.7 ? "#10B981" : agent.last_quality_score > 0 ? "#F59E0B" : "#6B7280" }}>
+                            {agent.last_quality_score > 0 ? agent.last_quality_score.toFixed(2) : "--"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex justify-between text-[10px]">
+                        <span className="text-gray-500">Success rate: {agent.success_rate}%</span>
+                        <span className="text-gray-600">{timeSince(agent.last_activity)}</span>
+                      </div>
+                    </button>
+                    {/* Report button per agent */}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => requestReport(agent.agent_id)}
+                        className="w-full rounded border border-[#00A3FF]/20 bg-[#00A3FF]/10 px-2 py-1 text-[9px] font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-colors"
+                      >
+                        Request Report
+                      </button>
                     </div>
                   </div>
-                  <div className="mt-2 flex justify-between text-[10px]">
-                    <span className="text-gray-500">Success rate: {agent.success_rate}%</span>
-                    <span className="text-gray-600">{timeSince(agent.last_activity)}</span>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </GlassPanel>
+                ))
+              )}
+            </div>
+          </GlassPanel>
+          {/* Hierarchy panel */}
+          <GlassPanel title="Team Hierarchy" tag="ORG">
+            {hierarchyTree}
+          </GlassPanel>
+        </div>
 
         {/* Right: Inspector with Tabs including MEETING */}
         <GlassPanel
@@ -568,7 +718,7 @@ export default function InternalOpsPage() {
               </div>
             )}
 
-            {/* CHAT – individual agent conversation */}
+            {/* CHAT – individual agent conversation with voice */}
             {activeTab === "chat" && (
               <div className="flex flex-col h-full overflow-hidden">
                 {!selectedAgent ? (
@@ -587,7 +737,6 @@ export default function InternalOpsPage() {
                             {cmd.toUpperCase()}
                           </button>
                         ))}
-                        {/* ─── NEW CLEAR CHAT BUTTON ─── */}
                         <button
                           onClick={() => {
                             if (!selectedAgent) return;
@@ -628,6 +777,17 @@ export default function InternalOpsPage() {
                         placeholder={`Message ${selectedAgent}...`}
                         className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
                       />
+                      {/* Microphone button */}
+                      <button
+                        onClick={toggleListening}
+                        disabled={!recognitionRef.current}
+                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
+                          isListening ? "border-red-400/40 bg-red-400/10 text-red-400" : "border-[#00A3FF]/20 bg-[#00A3FF]/10 text-[#00A3FF]"
+                        }`}
+                        title="Voice input"
+                      >
+                        🎤
+                      </button>
                       <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()} className="rounded-lg bg-[#00A3FF]/20 border border-[#00A3FF]/30 px-4 py-2 text-xs font-bold text-[#00A3FF] hover:bg-[#00A3FF]/30 disabled:opacity-40 transition-colors">
                         SEND
                       </button>
