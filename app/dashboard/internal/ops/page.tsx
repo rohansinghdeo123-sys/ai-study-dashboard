@@ -52,37 +52,37 @@ interface ChatMessage {
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 const POLL_INTERVAL_MS = 1500;
 
-// ─── Agent hierarchy & voice config ────────────────────────────────────────
-const AGENT_ROLES: Record<string, { role: string; reportsTo: string | null; voice: { name?: string; lang: string; pitch: number; rate: number } }> = {
+// ─── Agent hierarchy & dynamic voice configuration ─────────────────────────
+const AGENT_ROLES: Record<string, { role: string; reportsTo: string | null; voice: { name?: string; lang: string; basePitch: number; baseRate: number } }> = {
   orchestrator: {
     role: "Lead Agent",
     reportsTo: null,
-    voice: { name: "Google UK English Male", lang: "en-GB", pitch: 1.1, rate: 0.9 },
+    voice: { name: "Google UK English Male", lang: "en-GB", basePitch: 1.1, baseRate: 0.95 },
   },
   tutor: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google US English Female", lang: "en-US", pitch: 1.0, rate: 1.0 },
+    voice: { name: "Google US English Female", lang: "en-US", basePitch: 1.0, baseRate: 1.0 },
   },
   revision: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google UK English Female", lang: "en-GB", pitch: 1.05, rate: 0.95 },
+    voice: { name: "Google UK English Female", lang: "en-GB", basePitch: 1.05, baseRate: 0.95 },
   },
   exam: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google US English Male", lang: "en-US", pitch: 0.9, rate: 1.1 },
+    voice: { name: "Google US English Male", lang: "en-US", basePitch: 0.9, baseRate: 1.1 },
   },
   planner: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google UK English Male", lang: "en-GB", pitch: 1.0, rate: 1.0 },
+    voice: { name: "Google UK English Male", lang: "en-GB", basePitch: 1.0, baseRate: 1.0 },
   },
   coach: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google US English Female", lang: "en-US", pitch: 1.1, rate: 0.9 },
+    voice: { name: "Google US English Female", lang: "en-US", basePitch: 1.1, baseRate: 0.9 },
   },
 };
 
@@ -221,14 +221,21 @@ function GlassPanel({
 }
 
 // ─── Voice synthesis helper ─────────────────────────────────────────────────
-function speakAgentMessage(agentId: string, text: string) {
+// Dynamically adjusts pitch/rate based on agent's current status
+function speakAgentMessage(agentId: string, text: string, status?: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   const config = AGENT_ROLES[agentId]?.voice;
   if (!config) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = config.lang;
-  utterance.pitch = config.pitch;
-  utterance.rate = config.rate;
+  // Slight dynamic variation based on status for versatility
+  let pitchMod = 0;
+  let rateMod = 0;
+  if (status === "running") { pitchMod = 0.02; rateMod = 0.03; }
+  else if (status === "failed") { pitchMod = -0.05; rateMod = -0.05; }
+  else if (status === "paused") { pitchMod = -0.03; rateMod = -0.02; }
+  utterance.pitch = Math.min(2, Math.max(0, config.basePitch + pitchMod));
+  utterance.rate = Math.min(2, Math.max(0.5, config.baseRate + rateMod));
   // Try to pick a matching voice
   const voices = window.speechSynthesis.getVoices();
   if (config.name) {
@@ -262,8 +269,9 @@ export default function InternalOpsPage() {
   const [meetingAgentIds, setMeetingAgentIds] = useState<string[]>([]);
   const [meetingInput, setMeetingInput] = useState("");
   const [meetingLoading, setMeetingLoading] = useState<Record<string, boolean>>({});
+  const [isSpeaking, setIsSpeaking] = useState(false); // Global speaking state for stop button
 
-  // Voice states
+  // Voice states (for individual chat)
   const [isListening, setIsListening] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
@@ -366,6 +374,14 @@ export default function InternalOpsPage() {
     }
   };
 
+  // Stop all ongoing speech
+  const stopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  };
+
   // Command sender
   const sendCommand = async (agentId: string, command: string) => {
     try {
@@ -416,7 +432,9 @@ export default function InternalOpsPage() {
         },
       ]);
       // Speak the agent's response
-      speakAgentMessage(selectedAgent, agentAnswer);
+      const agent = agents.find((a) => a.agent_id === selectedAgent);
+      speakAgentMessage(selectedAgent, agentAnswer, agent?.status);
+      setIsSpeaking(true);
     } catch {
       setChatMessages((prev) => [
         ...prev,
@@ -440,7 +458,7 @@ export default function InternalOpsPage() {
     setChatInput("Provide a concise status report of your current tasks, performance metrics, and any issues that need attention.");
   };
 
-  // Meeting broadcast message
+  // Meeting broadcast message (now with voice output for each agent)
   const sendMeetingMessage = async () => {
     if (!meetingInput.trim() || meetingAgentIds.length === 0) return;
 
@@ -455,6 +473,7 @@ export default function InternalOpsPage() {
 
     setChatMessages((prev) => [...prev, adminMsg]);
     setMeetingInput("");
+    setIsSpeaking(true); // We'll set to false when all finish
 
     const loadingState: Record<string, boolean> = {};
     meetingAgentIds.forEach((id) => (loadingState[id] = true));
@@ -473,16 +492,20 @@ export default function InternalOpsPage() {
           }),
         });
 
+        const agentAnswer = data.answer || JSON.stringify(data);
         setChatMessages((prev) => [
           ...prev,
           {
             role: "agent",
             agent_id: agentId,
-            content: data.answer || JSON.stringify(data),
+            content: agentAnswer,
             timestamp: new Date().toISOString(),
             metadata: data.metadata,
           },
         ]);
+        // Speak the agent's response in meeting with dynamic variation
+        const agent = agents.find((a) => a.agent_id === agentId);
+        speakAgentMessage(agentId, agentAnswer, agent?.status);
       } catch {
         setChatMessages((prev) => [
           ...prev,
@@ -500,6 +523,7 @@ export default function InternalOpsPage() {
 
     await Promise.allSettled(promises);
     poll();
+    setIsSpeaking(false); // All voices are queued; actual speech may still be ongoing, but we can't easily track end. The stop button will clear.
   };
 
   // Helpers for toggling meeting agents
@@ -828,7 +852,7 @@ export default function InternalOpsPage() {
               </div>
             )}
 
-            {/* MEETING (broadcast chat) */}
+            {/* MEETING (broadcast chat with dynamic voice) */}
             {activeTab === "meeting" && (
               <div className="flex flex-col h-full overflow-hidden">
                 <div className="flex items-center justify-between mb-3 text-xs">
@@ -836,6 +860,11 @@ export default function InternalOpsPage() {
                   <div className="flex gap-2">
                     <button onClick={selectAllMeetingAgents} className="rounded border border-white/10 px-2 py-1 text-[10px] text-gray-400 hover:text-white">ALL</button>
                     <button onClick={clearMeetingAgents} className="rounded border border-white/10 px-2 py-1 text-[10px] text-gray-400 hover:text-white">CLEAR</button>
+                    {isSpeaking && (
+                      <button onClick={stopSpeaking} className="rounded border border-red-400/20 bg-red-400/10 px-2 py-1 text-[10px] text-red-400 hover:bg-red-400/20">
+                        STOP VOICE
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mb-3">
