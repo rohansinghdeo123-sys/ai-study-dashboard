@@ -294,8 +294,7 @@ function resolveAgentVoice(agentId: string): SpeechSynthesisVoice | null {
 function speakAgentMessage(agentId: string, text: string, status?: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-  // Cancel any ongoing speech so new messages take priority
-  window.speechSynthesis.cancel();
+  // ❌ REMOVED: window.speechSynthesis.cancel(); — this was killing the queue!
 
   const config = AGENT_ROLES[agentId]?.voice;
   if (!config) return;
@@ -318,6 +317,7 @@ function speakAgentMessage(agentId: string, text: string, status?: string) {
   const voice = resolveAgentVoice(agentId);
   if (voice) utterance.voice = voice;
 
+  // Add utterance to the queue — it will play after the current one finishes
   window.speechSynthesis.speak(utterance);
 }
 
