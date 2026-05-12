@@ -52,37 +52,78 @@ interface ChatMessage {
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 const POLL_INTERVAL_MS = 1500;
 
-// ─── Agent hierarchy & dynamic voice configuration ─────────────────────────
-const AGENT_ROLES: Record<string, { role: string; reportsTo: string | null; voice: { name?: string; lang: string; basePitch: number; baseRate: number } }> = {
+// ─── Agent hierarchy & ROBUST voice configuration ──────────────────────────
+// Each agent gets a priority list of voice names to try (first match wins).
+// Falls back to any voice matching the target language.
+const AGENT_ROLES: Record<string, {
+  role: string;
+  reportsTo: string | null;
+  voice: {
+    preferredNames: string[];   // tried in order
+    lang: string;               // fallback language match
+    basePitch: number;
+    baseRate: number;
+  };
+}> = {
   orchestrator: {
     role: "Lead Agent",
     reportsTo: null,
-    voice: { name: "Google UK English Male", lang: "en-GB", basePitch: 1.1, baseRate: 0.95 },
+    voice: {
+      preferredNames: ["Google UK English Male", "Microsoft George - English (United Kingdom)", "Daniel"],
+      lang: "en-GB",
+      basePitch: 1.1,
+      baseRate: 0.95,
+    },
   },
   tutor: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google US English Female", lang: "en-US", basePitch: 1.0, baseRate: 1.0 },
+    voice: {
+      preferredNames: ["Google US English Female", "Microsoft Zira - English (United States)", "Samantha", "Fiona"],
+      lang: "en-US",
+      basePitch: 1.0,
+      baseRate: 1.0,
+    },
   },
   revision: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google UK English Female", lang: "en-GB", basePitch: 1.05, baseRate: 0.95 },
+    voice: {
+      preferredNames: ["Google UK English Female", "Microsoft Hazel - English (United Kingdom)", "Moira", "Veena"],
+      lang: "en-GB",
+      basePitch: 1.05,
+      baseRate: 0.95,
+    },
   },
   exam: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google US English Male", lang: "en-US", basePitch: 0.9, baseRate: 1.1 },
+    voice: {
+      preferredNames: ["Google US English Male", "Microsoft David - English (United States)", "Alex", "Tom"],
+      lang: "en-US",
+      basePitch: 0.92,
+      baseRate: 1.08,
+    },
   },
   planner: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google UK English Male", lang: "en-GB", basePitch: 1.0, baseRate: 1.0 },
+    voice: {
+      preferredNames: ["Google UK English Male", "Microsoft George - English (United Kingdom)", "Oliver", "Arthur"],
+      lang: "en-GB",
+      basePitch: 1.0,
+      baseRate: 1.0,
+    },
   },
   coach: {
     role: "Specialist",
     reportsTo: "orchestrator",
-    voice: { name: "Google US English Female", lang: "en-US", basePitch: 1.1, baseRate: 0.9 },
+    voice: {
+      preferredNames: ["Google US English Female", "Microsoft Zira - English (United States)", "Karen", "Susan"],
+      lang: "en-US",
+      basePitch: 1.08,
+      baseRate: 0.92,
+    },
   },
 };
 
@@ -220,28 +261,63 @@ function GlassPanel({
   );
 }
 
-// ─── Voice synthesis helper ─────────────────────────────────────────────────
-// Dynamically adjusts pitch/rate based on agent's current status
+// ─── ROBUST Voice synthesis helper ─────────────────────────────────────────
+function resolveAgentVoice(agentId: string): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+
+  const config = AGENT_ROLES[agentId]?.voice;
+  if (!config) return null;
+
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return null;
+
+  // 1. Try each preferred name (exact match)
+  for (const preferred of config.preferredNames) {
+    const match = voices.find((v) => v.name === preferred);
+    if (match) return match;
+  }
+
+  // 2. Try partial name match (e.g. "Google UK English Male" contains "Google UK")
+  for (const preferred of config.preferredNames) {
+    const match = voices.find((v) => v.name.includes(preferred) || preferred.includes(v.name));
+    if (match) return match;
+  }
+
+  // 3. Fallback: any voice matching the target language
+  const langMatch = voices.find((v) => v.lang.startsWith(config.lang));
+  if (langMatch) return langMatch;
+
+  // 4. Last resort: first available voice
+  return voices[0] || null;
+}
+
 function speakAgentMessage(agentId: string, text: string, status?: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+  // Cancel any ongoing speech so new messages take priority
+  window.speechSynthesis.cancel();
+
   const config = AGENT_ROLES[agentId]?.voice;
   if (!config) return;
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = config.lang;
-  // Slight dynamic variation based on status for versatility
+
+  // Apply dynamic pitch/rate variation based on agent status
   let pitchMod = 0;
   let rateMod = 0;
-  if (status === "running") { pitchMod = 0.02; rateMod = 0.03; }
-  else if (status === "failed") { pitchMod = -0.05; rateMod = -0.05; }
-  else if (status === "paused") { pitchMod = -0.03; rateMod = -0.02; }
-  utterance.pitch = Math.min(2, Math.max(0, config.basePitch + pitchMod));
-  utterance.rate = Math.min(2, Math.max(0.5, config.baseRate + rateMod));
-  // Try to pick a matching voice
-  const voices = window.speechSynthesis.getVoices();
-  if (config.name) {
-    const match = voices.find((v) => v.name === config.name);
-    if (match) utterance.voice = match;
-  }
+  if (status === "running") { pitchMod = 0.03; rateMod = 0.04; }
+  else if (status === "failed") { pitchMod = -0.06; rateMod = -0.06; }
+  else if (status === "paused") { pitchMod = -0.03; rateMod = -0.03; }
+
+  utterance.pitch = Math.min(2, Math.max(0.1, config.basePitch + pitchMod));
+  utterance.rate = Math.min(2.5, Math.max(0.3, config.baseRate + rateMod));
+  utterance.volume = 1.0;
+
+  // Use the robust voice resolver
+  const voice = resolveAgentVoice(agentId);
+  if (voice) utterance.voice = voice;
+
   window.speechSynthesis.speak(utterance);
 }
 
@@ -269,11 +345,10 @@ export default function InternalOpsPage() {
   const [meetingAgentIds, setMeetingAgentIds] = useState<string[]>([]);
   const [meetingInput, setMeetingInput] = useState("");
   const [meetingLoading, setMeetingLoading] = useState<Record<string, boolean>>({});
-  const [isSpeaking, setIsSpeaking] = useState(false); // Global speaking state for stop button
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   // Voice states (for individual chat)
   const [isListening, setIsListening] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
   const recognitionRef = useRef<any>(null);
 
   const versionRef = useRef(0);
@@ -283,7 +358,17 @@ export default function InternalOpsPage() {
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const adminReady = !loading && !claimsLoading && isAdmin;
 
-  // Admin fetch helper (unchanged)
+  // Pre‑load voices on mount (voices are loaded asynchronously in Chrome)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    // Trigger voice loading
+    window.speechSynthesis.getVoices();
+    const handleVoicesChanged = () => { window.speechSynthesis.getVoices(); };
+    window.speechSynthesis.addEventListener("voiceschanged", handleVoicesChanged);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
+  }, []);
+
+  // Admin fetch helper
   const adminFetch = useCallback(
     async (path: string, init?: RequestInit) => {
       const headers = await getAuthHeaders();
@@ -301,7 +386,7 @@ export default function InternalOpsPage() {
     [getAuthHeaders],
   );
 
-  // Polling (unchanged)
+  // Polling
   const poll = useCallback(async () => {
     if (!adminReady) return;
     try {
@@ -354,7 +439,6 @@ export default function InternalOpsPage() {
     recognition.lang = "en-US";
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setVoiceTranscript(transcript);
       setChatInput((prev) => prev + " " + transcript);
       setIsListening(false);
     };
@@ -374,7 +458,6 @@ export default function InternalOpsPage() {
     }
   };
 
-  // Stop all ongoing speech
   const stopSpeaking = () => {
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -391,7 +474,7 @@ export default function InternalOpsPage() {
     } catch (error) { console.error("Command error:", error); }
   };
 
-  // Single-agent chat (enhanced with voice output)
+  // Single-agent chat
   const sendChatMessage = async () => {
     if (!chatInput.trim() || !selectedAgent || chatLoading) return;
 
@@ -431,7 +514,6 @@ export default function InternalOpsPage() {
           metadata: data.metadata,
         },
       ]);
-      // Speak the agent's response
       const agent = agents.find((a) => a.agent_id === selectedAgent);
       speakAgentMessage(selectedAgent, agentAnswer, agent?.status);
       setIsSpeaking(true);
@@ -451,14 +533,13 @@ export default function InternalOpsPage() {
     }
   };
 
-  // Report request: opens chat with selected agent and sends a report prompt
   const requestReport = (agentId: string) => {
     setSelectedAgent(agentId);
     setActiveTab("chat");
     setChatInput("Provide a concise status report of your current tasks, performance metrics, and any issues that need attention.");
   };
 
-  // Meeting broadcast message (now with voice output for each agent)
+  // Meeting broadcast
   const sendMeetingMessage = async () => {
     if (!meetingInput.trim() || meetingAgentIds.length === 0) return;
 
@@ -473,7 +554,7 @@ export default function InternalOpsPage() {
 
     setChatMessages((prev) => [...prev, adminMsg]);
     setMeetingInput("");
-    setIsSpeaking(true); // We'll set to false when all finish
+    setIsSpeaking(true);
 
     const loadingState: Record<string, boolean> = {};
     meetingAgentIds.forEach((id) => (loadingState[id] = true));
@@ -487,7 +568,7 @@ export default function InternalOpsPage() {
             agent_id: agentId,
             message: userText,
             mode: "casual",
-            system_message: "You are an AI agent working in a company. The CEO is addressing the team. Respond as a helpful colleague, providing a brief, professional update. Do not offer study tips, chemistry help, or exam advice.",
+            system_message: "You are an AI agent working in a company. The CEO is addressing the team. Respond as a helpful colleague, providing a brief, professional update. Do not offer study tips, chemistry help, or exam advice. Keep it under 20 words.",
             session_id: `team-${Date.now()}`,
           }),
         });
@@ -503,7 +584,6 @@ export default function InternalOpsPage() {
             metadata: data.metadata,
           },
         ]);
-        // Speak the agent's response in meeting with dynamic variation
         const agent = agents.find((a) => a.agent_id === agentId);
         speakAgentMessage(agentId, agentAnswer, agent?.status);
       } catch {
@@ -523,10 +603,10 @@ export default function InternalOpsPage() {
 
     await Promise.allSettled(promises);
     poll();
-    setIsSpeaking(false); // All voices are queued; actual speech may still be ongoing, but we can't easily track end. The stop button will clear.
+    setIsSpeaking(false);
   };
 
-  // Helpers for toggling meeting agents
+  // Meeting helpers
   const toggleMeetingAgent = (agentId: string) => {
     setMeetingAgentIds((prev) =>
       prev.includes(agentId) ? prev.filter((id) => id !== agentId) : [...prev, agentId],
@@ -550,13 +630,12 @@ export default function InternalOpsPage() {
     ? events.filter((event) => event.agent_id === selectedAgent).slice(0, 30)
     : [];
 
-  // Meeting messages filter
   const meetingMessages = useMemo(
     () => chatMessages.filter((msg) => meetingAgentIds.includes(msg.agent_id) || msg.agent_id === "meeting"),
     [chatMessages, meetingAgentIds],
   );
 
-  // Hierarchy tree (simple inline)
+  // Hierarchy tree
   const hierarchyTree = (
     <div className="text-[10px] font-mono text-gray-500 space-y-1">
       {["orchestrator", "tutor", "revision", "exam", "planner", "coach"].map((id, idx) => {
@@ -664,7 +743,6 @@ export default function InternalOpsPage() {
                         <span className="text-gray-600">{timeSince(agent.last_activity)}</span>
                       </div>
                     </button>
-                    {/* Report button per agent */}
                     <div className="flex gap-2">
                       <button
                         onClick={() => requestReport(agent.agent_id)}
@@ -678,13 +756,12 @@ export default function InternalOpsPage() {
               )}
             </div>
           </GlassPanel>
-          {/* Hierarchy panel */}
           <GlassPanel title="Team Hierarchy" tag="ORG">
             {hierarchyTree}
           </GlassPanel>
         </div>
 
-        {/* Right: Inspector with Tabs including MEETING */}
+        {/* Right: Inspector with Tabs */}
         <GlassPanel
           title="Agent Inspector"
           right={
@@ -742,7 +819,7 @@ export default function InternalOpsPage() {
               </div>
             )}
 
-            {/* CHAT – individual agent conversation with voice */}
+            {/* CHAT */}
             {activeTab === "chat" && (
               <div className="flex flex-col h-full overflow-hidden">
                 {!selectedAgent ? (
@@ -801,7 +878,6 @@ export default function InternalOpsPage() {
                         placeholder={`Message ${selectedAgent}...`}
                         className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
                       />
-                      {/* Microphone button */}
                       <button
                         onClick={toggleListening}
                         disabled={!recognitionRef.current}
@@ -852,7 +928,7 @@ export default function InternalOpsPage() {
               </div>
             )}
 
-            {/* MEETING (broadcast chat with dynamic voice) */}
+            {/* MEETING */}
             {activeTab === "meeting" && (
               <div className="flex flex-col h-full overflow-hidden">
                 <div className="flex items-center justify-between mb-3 text-xs">
