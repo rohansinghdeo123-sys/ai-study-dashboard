@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Area,
   AreaChart,
@@ -15,7 +15,7 @@ import {
 import AgentifiedNotification from "@/components/AgentifiedNotification";
 import CoachWidget from "@/components/CoachWidget";
 
-// ─── Types (unchanged) ─────────────────────────────────────────────────────
+// ─── Types ─────────────────────────────────────────────────────────────────
 interface Progress {
   user_id: string;
   total_tests: number;
@@ -107,7 +107,7 @@ const RANGE_DAYS: Record<ChartRange, number> = {
   "30D": 30,
 };
 
-// ─── Utility functions (unchanged) ─────────────────────────────────────────
+// ─── Utility functions ─────────────────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -204,7 +204,7 @@ async function readJson(url: string) {
   return response.json();
 }
 
-// ─── Data normalizers (unchanged) ──────────────────────────────────────────
+// ─── Data normalizers ──────────────────────────────────────────────────────
 function normalizeProgress(source: any, userId: string): Progress {
   if (!source || typeof source !== "object") {
     return { ...EMPTY_PROGRESS, user_id: userId };
@@ -408,7 +408,7 @@ function buildChartData({
   });
 }
 
-// ─── Modern styled components (no backdrop blur, solid cards) ─────────────
+// ─── Terminal glass components (original style) ─────────────────────────────
 function TerminalBadge({
   children,
   tone = "blue",
@@ -419,13 +419,13 @@ function TerminalBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide font-mono",
-        tone === "orange" && "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400",
-        tone === "green" && "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400",
-        tone === "blue" && "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400",
-        tone === "red" && "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400",
-        tone === "neutral" && "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-        tone === "amber" && "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400",
+        "inline-flex border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.22em] font-mono",
+        tone === "orange" && "border-orange-500/30 bg-orange-500/10 text-orange-500",
+        tone === "green" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+        tone === "blue" && "border-[#00A3FF]/30 bg-[#00A3FF]/10 text-[#00A3FF]",
+        tone === "red" && "border-red-500/30 bg-red-500/10 text-red-400",
+        tone === "neutral" && "border-white/10 bg-black/20 text-gray-400",
+        tone === "amber" && "border-amber-400/40 bg-amber-400/10 text-amber-400",
       )}
     >
       {children}
@@ -443,16 +443,16 @@ function GlassCard({
   accent?: "neutral" | "orange" | "green" | "red" | "blue";
 }) {
   return (
-    <div className="rounded-xl border border-terminal-700 bg-terminal-900 p-4 shadow-sm transition-all hover:shadow-md">
-      <div className="text-[10px] uppercase tracking-wide text-terminal-500 font-mono">{label}</div>
+    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-4 transition-all hover:border-white/20">
+      <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 font-mono">{label}</div>
       <div
         className={cn(
-          "mt-2 text-xl font-semibold tracking-tight",
-          accent === "orange" && "text-terminal-orange",
-          accent === "green" && "text-terminal-green",
-          accent === "red" && "text-terminal-red",
-          accent === "blue" && "text-terminal-blue",
-          accent === "neutral" && "text-terminal-50",
+          "mt-2 text-lg font-bold tracking-tight",
+          accent === "orange" && "text-orange-400",
+          accent === "green" && "text-emerald-400",
+          accent === "red" && "text-red-400",
+          accent === "blue" && "text-[#00A3FF]",
+          accent === "neutral" && "text-white",
         )}
       >
         {value}
@@ -477,16 +477,16 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-terminal-700 bg-terminal-900 shadow-sm overflow-hidden",
+        "rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm overflow-hidden",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-terminal-700 bg-terminal-800/30 px-4 py-2">
+      <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-terminal-400 font-mono">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 font-mono">
             {title}
           </span>
-          {tag && <TerminalBadge tone="orange">{tag}</TerminalBadge>}
+          {tag ? <TerminalBadge tone="orange">{tag}</TerminalBadge> : null}
         </div>
         {right}
       </div>
@@ -497,10 +497,10 @@ function GlassPanel({
 
 function TrendIcon({ trend }: { trend?: number }) {
   if (trend === undefined || trend === 0)
-    return <span className="text-terminal-500 text-xs">→</span>;
+    return <span className="text-gray-500 text-xs">→</span>;
   if (trend > 0)
-    return <span className="text-terminal-green text-xs">↑</span>;
-  return <span className="text-terminal-red text-xs">↓</span>;
+    return <span className="text-emerald-400 text-xs">↑</span>;
+  return <span className="text-red-400 text-xs">↓</span>;
 }
 
 // ─── Main Dashboard Page ───────────────────────────────────────────────────
@@ -732,7 +732,7 @@ export default function DashboardPage() {
   // Loading state
   if (authLoading || data.loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-terminal-950 font-mono text-terminal-blue">
+      <div className="flex min-h-screen items-center justify-center bg-[#050505] font-mono text-[#00A3FF]">
         <div className="animate-pulse text-sm uppercase tracking-[0.28em]">
           LOADING_TERMINAL_DATA...
         </div>
@@ -746,356 +746,357 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-terminal-950 text-terminal-200 font-sans">
-      <div className="mx-auto w-full px-4 md:px-6 py-4 md:py-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-terminal-50">
-              {greeting}, <span className="text-terminal-blue">{currentDisplayName}</span>.
-            </h1>
-            <p className="text-sm text-terminal-400 mt-1">
-              {weakCount > 0
-                ? `Your AI coach found ${weakCount} weak topic${weakCount > 1 ? "s" : ""} today.`
-                : "Your AI coach is analysing your latest sessions."}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-terminal-500">
-            <span className="h-2 w-2 rounded-full bg-terminal-green animate-pulse" />
-            Last updated: {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-          </div>
+    <div className="w-full min-h-screen bg-[#0A0A0F] text-gray-200 p-4 md:p-6 space-y-6 font-sans">
+      {/* Header with greeting and last refresh */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            {greeting}, <span className="text-[#00A3FF]">{currentDisplayName}</span>.
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">
+            {weakCount > 0
+              ? `Your AI coach found ${weakCount} weak topic${weakCount > 1 ? "s" : ""} today.`
+              : "Your AI coach is analysing your latest sessions."}
+          </p>
         </div>
-
-        {/* Top stat cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-          <GlassCard label="System_User" value={currentDisplayName} />
-          <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" />
-          <GlassCard
-            label="Accuracy_Index"
-            value={`${analytics.accuracy}%`}
-            accent={analytics.accuracy >= 75 ? "green" : analytics.accuracy >= 45 ? "orange" : "red"}
-          />
-          <GlassCard label="Current_Streak" value={`${data.progress.streak} Days`} accent="orange" />
-          <GlassCard label="Terminal_Level" value={`LVL ${analytics.level}`} accent="orange" />
-          <GlassCard
-            label="Backend_Status"
-            value={data.error ? "SYNC_WARN" : "LIVE"}
-            accent={data.error ? "red" : "green"}
-          />
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          Last updated: {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </div>
+      </div>
 
-        {/* Main content rows */}
-        <div className="grid grid-cols-12 gap-4">
-          <GlassPanel
-            title="PERFORMANCE_HISTORY"
-            tag={chartHasSignal ? "LIVE_DATA" : "SPARSE_FEED"}
-            className="col-span-12 lg:col-span-8"
-            right={
-              <div className="flex flex-wrap items-center gap-2">
-                {(["xp", "accuracy", "attempts"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setChartMode(mode)}
-                    className={cn(
-                      "rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] transition-all",
-                      chartMode === mode
-                        ? "border-terminal-orange/40 bg-terminal-orange/10 text-terminal-orange"
-                        : "border-terminal-700 text-terminal-500 hover:border-terminal-600 hover:text-terminal-200",
-                    )}
-                  >
-                    {mode}
-                  </button>
-                ))}
-                {(["7D", "14D", "30D"] as const).map((range) => (
-                  <button
-                    key={range}
-                    onClick={() => setChartRange(range)}
-                    className={cn(
-                      "rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] transition-all",
-                      chartRange === range
-                        ? "border-terminal-green/40 bg-terminal-green/10 text-terminal-green"
-                        : "border-terminal-700 text-terminal-500 hover:border-terminal-600 hover:text-terminal-200",
-                    )}
-                  >
-                    {range}
-                  </button>
-                ))}
-              </div>
-            }
-          >
-            <div className="h-[350px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorSignal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#FFA500" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#FFA500" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-terminal-700)" vertical={false} />
-                  <XAxis dataKey="label" stroke="var(--color-terminal-600)" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--color-terminal-600)" fontSize={10} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "var(--color-terminal-900)",
-                      border: "1px solid var(--color-terminal-700)",
-                      borderRadius: "8px",
-                      fontSize: "10px",
-                    }}
-                    labelStyle={{ color: "var(--color-terminal-200)" }}
-                    itemStyle={{ color: "#FFA500" }}
-                    cursor={{ stroke: "rgba(255,165,0,0.3)", strokeWidth: 1 }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    name={chartMode.toUpperCase()}
-                    stroke="#FFA500"
-                    fill="url(#colorSignal)"
-                    strokeWidth={2}
-                    animationDuration={900}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </GlassPanel>
+      {/* Top stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <GlassCard label="System_User" value={currentDisplayName} />
+        <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" />
+        <GlassCard
+          label="Accuracy_Index"
+          value={`${analytics.accuracy}%`}
+          accent={analytics.accuracy >= 75 ? "green" : analytics.accuracy >= 45 ? "orange" : "red"}
+        />
+        <GlassCard label="Current_Streak" value={`${data.progress.streak} Days`} accent="orange" />
+        <GlassCard label="Terminal_Level" value={`LVL ${analytics.level}`} accent="orange" />
+        <GlassCard
+          label="Backend_Status"
+          value={data.error ? "SYNC_WARN" : "LIVE"}
+          accent={data.error ? "red" : "green"}
+        />
+      </div>
 
-          <div className="col-span-12 lg:col-span-4 space-y-4">
-            <GlassPanel title="LEVEL_PROGRESSION" tag="XP">
-              <div className="space-y-4">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[10px] uppercase tracking-[0.22em] text-terminal-500 font-mono">
-                    TOTAL_XP
-                  </span>
-                  <span className="text-3xl font-bold text-terminal-50">{data.progress.xp}</span>
-                </div>
-                <div className="h-2 w-full rounded-full bg-terminal-800 overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-terminal-orange to-terminal-amber transition-all duration-1000"
-                    style={{ width: `${clamp(analytics.xpProgress)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[9px] uppercase tracking-[0.18em] text-terminal-500 font-mono">
-                  <span>LVL {analytics.level}</span>
-                  <span>{100 - analytics.xpProgress} XP TO NEXT</span>
-                  <span>LVL {analytics.level + 1}</span>
-                </div>
-              </div>
-            </GlassPanel>
-
-            <GlassPanel
-              title="GLOBAL_RANKINGS"
-              tag={currentRank ? `RANK_${currentRank.rank}` : "RANKING"}
-              right={
+      {/* Main content rows */}
+      <div className="grid grid-cols-12 gap-4">
+        <GlassPanel
+          title="PERFORMANCE_HISTORY"
+          tag={chartHasSignal ? "LIVE_DATA" : "SPARSE_FEED"}
+          className="col-span-12 lg:col-span-8"
+          right={
+            <div className="flex flex-wrap items-center gap-2">
+              {(["xp", "accuracy", "attempts"] as const).map((mode) => (
                 <button
-                  onClick={() => {
-                    setSearchTerm(currentDisplayName);
-                    setSelectedRankId(currentUserId);
-                  }}
-                  className="rounded-md border border-terminal-orange/30 bg-terminal-orange/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-terminal-orange hover:bg-terminal-orange/20"
+                  key={mode}
+                  onClick={() => setChartMode(mode)}
+                  className={cn(
+                    "rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] transition-all",
+                    chartMode === mode
+                      ? "border-orange-400/40 bg-orange-500/10 text-orange-400"
+                      : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
+                  )}
                 >
-                  Find Me
+                  {mode}
                 </button>
-              }
-            >
-              <div className="border-b border-terminal-700 bg-terminal-800/20 p-2">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  placeholder="SEARCH NAME / ID..."
-                  className="w-full border border-terminal-700 bg-terminal-900 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-terminal-50 outline-none focus:border-terminal-orange rounded-md placeholder-terminal-600"
-                  onChange={(e) => setSearchTerm(e.target.value)}
+              ))}
+              {(["7D", "14D", "30D"] as const).map((range) => (
+                <button
+                  key={range}
+                  onClick={() => setChartRange(range)}
+                  className={cn(
+                    "rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] transition-all",
+                    chartRange === range
+                      ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
+                      : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
+                  )}
+                >
+                  {range}
+                </button>
+              ))}
+            </div>
+          }
+        >
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorSignal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FFA500" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#FFA500" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A" vertical={false} />
+                <XAxis dataKey="label" stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#0A0A0F",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "8px",
+                    fontSize: "10px",
+                    backdropFilter: "blur(8px)",
+                  }}
+                  labelStyle={{ color: "#E5E7EB" }}
+                  itemStyle={{ color: "#FFA500" }}
+                  cursor={{ stroke: "rgba(255,165,0,0.3)", strokeWidth: 1 }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  name={chartMode.toUpperCase()}
+                  stroke="#FFA500"
+                  fill="url(#colorSignal)"
+                  strokeWidth={2}
+                  animationDuration={900}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </GlassPanel>
+
+        <div className="col-span-12 lg:col-span-4 space-y-4">
+          <GlassPanel title="LEVEL_PROGRESSION" tag="XP">
+            <div className="space-y-4">
+              <div className="flex justify-between items-baseline">
+                <span className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-mono">
+                  TOTAL_XP
+                </span>
+                <span className="text-3xl font-bold text-white">{data.progress.xp}</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-1000"
+                  style={{ width: `${clamp(analytics.xpProgress)}%` }}
                 />
               </div>
-              <div className="max-h-[220px] overflow-y-auto">
-                <table className="w-full text-left text-[10px]">
-                  <thead className="sticky top-0 border-b border-terminal-700 bg-terminal-800/30 text-terminal-500 font-mono">
-                    <tr>
-                      <th className="p-2 font-normal">RANK</th>
-                      <th className="p-2 font-normal">TERMINAL_ID</th>
-                      <th className="p-2 text-right font-normal">XP</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-terminal-700/50">
-                    {filteredLeaderboard.map((entry) => {
-                      const isCurrent = entry.user_id === currentUserId;
-                      const isSelected = entry.user_id === selectedRank?.user_id;
-                      return (
-                        <tr
-                          key={entry.user_id}
-                          onClick={() => setSelectedRankId(entry.user_id)}
-                          className={cn(
-                            "cursor-pointer transition-colors hover:bg-terminal-800/50",
-                            isCurrent && "bg-terminal-orange/10",
-                            isSelected && !isCurrent && "bg-terminal-blue/10",
-                          )}
-                        >
-                          <td className="p-2 text-terminal-400">#{entry.rank}</td>
-                          <td className="max-w-[160px] truncate p-2 text-terminal-50">
-                            {entry.displayLabel}
-                            {isCurrent ? <span className="ml-2 text-[8px] text-terminal-green">YOU</span> : null}
-                          </td>
-                          <td className="p-2 text-right font-bold text-terminal-orange">{entry.xp}</td>
-                        </tr>
-                      );
-                    })}
-                    {!filteredLeaderboard.length && (
-                      <tr>
-                        <td colSpan={3} className="p-3 text-terminal-600 text-center">
-                          NO_MATCHING_TERMINAL
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              <div className="flex justify-between text-[9px] uppercase tracking-[0.18em] text-gray-500 font-mono">
+                <span>LVL {analytics.level}</span>
+                <span>{100 - analytics.xpProgress} XP TO NEXT</span>
+                <span>LVL {analytics.level + 1}</span>
               </div>
-            </GlassPanel>
-
-            <GlassPanel title="SELECTED_TERMINAL" tag="VIEW">
-              <div className="space-y-3">
-                {selectedRank ? (
-                  <>
-                    <div className="flex justify-between border-b border-terminal-700 pb-2 text-[10px] uppercase tracking-[0.18em]">
-                      <span className="text-terminal-500">User</span>
-                      <span className="truncate text-terminal-50">
-                        {getLeaderboardDisplayName(selectedRank, currentUserId, currentDisplayName)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-terminal-700 pb-2 text-[10px] uppercase tracking-[0.18em]">
-                      <span className="text-terminal-500">UID</span>
-                      <span className="text-terminal-300">{shortId(selectedRank.user_id)}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-terminal-700 pb-2 text-[10px] uppercase tracking-[0.18em]">
-                      <span className="text-terminal-500">XP</span>
-                      <span className="font-bold text-terminal-orange">{selectedRank.xp}</span>
-                    </div>
-                    <div className="flex justify-between text-[10px] uppercase tracking-[0.18em]">
-                      <span className="text-terminal-500">Streak</span>
-                      <span className="text-terminal-green">{selectedRank.streak ?? 0} Days</span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-terminal-600">
-                    SELECT_A_RANKING_ROW
-                  </div>
-                )}
-              </div>
-            </GlassPanel>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-12 gap-4">
-          <GlassPanel title="WEAK_TOPIC_MATRIX" tag="AI_SIGNAL" className="col-span-12 lg:col-span-5">
-            <div className="space-y-3">
-              {data.weakAreas.length ? (
-                data.weakAreas.map((topic) => (
-                  <div
-                    key={topic.topic}
-                    className="rounded-xl border border-terminal-700 bg-terminal-800/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-bold text-terminal-50 uppercase font-mono">
-                          {topic.topic}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs">
-                          <TrendIcon trend={topic.trend} />
-                          <span className={cn(topic.accuracy >= 60 ? "text-terminal-green" : "text-terminal-red")}>
-                            {Math.round(topic.accuracy)}%
-                          </span>
-                        </span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-terminal-800 mt-1">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            topic.accuracy >= 60 ? "bg-terminal-green" : "bg-terminal-red",
-                          )}
-                          style={{ width: `${clamp(topic.accuracy)}%` }}
-                        />
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => goToTopic(topic.topic)}
-                      className="shrink-0 rounded-lg border border-terminal-blue/30 bg-terminal-blue/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-terminal-blue hover:bg-terminal-blue/20 transition-all"
-                    >
-                      Start Revision
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div className="flex min-h-[140px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-terminal-600">
-                  NO_WEAK_TOPIC_SIGNAL_YET
-                </div>
-              )}
             </div>
           </GlassPanel>
 
-          <GlassPanel title="RECENT_SESSION_TAPE" tag="LIVE_LOG" className="col-span-12 lg:col-span-4">
-            <div className="max-h-[260px] overflow-y-auto space-y-1">
-              {recentSessions.length ? (
-                recentSessions.map((session, index) => (
-                  <div
-                    key={`${session.id ?? index}-${session.topic ?? "session"}`}
-                    className="grid grid-cols-[1fr_70px_60px] items-center border-b border-terminal-700/50 py-2 px-2 text-[10px] uppercase tracking-[0.14em] hover:bg-terminal-800/30 rounded"
-                  >
-                    <div className="truncate text-terminal-50">
-                      {session.topic ?? session.subject ?? "SESSION"}
-                      <div className="text-[9px] text-terminal-600 mt-0.5">
-                        {getSessionDate(session)?.toLocaleString("en-IN") ?? "NO_TIMESTAMP"}
-                      </div>
-                    </div>
-                    <div className="text-right text-terminal-400">
-                      {getSessionQuestions(session) || 1} Q
-                    </div>
-                    <div className="text-right font-bold text-terminal-orange">
-                      +{getSessionXp(session)}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="flex min-h-[160px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-terminal-600">
-                  SESSION_TAPE_STANDBY
-                </div>
-              )}
+          <GlassPanel
+            title="GLOBAL_RANKINGS"
+            tag={currentRank ? `RANK_${currentRank.rank}` : "RANKING"}
+            right={
+              <button
+                onClick={() => {
+                  setSearchTerm(currentDisplayName);
+                  setSelectedRankId(currentUserId);
+                }}
+                className="rounded-md border border-orange-400/30 bg-orange-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-orange-400 hover:bg-orange-500/20"
+              >
+                Find Me
+              </button>
+            }
+          >
+            <div className="border-b border-white/10 bg-black/20 p-2">
+              <input
+                type="text"
+                value={searchTerm}
+                placeholder="SEARCH NAME / ID..."
+                className="w-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-white outline-none focus:border-orange-400 rounded-md placeholder-gray-600"
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </GlassPanel>
-
-          <GlassPanel title="AI_INSIGHT_FEED" tag="COACH" className="col-span-12 lg:col-span-3">
-            <div className="space-y-3">
-              {data.insights.length ? (
-                data.insights.map((insight, index) => (
-                  <div
-                    key={`${insight.type}-${index}`}
-                    className="rounded-lg border border-terminal-700 bg-terminal-800/20 p-3"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="h-2 w-2 rounded-full bg-terminal-blue animate-pulse" />
-                      <span
+            <div className="max-h-[220px] overflow-y-auto">
+              <table className="w-full text-left text-[10px]">
+                <thead className="sticky top-0 border-b border-white/10 bg-black/20 text-gray-500 font-mono">
+                  <tr>
+                    <th className="p-2 font-normal">RANK</th>
+                    <th className="p-2 font-normal">TERMINAL_ID</th>
+                    <th className="p-2 text-right font-normal">XP</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredLeaderboard.map((entry) => {
+                    const isCurrent = entry.user_id === currentUserId;
+                    const isSelected = entry.user_id === selectedRank?.user_id;
+                    return (
+                      <tr
+                        key={entry.user_id}
+                        onClick={() => setSelectedRankId(entry.user_id)}
                         className={cn(
-                          "text-[9px] font-bold uppercase tracking-[0.2em]",
-                          insight.severity === "warning" && "text-terminal-orange",
-                          insight.severity === "success" && "text-terminal-green",
-                          insight.severity !== "warning" && insight.severity !== "success" && "text-terminal-blue",
+                          "cursor-pointer transition-colors hover:bg-white/5",
+                          isCurrent && "bg-orange-500/10",
+                          isSelected && !isCurrent && "bg-blue-500/10",
                         )}
                       >
-                        {insight.type ?? "signal"}
-                      </span>
-                    </div>
-                    <p className="text-sm text-terminal-300 leading-5">{insight.message}</p>
+                        <td className="p-2 text-gray-400">#{entry.rank}</td>
+                        <td className="max-w-[160px] truncate p-2 text-white">
+                          {entry.displayLabel}
+                          {isCurrent ? <span className="ml-2 text-[8px] text-emerald-400">YOU</span> : null}
+                        </td>
+                        <td className="p-2 text-right font-bold text-orange-400">{entry.xp}</td>
+                      </tr>
+                    );
+                  })}
+                  {!filteredLeaderboard.length && (
+                    <tr>
+                      <td colSpan={3} className="p-3 text-gray-600 text-center">
+                        NO_MATCHING_TERMINAL
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </GlassPanel>
+
+          <GlassPanel title="SELECTED_TERMINAL" tag="VIEW">
+            <div className="space-y-3">
+              {selectedRank ? (
+                <>
+                  <div className="flex justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em]">
+                    <span className="text-gray-500">User</span>
+                    <span className="truncate text-white">
+                      {getLeaderboardDisplayName(selectedRank, currentUserId, currentDisplayName)}
+                    </span>
                   </div>
-                ))
+                  <div className="flex justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em]">
+                    <span className="text-gray-500">UID</span>
+                    <span className="text-gray-300">{shortId(selectedRank.user_id)}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em]">
+                    <span className="text-gray-500">XP</span>
+                    <span className="font-bold text-orange-400">{selectedRank.xp}</span>
+                  </div>
+                  <div className="flex justify-between text-[10px] uppercase tracking-[0.18em]">
+                    <span className="text-gray-500">Streak</span>
+                    <span className="text-emerald-400">{selectedRank.streak ?? 0} Days</span>
+                  </div>
+                </>
               ) : (
-                <div className="flex min-h-[160px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-terminal-600">
-                  AI_SIGNAL_PENDING
+                <div className="text-[10px] uppercase tracking-[0.2em] text-gray-600">
+                  SELECT_A_RANKING_ROW
                 </div>
               )}
             </div>
           </GlassPanel>
         </div>
-
-        <CoachWidget />
       </div>
+
+      <div className="grid grid-cols-12 gap-4">
+        {/* Weak topic matrix with quick actions and trend icons */}
+        <GlassPanel title="WEAK_TOPIC_MATRIX" tag="AI_SIGNAL" className="col-span-12 lg:col-span-5">
+          <div className="space-y-3">
+            {data.weakAreas.length ? (
+              data.weakAreas.map((topic) => (
+                <div
+                  key={topic.topic}
+                  className="rounded-xl border border-white/10 bg-black/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-white uppercase font-mono">
+                        {topic.topic}
+                      </span>
+                      <span className="flex items-center gap-1 text-xs">
+                        <TrendIcon trend={topic.trend} />
+                        <span className={cn(topic.accuracy >= 60 ? "text-emerald-400" : "text-red-400")}>
+                          {Math.round(topic.accuracy)}%
+                        </span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-white/5 mt-1">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          topic.accuracy >= 60 ? "bg-emerald-500" : "bg-red-500",
+                        )}
+                        style={{ width: `${clamp(topic.accuracy)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => goToTopic(topic.topic)}
+                    className="shrink-0 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
+                  >
+                    Start Revision
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="flex min-h-[140px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-gray-600">
+                NO_WEAK_TOPIC_SIGNAL_YET
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+
+        <GlassPanel title="RECENT_SESSION_TAPE" tag="LIVE_LOG" className="col-span-12 lg:col-span-4">
+          <div className="max-h-[260px] overflow-y-auto space-y-1">
+            {recentSessions.length ? (
+              recentSessions.map((session, index) => (
+                <div
+                  key={`${session.id ?? index}-${session.topic ?? "session"}`}
+                  className="grid grid-cols-[1fr_70px_60px] items-center border-b border-white/5 py-2 px-2 text-[10px] uppercase tracking-[0.14em] hover:bg-white/5 rounded"
+                >
+                  <div className="truncate text-white">
+                    {session.topic ?? session.subject ?? "SESSION"}
+                    <div className="text-[9px] text-gray-600 mt-0.5">
+                      {getSessionDate(session)?.toLocaleString("en-IN") ?? "NO_TIMESTAMP"}
+                    </div>
+                  </div>
+                  <div className="text-right text-gray-400">
+                    {getSessionQuestions(session) || 1} Q
+                  </div>
+                  <div className="text-right font-bold text-orange-400">
+                    +{getSessionXp(session)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex min-h-[160px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-gray-600">
+                SESSION_TAPE_STANDBY
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+
+        <GlassPanel title="AI_INSIGHT_FEED" tag="COACH" className="col-span-12 lg:col-span-3">
+          <div className="space-y-3">
+            {data.insights.length ? (
+              data.insights.map((insight, index) => (
+                <div
+                  key={`${insight.type}-${index}`}
+                  className="rounded-lg border border-white/10 bg-black/20 p-3"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="h-2 w-2 rounded-full bg-[#00A3FF] animate-pulse" />
+                    <span
+                      className={cn(
+                        "text-[9px] font-bold uppercase tracking-[0.2em]",
+                        insight.severity === "warning" && "text-orange-400",
+                        insight.severity === "success" && "text-emerald-400",
+                        insight.severity !== "warning" && insight.severity !== "success" && "text-[#00A3FF]",
+                      )}
+                    >
+                      {insight.type ?? "signal"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-300 leading-5">{insight.message}</p>
+                </div>
+              ))
+            ) : (
+              <div className="flex min-h-[160px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-gray-600">
+                AI_SIGNAL_PENDING
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+      </div>
+
+      {/* Coach Widget – persistent across dashboard */}
+      <CoachWidget />
     </div>
   );
 }

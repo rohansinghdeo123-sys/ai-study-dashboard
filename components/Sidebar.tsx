@@ -69,22 +69,22 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <aside
-      className={`flex h-full flex-col border-r border-terminal-700 bg-terminal-900 transition-all duration-300 ${
+      className={`flex h-full flex-col border-r border-white/10 bg-black/30 backdrop-blur-lg transition-all duration-300 ${
         collapsed ? "w-[52px]" : "w-[200px]"
       }`}
     >
-      <div className="flex items-center justify-between border-b border-terminal-700 p-3">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/5 p-3">
         {!collapsed && (
           <div>
-            <div className="font-mono text-[11px] font-bold tracking-wider text-terminal-blue">
+            <div className="font-mono text-[11px] font-bold tracking-wider text-[#00A3FF]">
               AI TERMINAL
             </div>
-            <div className="font-mono text-[8px] text-terminal-600">v1.0.4-STABLE</div>
+            <div className="font-mono text-[8px] text-gray-600">v1.0.4-STABLE</div>
           </div>
         )}
         <button
           onClick={onToggle}
-          className={`text-terminal-500 hover:text-terminal-200 transition-colors ${
+          className={`text-gray-500 hover:text-white transition-colors ${
             collapsed ? "mx-auto" : ""
           }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -108,11 +108,11 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               className={`flex items-center gap-2.5 border-l-2 px-3 py-2 font-mono text-[11px] transition-all duration-150 ${
                 isActive
                   ? isOps
-                    ? "border-terminal-red bg-terminal-red/10 text-terminal-red"
-                    : "border-terminal-blue bg-terminal-blue/10 text-terminal-blue"
+                    ? "border-red-500 bg-red-500/10 text-red-400"
+                    : "border-[#00A3FF] bg-[#0F1A24] text-[#00A3FF]"
                   : isOps
-                    ? "border-transparent text-terminal-500 hover:bg-terminal-red/5 hover:text-terminal-red"
-                    : "border-transparent text-terminal-500 hover:bg-terminal-800/50 hover:text-terminal-200"
+                    ? "border-transparent text-gray-500 hover:bg-red-500/5 hover:text-red-400"
+                    : "border-transparent text-gray-500 hover:bg-white/5 hover:text-gray-300"
               }`}
             >
               <span className="text-sm">{item.icon}</span>
@@ -123,34 +123,34 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
       </nav>
 
       {!collapsed && (
-        <div className="border-t border-terminal-700 p-3 space-y-3">
-          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-terminal-500">
+        <div className="border-t border-white/10 p-3 space-y-3 bg-white/5">
+          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-gray-500">
             LIVE STATS
           </div>
           <div className="space-y-2 text-xs">
             <div className="flex justify-between">
-              <span className="text-terminal-400">XP</span>
-              <span className="text-terminal-green font-bold">{stats.xp}</span>
+              <span className="text-gray-400">XP</span>
+              <span className="text-emerald-400 font-bold">{stats.xp}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-terminal-400">LVL</span>
-              <span className="text-terminal-blue font-bold">{stats.level}</span>
+              <span className="text-gray-400">LVL</span>
+              <span className="text-[#00A3FF] font-bold">{stats.level}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-terminal-400">STREAK</span>
-              <span className="text-terminal-amber font-bold">{stats.streak}d</span>
+              <span className="text-gray-400">STREAK</span>
+              <span className="text-amber-400 font-bold">{stats.streak}d</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-terminal-400">ACC</span>
-              <span className={`font-bold ${stats.accuracy >= 75 ? "text-terminal-green" : stats.accuracy >= 50 ? "text-terminal-amber" : "text-terminal-red"}`}>
+              <span className="text-gray-400">ACC</span>
+              <span className={`font-bold ${stats.accuracy >= 75 ? "text-emerald-400" : stats.accuracy >= 50 ? "text-amber-400" : "text-red-400"}`}>
                 {stats.accuracy}%
               </span>
             </div>
           </div>
-          <div className="border-t border-terminal-700 pt-2">
+          <div className="border-t border-white/10 pt-2">
             <div className="flex items-center justify-between font-mono text-[9px]">
-              <span className="text-terminal-600">SYS</span>
-              <span className="flex items-center gap-1 text-terminal-green">● LIVE</span>
+              <span className="text-gray-600">SYS</span>
+              <span className="flex items-center gap-1 text-emerald-400">● LIVE</span>
             </div>
           </div>
         </div>

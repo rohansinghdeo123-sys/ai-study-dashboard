@@ -15,41 +15,10 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+// Removed theme toggle – only dark mode
 function ThemeToggle() {
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-
-  useEffect(() => {
-    const stored = localStorage.getItem("agentify-theme") as "light" | "dark" | null;
-    if (stored) {
-      setTheme(stored);
-      document.documentElement.setAttribute("data-theme", stored);
-    }
-  }, []);
-
-  const toggle = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    localStorage.setItem("agentify-theme", next);
-    document.documentElement.setAttribute("data-theme", next);
-  };
-
-  return (
-    <button
-      onClick={toggle}
-      className="flex items-center justify-center w-8 h-8 rounded-md border border-terminal-700 hover:border-terminal-400 transition-colors text-terminal-400 hover:text-terminal-50"
-      title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-    >
-      {theme === "dark" ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-          <path d="M10 2a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 2zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15zM4.22 4.22a.75.75 0 011.06 0l1.06 1.06a.75.75 0 01-1.06 1.06L4.22 5.28a.75.75 0 010-1.06zM13.66 13.66a.75.75 0 011.06 0l1.06 1.06a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zM2 10a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 012 10zM15 10a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 0115 10zM4.22 15.78a.75.75 0 010-1.06l1.06-1.06a.75.75 0 111.06 1.06l-1.06 1.06a.75.75 0 01-1.06 0zM13.66 6.34a.75.75 0 010-1.06l1.06-1.06a.75.75 0 011.06 1.06l-1.06 1.06a.75.75 0 01-1.06 0z" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-          <path fillRule="evenodd" d="M7.455 2.004a.75.75 0 01.26.77 7 7 0 009.958 7.967.75.75 0 011.067.853A8.5 8.5 0 116.647 1.921a.75.75 0 01.808.083z" clipRule="evenodd" />
-        </svg>
-      )}
-    </button>
-  );
+  // No toggle, just a dummy placeholder or remove entirely
+  return null;
 }
 
 export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -58,14 +27,13 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
 
   if (collapsed) {
     return (
-      <header className="flex items-center justify-between border-b border-terminal-700 bg-terminal-900 px-4 py-1 h-10">
+      <header className="flex items-center justify-between border-b border-white/10 bg-black/30 backdrop-blur-sm px-4 py-1 h-10">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-terminal-green animate-pulse" />
-          <span className="text-[10px] font-mono text-terminal-400">LIVE</span>
+          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[10px] font-mono text-gray-400">LIVE</span>
         </div>
         <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <button onClick={onToggle} className="flex items-center gap-1 text-[10px] font-mono text-terminal-400 hover:text-terminal-50 transition-colors">
+          <button onClick={onToggle} className="flex items-center gap-1 text-[10px] font-mono text-gray-400 hover:text-white transition-colors">
             <span>▼</span> EXPAND
           </button>
         </div>
@@ -74,12 +42,12 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-terminal-700 bg-terminal-900 px-4 py-3">
+    <header className="flex items-center justify-between border-b border-white/10 bg-black/30 backdrop-blur-sm px-4 py-3">
       <div className="flex items-center gap-3">
-        <button onClick={onToggle} className="text-terminal-400 hover:text-terminal-50 transition-colors">
+        <button onClick={onToggle} className="text-gray-400 hover:text-white transition-colors">
           <span className="text-xs font-mono">▲</span>
         </button>
-        <h1 className="text-xl font-bold tracking-tight text-terminal-50">AgentifyAI</h1>
+        <h1 className="text-xl font-bold tracking-tight text-white">AgentifyAI</h1>
       </div>
 
       <div className="flex items-center gap-3">
@@ -88,16 +56,15 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
             OPS
           </Link>
         )}
-        <ThemeToggle />
 
         {user && (
           <>
             <div className="hidden md:flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-terminal-700 bg-terminal-800 font-mono text-xs font-bold text-terminal-blue">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/30 font-mono text-xs font-bold text-[#00A3FF]">
                 {getInitials(displayName)}
               </div>
               <div className="text-right">
-                <div className="text-sm text-terminal-200">{displayName}</div>
+                <div className="text-sm text-gray-200">{displayName}</div>
                 {isAdmin && <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-amber-400">admin</div>}
               </div>
             </div>

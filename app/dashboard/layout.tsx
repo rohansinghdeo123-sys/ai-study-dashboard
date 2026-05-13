@@ -85,10 +85,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Navbar collapsed={!navbarOpen} onToggle={toggleNavbar} />
 
         {!navbarOpen && (
-          <div className="flex items-center justify-end border-b border-terminal-700 bg-terminal-900/40 px-4 py-1">
+          <div className="flex items-center justify-end border-b border-white/10 bg-black/30 backdrop-blur-sm px-4 py-1">
             <button
               onClick={toggleNavbar}
-              className="flex items-center gap-1 text-[10px] font-mono text-terminal-400 hover:text-terminal-50 transition-colors"
+              className="flex items-center gap-1 text-[10px] font-mono text-gray-400 hover:text-white transition-colors"
             >
               <span>▼</span> EXPAND
             </button>
@@ -99,14 +99,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="h-full w-full">{children}</div>
         </main>
 
-        <div className="flex items-center justify-between border-t border-terminal-700 bg-terminal-900/30 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-terminal-400">
+        <div className="flex items-center justify-between border-t border-white/10 bg-black/30 backdrop-blur-sm px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-500">
           <div className="flex items-center gap-6">
-            <span className="text-terminal-green animate-terminal-pulse">● LIVE</span>
+            <span className="text-emerald-400 animate-terminal-pulse">● LIVE</span>
             <span>AI TERMINAL v1.0.4</span>
           </div>
           <div className="flex items-center gap-4">
             <span>Ctrl+B Side · Ctrl+N Nav</span>
-            {isAdmin && <span className="text-terminal-red">ADMIN</span>}
+            {isAdmin && <span className="text-red-400">ADMIN</span>}
           </div>
         </div>
       </div>

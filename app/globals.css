@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* ── Theme Configuration (Dark default) ──────────────────────────────────── */
+/* ── Theme Configuration (Dark only – no light theme) ──────────────────────── */
 @theme {
-  /* Dark palette – kept mostly the same */
+  /* Dark palette */
   --color-terminal-950: #0A0A0F;
   --color-terminal-900: #111111;
   --color-terminal-800: #1A1A1A;
@@ -14,7 +14,7 @@
   --color-terminal-100: #F0F0F0;
   --color-terminal-50:  #FFFFFF;
 
-  /* Accent */
+  /* Accent – neon */
   --color-terminal-orange: #FFA500;
   --color-terminal-green:  #10B981;
   --color-terminal-red:    #EF4444;
@@ -26,28 +26,6 @@
   /* Typography */
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-sans: "Geist Sans", Inter, system-ui, sans-serif;
-}
-
-/* ── Light Theme – Soft, modern, no harshness ────────────────────────────── */
-[data-theme="light"] {
-  /* Base – very soft off‑white background */
-  --color-terminal-950: #F8FAFC;
-  --color-terminal-900: #FFFFFF;
-  --color-terminal-800: #F1F5F9;
-  --color-terminal-700: #E2E8F0;
-  --color-terminal-600: #CBD5E1;
-  --color-terminal-400: #64748B;
-  --color-terminal-300: #475569;
-  --color-terminal-200: #334155;
-  --color-terminal-100: #1E293B;
-  --color-terminal-50:  #0F172A;
-
-  /* Accents – slightly softer than neon */
-  --color-terminal-orange: #E67E22;
-  --color-terminal-green:  #059669;
-  --color-terminal-red:    #E53E3E;
-  --color-terminal-blue:   #3B82F6;
-  --color-terminal-amber:  #D97706;
 }
 
 /* ── Base Styles – full screen, no margins ─────────────────────────────────── */
@@ -72,15 +50,25 @@ body {
   width: 100%;
 }
 
-/* ── Scrollbars (subtle) ─────────────────────────────────────────────────── */
+/* ── Scrollbars (neon touch) ─────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: var(--color-terminal-800); }
 ::-webkit-scrollbar-thumb { background: var(--color-terminal-600); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-terminal-orange); }
 
-/* ── Helper for smooth transitions (theme switch) ───────────────────────── */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/* ── Glassmorphism helpers ───────────────────────────────────────────────── */
+.glass-panel {
+  background: rgba(17, 17, 17, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
+
+.glass-card {
+  background: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+@keyframes terminal-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.animate-terminal-pulse { animation: terminal-pulse 2s infinite ease-in-out; }
