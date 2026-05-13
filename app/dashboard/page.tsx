@@ -107,7 +107,7 @@ const RANGE_DAYS: Record<ChartRange, number> = {
   "30D": 30,
 };
 
-// ─── Utility functions ─────────────────────────────────────────────────────
+// ─── Utility functions (unchanged) ─────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -204,7 +204,7 @@ async function readJson(url: string) {
   return response.json();
 }
 
-// ─── Data normalizers ──────────────────────────────────────────────────────
+// ─── Data normalizers (unchanged) ──────────────────────────────────────────
 function normalizeProgress(source: any, userId: string): Progress {
   if (!source || typeof source !== "object") {
     return { ...EMPTY_PROGRESS, user_id: userId };
@@ -408,7 +408,7 @@ function buildChartData({
   });
 }
 
-// ─── Terminal glass components (original style) ─────────────────────────────
+// ─── Terminal glass components with enhanced spacing ────────────────────────
 function TerminalBadge({
   children,
   tone = "blue",
@@ -419,7 +419,7 @@ function TerminalBadge({
   return (
     <span
       className={cn(
-        "inline-flex border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.22em] font-mono",
+        "inline-flex border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] font-mono",
         tone === "orange" && "border-orange-500/30 bg-orange-500/10 text-orange-500",
         tone === "green" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
         tone === "blue" && "border-[#00A3FF]/30 bg-[#00A3FF]/10 text-[#00A3FF]",
@@ -443,11 +443,11 @@ function GlassCard({
   accent?: "neutral" | "orange" | "green" | "red" | "blue";
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-4 transition-all hover:border-white/20">
-      <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 font-mono">{label}</div>
+    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 transition-all hover:border-white/20">
+      <div className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-mono">{label}</div>
       <div
         className={cn(
-          "mt-2 text-lg font-bold tracking-tight",
+          "mt-2 text-xl font-bold tracking-tight",
           accent === "orange" && "text-orange-400",
           accent === "green" && "text-emerald-400",
           accent === "red" && "text-red-400",
@@ -481,16 +481,16 @@ function GlassPanel({
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-5 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 font-mono">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 font-mono">
             {title}
           </span>
           {tag ? <TerminalBadge tone="orange">{tag}</TerminalBadge> : null}
         </div>
         {right}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
@@ -503,7 +503,7 @@ function TrendIcon({ trend }: { trend?: number }) {
   return <span className="text-red-400 text-xs">↓</span>;
 }
 
-// ─── Main Dashboard Page ───────────────────────────────────────────────────
+// ─── Main Dashboard Page (enhanced spacing & readability) ──────────────────
 export default function DashboardPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   const router = useRouter();
@@ -746,27 +746,27 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#0A0A0F] text-gray-200 p-4 md:p-6 space-y-6 font-sans">
+    <div className="w-full min-h-screen bg-[#0A0A0F] text-gray-200 p-5 md:p-8 space-y-8 font-sans">
       {/* Header with greeting and last refresh */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
             {greeting}, <span className="text-[#00A3FF]">{currentDisplayName}</span>.
           </h1>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-base text-gray-400 mt-1">
             {weakCount > 0
               ? `Your AI coach found ${weakCount} weak topic${weakCount > 1 ? "s" : ""} today.`
               : "Your AI coach is analysing your latest sessions."}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           Last updated: {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </div>
       </div>
 
       {/* Top stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
         <GlassCard label="System_User" value={currentDisplayName} />
         <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" />
         <GlassCard
@@ -784,7 +784,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Main content rows */}
-      <div className="grid grid-cols-12 gap-4">
+      <div className="grid grid-cols-12 gap-5">
         <GlassPanel
           title="PERFORMANCE_HISTORY"
           tag={chartHasSignal ? "LIVE_DATA" : "SPARSE_FEED"}
@@ -796,7 +796,7 @@ export default function DashboardPage() {
                   key={mode}
                   onClick={() => setChartMode(mode)}
                   className={cn(
-                    "rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] transition-all",
+                    "rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-all",
                     chartMode === mode
                       ? "border-orange-400/40 bg-orange-500/10 text-orange-400"
                       : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
@@ -810,7 +810,7 @@ export default function DashboardPage() {
                   key={range}
                   onClick={() => setChartRange(range)}
                   className={cn(
-                    "rounded-md border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] transition-all",
+                    "rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-all",
                     chartRange === range
                       ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
                       : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
@@ -860,14 +860,14 @@ export default function DashboardPage() {
           </div>
         </GlassPanel>
 
-        <div className="col-span-12 lg:col-span-4 space-y-4">
+        <div className="col-span-12 lg:col-span-4 space-y-5">
           <GlassPanel title="LEVEL_PROGRESSION" tag="XP">
             <div className="space-y-4">
               <div className="flex justify-between items-baseline">
                 <span className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-mono">
                   TOTAL_XP
                 </span>
-                <span className="text-3xl font-bold text-white">{data.progress.xp}</span>
+                <span className="text-4xl font-bold text-white">{data.progress.xp}</span>
               </div>
               <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
                 <div
@@ -875,7 +875,7 @@ export default function DashboardPage() {
                   style={{ width: `${clamp(analytics.xpProgress)}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[9px] uppercase tracking-[0.18em] text-gray-500 font-mono">
+              <div className="flex justify-between text-[10px] uppercase tracking-[0.18em] text-gray-500 font-mono">
                 <span>LVL {analytics.level}</span>
                 <span>{100 - analytics.xpProgress} XP TO NEXT</span>
                 <span>LVL {analytics.level + 1}</span>
@@ -892,23 +892,23 @@ export default function DashboardPage() {
                   setSearchTerm(currentDisplayName);
                   setSelectedRankId(currentUserId);
                 }}
-                className="rounded-md border border-orange-400/30 bg-orange-500/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-orange-400 hover:bg-orange-500/20"
+                className="rounded-md border border-orange-400/30 bg-orange-500/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-400 hover:bg-orange-500/20"
               >
                 Find Me
               </button>
             }
           >
-            <div className="border-b border-white/10 bg-black/20 p-2">
+            <div className="border-b border-white/10 bg-black/20 p-3">
               <input
                 type="text"
                 value={searchTerm}
                 placeholder="SEARCH NAME / ID..."
-                className="w-full border border-white/10 bg-black/30 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-white outline-none focus:border-orange-400 rounded-md placeholder-gray-600"
+                className="w-full border border-white/10 bg-black/30 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-white outline-none focus:border-orange-400 rounded-md placeholder-gray-600"
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div className="max-h-[220px] overflow-y-auto">
-              <table className="w-full text-left text-[10px]">
+              <table className="w-full text-left text-xs">
                 <thead className="sticky top-0 border-b border-white/10 bg-black/20 text-gray-500 font-mono">
                   <tr>
                     <th className="p-2 font-normal">RANK</th>
@@ -933,7 +933,7 @@ export default function DashboardPage() {
                         <td className="p-2 text-gray-400">#{entry.rank}</td>
                         <td className="max-w-[160px] truncate p-2 text-white">
                           {entry.displayLabel}
-                          {isCurrent ? <span className="ml-2 text-[8px] text-emerald-400">YOU</span> : null}
+                          {isCurrent ? <span className="ml-2 text-[9px] text-emerald-400">YOU</span> : null}
                         </td>
                         <td className="p-2 text-right font-bold text-orange-400">{entry.xp}</td>
                       </tr>
@@ -984,7 +984,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-4">
+      <div className="grid grid-cols-12 gap-5">
         {/* Weak topic matrix with quick actions and trend icons */}
         <GlassPanel title="WEAK_TOPIC_MATRIX" tag="AI_SIGNAL" className="col-span-12 lg:col-span-5">
           <div className="space-y-3">
@@ -992,14 +992,14 @@ export default function DashboardPage() {
               data.weakAreas.map((topic) => (
                 <div
                   key={topic.topic}
-                  className="rounded-xl border border-white/10 bg-black/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                  className="rounded-xl border border-white/10 bg-black/20 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
                 >
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-bold text-white uppercase font-mono">
+                      <span className="text-base font-bold text-white uppercase font-mono">
                         {topic.topic}
                       </span>
-                      <span className="flex items-center gap-1 text-xs">
+                      <span className="flex items-center gap-1 text-sm">
                         <TrendIcon trend={topic.trend} />
                         <span className={cn(topic.accuracy >= 60 ? "text-emerald-400" : "text-red-400")}>
                           {Math.round(topic.accuracy)}%
@@ -1018,14 +1018,14 @@ export default function DashboardPage() {
                   </div>
                   <button
                     onClick={() => goToTopic(topic.topic)}
-                    className="shrink-0 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
+                    className="shrink-0 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
                   >
                     Start Revision
                   </button>
                 </div>
               ))
             ) : (
-              <div className="flex min-h-[140px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-gray-600">
+              <div className="flex min-h-[140px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
                 NO_WEAK_TOPIC_SIGNAL_YET
               </div>
             )}
@@ -1033,16 +1033,16 @@ export default function DashboardPage() {
         </GlassPanel>
 
         <GlassPanel title="RECENT_SESSION_TAPE" tag="LIVE_LOG" className="col-span-12 lg:col-span-4">
-          <div className="max-h-[260px] overflow-y-auto space-y-1">
+          <div className="max-h-[260px] overflow-y-auto space-y-2">
             {recentSessions.length ? (
               recentSessions.map((session, index) => (
                 <div
                   key={`${session.id ?? index}-${session.topic ?? "session"}`}
-                  className="grid grid-cols-[1fr_70px_60px] items-center border-b border-white/5 py-2 px-2 text-[10px] uppercase tracking-[0.14em] hover:bg-white/5 rounded"
+                  className="grid grid-cols-[1fr_80px_70px] items-center border-b border-white/5 py-3 px-3 text-[11px] uppercase tracking-[0.14em] hover:bg-white/5 rounded"
                 >
                   <div className="truncate text-white">
                     {session.topic ?? session.subject ?? "SESSION"}
-                    <div className="text-[9px] text-gray-600 mt-0.5">
+                    <div className="text-[10px] text-gray-600 mt-0.5">
                       {getSessionDate(session)?.toLocaleString("en-IN") ?? "NO_TIMESTAMP"}
                     </div>
                   </div>
@@ -1055,7 +1055,7 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : (
-              <div className="flex min-h-[160px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-gray-600">
+              <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
                 SESSION_TAPE_STANDBY
               </div>
             )}
@@ -1063,18 +1063,18 @@ export default function DashboardPage() {
         </GlassPanel>
 
         <GlassPanel title="AI_INSIGHT_FEED" tag="COACH" className="col-span-12 lg:col-span-3">
-          <div className="space-y-3">
+          <div className="space-y-4">
             {data.insights.length ? (
               data.insights.map((insight, index) => (
                 <div
                   key={`${insight.type}-${index}`}
-                  className="rounded-lg border border-white/10 bg-black/20 p-3"
+                  className="rounded-lg border border-white/10 bg-black/20 p-4"
                 >
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <span className="h-2 w-2 rounded-full bg-[#00A3FF] animate-pulse" />
                     <span
                       className={cn(
-                        "text-[9px] font-bold uppercase tracking-[0.2em]",
+                        "text-[10px] font-bold uppercase tracking-[0.2em]",
                         insight.severity === "warning" && "text-orange-400",
                         insight.severity === "success" && "text-emerald-400",
                         insight.severity !== "warning" && insight.severity !== "success" && "text-[#00A3FF]",
@@ -1083,11 +1083,11 @@ export default function DashboardPage() {
                       {insight.type ?? "signal"}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-300 leading-5">{insight.message}</p>
+                  <p className="text-sm text-gray-300 leading-relaxed">{insight.message}</p>
                 </div>
               ))
             ) : (
-              <div className="flex min-h-[160px] items-center justify-center text-[10px] uppercase tracking-[0.24em] text-gray-600">
+              <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
                 AI_SIGNAL_PENDING
               </div>
             )}
