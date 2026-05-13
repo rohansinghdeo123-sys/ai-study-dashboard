@@ -28,30 +28,38 @@
   --font-sans: "Geist Sans", Inter, system-ui, sans-serif;
 }
 
-/* ── Light Theme Overrides ───────────────────────────────────────────────── */
+/* ── Light Theme Overrides – SOFTER & MORE READABLE ────────────────────────── */
 [data-theme="light"] {
-  --color-terminal-950: #F8FAFC;   /* Page background */
-  --color-terminal-900: #FFFFFF;   /* Cards */
-  --color-terminal-800: #F1F5F9;
-  --color-terminal-700: #E2E8F0;
-  --color-terminal-600: #94A3B8;
-  --color-terminal-400: #64748B;
-  --color-terminal-300: #475569;
-  --color-terminal-200: #334155;
-  --color-terminal-100: #1E293B;
-  --color-terminal-50:  #0F172A;   /* Main text */
+  /* Base backgrounds – warm off-white instead of stark white */
+  --color-terminal-950: #F5F7FB;   /* Page background – soft with slight blue tint */
+  --color-terminal-900: #FFFFFF;   /* Cards – pure white but subtle */
+  --color-terminal-800: #F0F2F6;   /* Slightly darker for panels */
+  --color-terminal-700: #E4E7EC;   /* Borders – gentle gray */
+  --color-terminal-600: #C1C7D0;   /* Muted lines */
+  --color-terminal-400: #8A94A1;   /* Secondary text */
+  --color-terminal-300: #5B6778;   /* Body text – medium contrast */
+  --color-terminal-200: #3A4556;   /* Strong text */
+  --color-terminal-100: #252F3E;   /* Headings */
+  --color-terminal-50:  #1E293B;   /* Lowest brightness (rarely used) */
 
-  --color-terminal-orange: #D97706;
+  /* Accents – softer, less neon */
+  --color-terminal-orange: #E67E22;
   --color-terminal-green:  #059669;
-  --color-terminal-red:    #DC2626;
-  --color-terminal-blue:   #0284C7;
+  --color-terminal-red:    #E53E3E;
+  --color-terminal-blue:   #3B82F6;
   --color-terminal-amber:  #D97706;
 }
 
-/* ── Base Styles ─────────────────────────────────────────────────────────── */
+/* ── Base Styles – full screen, no margins ─────────────────────────────────── */
 :root {
   --background: var(--color-terminal-950);
   --foreground: var(--color-terminal-50);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
@@ -60,6 +68,8 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  min-height: 100vh;
+  width: 100%;
 }
 
 /* ── Scrollbars (adapt to theme) ─────────────────────────────────────────── */
@@ -68,7 +78,7 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--color-terminal-600); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-terminal-orange); }
 
-/* ── Reusable Terminal Components (use theme colors) ─────────────────────── */
+/* ── Reusable Terminal Components ─────────────────────────────────────── */
 .terminal-panel {
   background-color: var(--color-terminal-900);
   border: 1px solid var(--color-terminal-700);

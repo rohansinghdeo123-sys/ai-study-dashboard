@@ -44,7 +44,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const toggleSidebar = useCallback(() => setSidebarOpen((prev) => !prev), []);
   const toggleNavbar = useCallback(() => setNavbarOpen((prev) => !prev), []);
 
-  // Keyboard shortcuts remain as fallback
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === "b") {
@@ -79,39 +78,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isAdminRoute && !isAdmin) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0A0F] text-gray-200 font-sans">
+    <div className="flex h-screen w-full overflow-hidden bg-terminal-950 text-terminal-50 font-sans">
       <Sidebar collapsed={!sidebarOpen} onToggle={toggleSidebar} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Navbar collapsed={!navbarOpen} onToggle={toggleNavbar} />
 
-        {/* If navbar is collapsed, show a thin bar with expand button */}
         {!navbarOpen && (
-          <div className="flex items-center justify-end border-b border-white/10 bg-white/[0.02] px-4 py-1">
+          <div className="flex items-center justify-end border-b border-terminal-700 bg-terminal-900/30 px-4 py-1">
             <button
               onClick={toggleNavbar}
-              className="flex items-center gap-1 text-[10px] font-mono text-gray-500 hover:text-white transition-colors"
+              className="flex items-center gap-1 text-[10px] font-mono text-terminal-400 hover:text-terminal-50 transition-colors"
             >
               <span>▼</span> EXPAND
             </button>
           </div>
         )}
 
-        <main className="relative flex-1 overflow-y-auto overflow-x-hidden bg-[#0A0A0F]">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:48px_48px]" />
-          <div className="relative z-10 mx-auto max-w-[1600px] p-4 md:p-6">
+        <main className="relative flex-1 overflow-y-auto overflow-x-hidden">
+          {/* Removed max-width constraint and outer padding – full width */}
+          <div className="h-full w-full">
             {children}
           </div>
         </main>
 
-        <div className="flex items-center justify-between border-t border-white/10 bg-white/[0.02] backdrop-blur-sm px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-500">
+        <div className="flex items-center justify-between border-t border-terminal-700 bg-terminal-900/20 backdrop-blur-sm px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-terminal-400">
           <div className="flex items-center gap-6">
-            <span className="text-emerald-400">● LIVE</span>
+            <span className="text-terminal-green animate-terminal-pulse">● LIVE</span>
             <span>AI TERMINAL v1.0.4</span>
           </div>
           <div className="flex items-center gap-4">
             <span>Ctrl+B Side · Ctrl+N Nav</span>
-            {isAdmin && <span className="text-red-400">ADMIN</span>}
+            {isAdmin && <span className="text-terminal-red">ADMIN</span>}
           </div>
         </div>
       </div>
