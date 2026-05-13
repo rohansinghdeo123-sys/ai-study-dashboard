@@ -68,7 +68,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (!authReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] font-mono text-[#00A3FF]">
+      <div className="flex min-h-screen items-center justify-center bg-terminal-950 font-mono text-terminal-blue">
         <div className="animate-pulse">INITIALIZING TERMINAL...</div>
       </div>
     );
@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Navbar collapsed={!navbarOpen} onToggle={toggleNavbar} />
 
         {!navbarOpen && (
-          <div className="flex items-center justify-end border-b border-terminal-700 bg-terminal-900/30 px-4 py-1">
+          <div className="flex items-center justify-end border-b border-terminal-700 bg-terminal-900/40 px-4 py-1">
             <button
               onClick={toggleNavbar}
               className="flex items-center gap-1 text-[10px] font-mono text-terminal-400 hover:text-terminal-50 transition-colors"
@@ -96,13 +96,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         )}
 
         <main className="relative flex-1 overflow-y-auto overflow-x-hidden">
-          {/* Removed max-width constraint and outer padding – full width */}
-          <div className="h-full w-full">
-            {children}
-          </div>
+          <div className="h-full w-full">{children}</div>
         </main>
 
-        <div className="flex items-center justify-between border-t border-terminal-700 bg-terminal-900/20 backdrop-blur-sm px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-terminal-400">
+        <div className="flex items-center justify-between border-t border-terminal-700 bg-terminal-900/30 px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-terminal-400">
           <div className="flex items-center gap-6">
             <span className="text-terminal-green animate-terminal-pulse">● LIVE</span>
             <span>AI TERMINAL v1.0.4</span>

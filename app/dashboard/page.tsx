@@ -15,7 +15,7 @@ import {
 import AgentifiedNotification from "@/components/AgentifiedNotification";
 import CoachWidget from "@/components/CoachWidget";
 
-// ─── Types ─────────────────────────────────────────────────────────────────
+// ─── Types (unchanged) ─────────────────────────────────────────────────────
 interface Progress {
   user_id: string;
   total_tests: number;
@@ -80,7 +80,7 @@ interface WeakArea {
   accuracy: number;
   attempts?: number;
   avg_time?: number;
-  trend?: number; // positive = improving, negative = declining, 0 = stable
+  trend?: number;
 }
 
 interface Insight {
@@ -107,7 +107,7 @@ const RANGE_DAYS: Record<ChartRange, number> = {
   "30D": 30,
 };
 
-// ─── Utility functions ────────────────────────────────────────────────────────
+// ─── Utility functions (unchanged) ─────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -204,7 +204,7 @@ async function readJson(url: string) {
   return response.json();
 }
 
-// ─── Data normalizers ─────────────────────────────────────────────────────────
+// ─── Data normalizers (unchanged) ──────────────────────────────────────────
 function normalizeProgress(source: any, userId: string): Progress {
   if (!source || typeof source !== "object") {
     return { ...EMPTY_PROGRESS, user_id: userId };
@@ -408,7 +408,7 @@ function buildChartData({
   });
 }
 
-// ─── Terminal sub‑components (themed with CSS variables) ────────────────
+// ─── Modern styled components (no backdrop blur, solid cards) ─────────────
 function TerminalBadge({
   children,
   tone = "blue",
@@ -419,13 +419,13 @@ function TerminalBadge({
   return (
     <span
       className={cn(
-        "inline-flex border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.22em] font-mono",
-        tone === "orange" && "border-terminal-orange/30 bg-terminal-orange/10 text-terminal-orange",
-        tone === "green" && "border-terminal-green/30 bg-terminal-green/10 text-terminal-green",
-        tone === "blue" && "border-terminal-blue/30 bg-terminal-blue/10 text-terminal-blue",
-        tone === "red" && "border-terminal-red/30 bg-terminal-red/10 text-terminal-red",
-        tone === "neutral" && "border-terminal-700 bg-terminal-900/30 text-terminal-400",
-        tone === "amber" && "border-terminal-amber/40 bg-terminal-amber/10 text-terminal-amber",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide font-mono",
+        tone === "orange" && "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400",
+        tone === "green" && "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400",
+        tone === "blue" && "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400",
+        tone === "red" && "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400",
+        tone === "neutral" && "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+        tone === "amber" && "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400",
       )}
     >
       {children}
@@ -443,11 +443,11 @@ function GlassCard({
   accent?: "neutral" | "orange" | "green" | "red" | "blue";
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-terminal-700 bg-terminal-900/30 backdrop-blur-sm p-4 transition-all hover:border-terminal-600">
-      <div className="text-[9px] uppercase tracking-[0.22em] text-terminal-500 font-mono">{label}</div>
+    <div className="rounded-xl border border-terminal-700 bg-terminal-900 p-4 shadow-sm transition-all hover:shadow-md">
+      <div className="text-[10px] uppercase tracking-wide text-terminal-500 font-mono">{label}</div>
       <div
         className={cn(
-          "mt-2 text-lg font-bold tracking-tight",
+          "mt-2 text-xl font-semibold tracking-tight",
           accent === "orange" && "text-terminal-orange",
           accent === "green" && "text-terminal-green",
           accent === "red" && "text-terminal-red",
@@ -477,16 +477,16 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-terminal-700 bg-terminal-900/30 backdrop-blur-sm overflow-hidden",
+        "rounded-xl border border-terminal-700 bg-terminal-900 shadow-sm overflow-hidden",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-terminal-700 bg-terminal-800/20 px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-terminal-700 bg-terminal-800/30 px-4 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-terminal-400 font-mono">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-terminal-400 font-mono">
             {title}
           </span>
-          {tag ? <TerminalBadge tone="orange">{tag}</TerminalBadge> : null}
+          {tag && <TerminalBadge tone="orange">{tag}</TerminalBadge>}
         </div>
         {right}
       </div>
@@ -747,7 +747,6 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full min-h-screen bg-terminal-950 text-terminal-200 font-sans">
-      {/* Inner container provides comfortable spacing but no outer gaps */}
       <div className="mx-auto w-full px-4 md:px-6 py-4 md:py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -842,7 +841,6 @@ export default function DashboardPage() {
                       border: "1px solid var(--color-terminal-700)",
                       borderRadius: "8px",
                       fontSize: "10px",
-                      backdropFilter: "blur(8px)",
                     }}
                     labelStyle={{ color: "var(--color-terminal-200)" }}
                     itemStyle={{ color: "#FFA500" }}
@@ -900,12 +898,12 @@ export default function DashboardPage() {
                 </button>
               }
             >
-              <div className="border-b border-terminal-700 bg-terminal-900/40 p-2">
+              <div className="border-b border-terminal-700 bg-terminal-800/20 p-2">
                 <input
                   type="text"
                   value={searchTerm}
                   placeholder="SEARCH NAME / ID..."
-                  className="w-full border border-terminal-700 bg-terminal-900/50 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-terminal-50 outline-none focus:border-terminal-orange rounded-md placeholder-terminal-600"
+                  className="w-full border border-terminal-700 bg-terminal-900 px-3 py-2 text-[10px] uppercase tracking-[0.16em] text-terminal-50 outline-none focus:border-terminal-orange rounded-md placeholder-terminal-600"
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
@@ -987,14 +985,13 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-12 gap-4">
-          {/* Weak topic matrix with quick actions and trend icons */}
           <GlassPanel title="WEAK_TOPIC_MATRIX" tag="AI_SIGNAL" className="col-span-12 lg:col-span-5">
             <div className="space-y-3">
               {data.weakAreas.length ? (
                 data.weakAreas.map((topic) => (
                   <div
                     key={topic.topic}
-                    className="rounded-xl border border-terminal-700 bg-terminal-900/40 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                    className="rounded-xl border border-terminal-700 bg-terminal-800/20 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                   >
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
@@ -1070,7 +1067,7 @@ export default function DashboardPage() {
                 data.insights.map((insight, index) => (
                   <div
                     key={`${insight.type}-${index}`}
-                    className="rounded-lg border border-terminal-700 bg-terminal-900/40 p-3"
+                    className="rounded-lg border border-terminal-700 bg-terminal-800/20 p-3"
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="h-2 w-2 rounded-full bg-terminal-blue animate-pulse" />
@@ -1097,7 +1094,6 @@ export default function DashboardPage() {
           </GlassPanel>
         </div>
 
-        {/* Coach Widget – persistent across dashboard */}
         <CoachWidget />
       </div>
     </div>

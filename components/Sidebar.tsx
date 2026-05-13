@@ -69,11 +69,11 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <aside
-      className={`flex h-full flex-col border-r border-terminal-700 bg-terminal-900/30 backdrop-blur-lg transition-all duration-300 ${
+      className={`flex h-full flex-col border-r border-terminal-700 bg-terminal-900 transition-all duration-300 ${
         collapsed ? "w-[52px]" : "w-[200px]"
       }`}
     >
-      <div className="flex items-center justify-between border-b border-terminal-700 bg-terminal-800/20 p-3">
+      <div className="flex items-center justify-between border-b border-terminal-700 p-3">
         {!collapsed && (
           <div>
             <div className="font-mono text-[11px] font-bold tracking-wider text-terminal-blue">
@@ -84,7 +84,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
         )}
         <button
           onClick={onToggle}
-          className={`text-terminal-500 hover:text-terminal-100 transition-colors ${
+          className={`text-terminal-500 hover:text-terminal-200 transition-colors ${
             collapsed ? "mx-auto" : ""
           }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -112,7 +112,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
                     : "border-terminal-blue bg-terminal-blue/10 text-terminal-blue"
                   : isOps
                     ? "border-transparent text-terminal-500 hover:bg-terminal-red/5 hover:text-terminal-red"
-                    : "border-transparent text-terminal-500 hover:bg-terminal-800/30 hover:text-terminal-200"
+                    : "border-transparent text-terminal-500 hover:bg-terminal-800/50 hover:text-terminal-200"
               }`}
             >
               <span className="text-sm">{item.icon}</span>
@@ -123,7 +123,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
       </nav>
 
       {!collapsed && (
-        <div className="border-t border-terminal-700 p-3 space-y-3 bg-terminal-800/20">
+        <div className="border-t border-terminal-700 p-3 space-y-3">
           <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-terminal-500">
             LIVE STATS
           </div>

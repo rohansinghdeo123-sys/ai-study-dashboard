@@ -2,7 +2,7 @@
 
 /* ── Theme Configuration (Dark default) ──────────────────────────────────── */
 @theme {
-  /* Dark palette */
+  /* Dark palette – kept mostly the same */
   --color-terminal-950: #0A0A0F;
   --color-terminal-900: #111111;
   --color-terminal-800: #1A1A1A;
@@ -28,21 +28,21 @@
   --font-sans: "Geist Sans", Inter, system-ui, sans-serif;
 }
 
-/* ── Light Theme Overrides – SOFTER & MORE READABLE ────────────────────────── */
+/* ── Light Theme – Soft, modern, no harshness ────────────────────────────── */
 [data-theme="light"] {
-  /* Base backgrounds – warm off-white instead of stark white */
-  --color-terminal-950: #F5F7FB;   /* Page background – soft with slight blue tint */
-  --color-terminal-900: #FFFFFF;   /* Cards – pure white but subtle */
-  --color-terminal-800: #F0F2F6;   /* Slightly darker for panels */
-  --color-terminal-700: #E4E7EC;   /* Borders – gentle gray */
-  --color-terminal-600: #C1C7D0;   /* Muted lines */
-  --color-terminal-400: #8A94A1;   /* Secondary text */
-  --color-terminal-300: #5B6778;   /* Body text – medium contrast */
-  --color-terminal-200: #3A4556;   /* Strong text */
-  --color-terminal-100: #252F3E;   /* Headings */
-  --color-terminal-50:  #1E293B;   /* Lowest brightness (rarely used) */
+  /* Base – very soft off‑white background */
+  --color-terminal-950: #F8FAFC;
+  --color-terminal-900: #FFFFFF;
+  --color-terminal-800: #F1F5F9;
+  --color-terminal-700: #E2E8F0;
+  --color-terminal-600: #CBD5E1;
+  --color-terminal-400: #64748B;
+  --color-terminal-300: #475569;
+  --color-terminal-200: #334155;
+  --color-terminal-100: #1E293B;
+  --color-terminal-50:  #0F172A;
 
-  /* Accents – softer, less neon */
+  /* Accents – slightly softer than neon */
   --color-terminal-orange: #E67E22;
   --color-terminal-green:  #059669;
   --color-terminal-red:    #E53E3E;
@@ -72,27 +72,15 @@ body {
   width: 100%;
 }
 
-/* ── Scrollbars (adapt to theme) ─────────────────────────────────────────── */
+/* ── Scrollbars (subtle) ─────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: var(--color-terminal-800); }
 ::-webkit-scrollbar-thumb { background: var(--color-terminal-600); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-terminal-orange); }
 
-/* ── Reusable Terminal Components ─────────────────────────────────────── */
-.terminal-panel {
-  background-color: var(--color-terminal-900);
-  border: 1px solid var(--color-terminal-700);
+/* ── Helper for smooth transitions (theme switch) ───────────────────────── */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
-.terminal-header {
-  background-color: var(--color-terminal-800);
-  border-bottom: 1px solid var(--color-terminal-700);
-  color: var(--color-terminal-400);
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  font-size: 0.7rem;
-  padding: 4px 12px;
-}
-
-/* ── Animations ──────────────────────────────────────────────────────────── */
-@keyframes terminal-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-.animate-terminal-pulse { animation: terminal-pulse 2s infinite ease-in-out; }

@@ -58,9 +58,9 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
 
   if (collapsed) {
     return (
-      <header className="flex items-center justify-between border-b border-terminal-700/50 bg-terminal-800/50 backdrop-blur-sm px-4 py-1 h-10">
+      <header className="flex items-center justify-between border-b border-terminal-700 bg-terminal-900 px-4 py-1 h-10">
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="h-2 w-2 rounded-full bg-terminal-green animate-pulse" />
           <span className="text-[10px] font-mono text-terminal-400">LIVE</span>
         </div>
         <div className="flex items-center gap-2">
@@ -74,7 +74,7 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-terminal-700/50 bg-terminal-800/50 backdrop-blur-sm px-4 py-3">
+    <header className="flex items-center justify-between border-b border-terminal-700 bg-terminal-900 px-4 py-3">
       <div className="flex items-center gap-3">
         <button onClick={onToggle} className="text-terminal-400 hover:text-terminal-50 transition-colors">
           <span className="text-xs font-mono">▲</span>
@@ -93,7 +93,7 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
         {user && (
           <>
             <div className="hidden md:flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-terminal-700/50 bg-terminal-800/50 font-mono text-xs font-bold text-terminal-blue">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full border border-terminal-700 bg-terminal-800 font-mono text-xs font-bold text-terminal-blue">
                 {getInitials(displayName)}
               </div>
               <div className="text-right">
