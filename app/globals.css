@@ -1,135 +1,116 @@
 @import "tailwindcss";
 
-/* --- BLOOMBERG TERMINAL THEME CONFIGURATION --- */
+/* ── Theme Configuration ─────────────────────────────────────────────────── */
 @theme {
-  /* Bloomberg Palette */
-  --color-terminal-black: #000000;
+  /* Dark palette (default) */
+  --color-terminal-950: #0A0A0F;
+  --color-terminal-900: #111111;
+  --color-terminal-800: #1A1A1A;
+  --color-terminal-700: #2A2A2A;
+  --color-terminal-600: #555555;
+  --color-terminal-400: #999999;
+  --color-terminal-300: #BBBBBB;
+  --color-terminal-200: #DDDDDD;
+  --color-terminal-100: #F0F0F0;
+  --color-terminal-50:  #FFFFFF;
+
+  /* Accent */
   --color-terminal-orange: #FFA500;
-  --color-terminal-green: #00FF00;
-  --color-terminal-red: #FF3B30;
-  --color-terminal-blue: #007AFF;
-  
-  /* High-Contrast Grays */
-  --color-terminal-gray-900: #0A0A0A;
-  --color-terminal-gray-800: #111111;
-  --color-terminal-gray-700: #222222;
-  --color-terminal-gray-600: #333333;
-  --color-terminal-gray-400: #666666;
+  --color-terminal-green:  #10B981;
+  --color-terminal-red:    #EF4444;
+  --color-terminal-blue:   #00A3FF;
+  --color-terminal-amber:  #F59E0B;
+  --color-terminal-pink:   #EC4899;
+  --color-terminal-purple: #A78BFA;
 
   /* Typography */
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --font-sans: "Geist Sans", Inter, system-ui, sans-serif;
 }
 
-/* --- BASE STYLES --- */
+/* ── Light Theme Overrides ───────────────────────────────────────────────── */
+[data-theme="light"] {
+  --color-terminal-950: #F8FAFC;   /* Page background */
+  --color-terminal-900: #FFFFFF;   /* Cards */
+  --color-terminal-800: #F1F5F9;
+  --color-terminal-700: #E2E8F0;
+  --color-terminal-600: #94A3B8;
+  --color-terminal-400: #64748B;
+  --color-terminal-300: #475569;
+  --color-terminal-200: #334155;
+  --color-terminal-100: #1E293B;
+  --color-terminal-50:  #0F172A;   /* Main text */
+
+  /* Accent tweaks for light background */
+  --color-terminal-orange: #D97706;
+  --color-terminal-green:  #059669;
+  --color-terminal-red:    #DC2626;
+  --color-terminal-blue:   #0284C7;
+  --color-terminal-amber:  #D97706;
+}
+
+/* ── Base Styles ─────────────────────────────────────────────────────────── */
 :root {
-  --background: #000000;
-  --foreground: #ededed;
+  --background: var(--color-terminal-950);
+  --foreground: var(--color-terminal-50);
 }
 
 body {
-  background: radial-gradient(circle at top, #0A0A0A, #000000);
+  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* --- BLOOMBERG UI COMPONENTS --- */
+/* ── Scrollbars ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--color-terminal-800); }
+::-webkit-scrollbar-thumb { background: var(--color-terminal-600); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-terminal-orange); }
 
-/* Ultra-thin Terminal Scrollbars */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: #000000;
-}
-::-webkit-scrollbar-thumb {
-  background: #333333;
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #FFA500;
-}
-
-/* High-Density Panel System */
+/* ── Terminal Components (inherit theme colors) ──────────────────────────── */
 .terminal-panel {
-  background-color: #0A0A0A;
-  border: 1px solid #222222;
-  transition: border-color 0.2s ease;
+  background-color: var(--color-terminal-900);
+  border: 1px solid var(--color-terminal-700);
+  transition: border-color 0.2s;
 }
-.terminal-panel:hover {
-  border-color: #444444;
-}
+.terminal-panel:hover { border-color: var(--color-terminal-600); }
 
-/* Terminal Header Bar */
 .terminal-header {
-  background-color: #111111;
-  border-bottom: 1px solid #222222;
+  background-color: var(--color-terminal-800);
+  border-bottom: 1px solid var(--color-terminal-700);
   padding: 4px 12px;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #666666;
+  color: var(--color-terminal-400);
   font-family: var(--font-mono);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-/* Subtle Grid Overlay Effect */
 .terminal-grid {
-  background-image: 
-    linear-gradient(to right, #80808008 1px, transparent 1px),
-    linear-gradient(to bottom, #80808008 1px, transparent 1px);
+  background-image:
+    linear-gradient(to right, var(--color-terminal-700) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-terminal-700) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
-/* Animations */
-@keyframes terminal-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
-.animate-terminal-pulse {
-  animation: terminal-pulse 2s infinite ease-in-out;
-}
+/* ── Animations (unchanged) ──────────────────────────────────────────────── */
+@keyframes terminal-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+.animate-terminal-pulse { animation: terminal-pulse 2s infinite ease-in-out; }
 
-/* --- ADMIN PANEL SPECIFIC STYLES --- */
+@keyframes agent-active-glow { 0%,100%{box-shadow:0 0 4px rgba(16,185,129,.3)} 50%{box-shadow:0 0 8px rgba(16,185,129,.6)} }
+.agent-active { animation: agent-active-glow 2s infinite ease-in-out; }
 
-/* Agent Status Indicator Glow */
-@keyframes agent-active-glow {
-  0%, 100% { box-shadow: 0 0 4px rgba(0, 255, 0, 0.3); }
-  50% { box-shadow: 0 0 8px rgba(0, 255, 0, 0.6); }
-}
-.agent-active {
-  animation: agent-active-glow 2s infinite ease-in-out;
-}
+@keyframes log-flash { 0%{background-color:rgba(255,165,0,.15)} 100%{background-color:transparent} }
+.log-new { animation: log-flash 1s ease-out; }
 
-/* Log Stream Highlight on New Entry */
-@keyframes log-flash {
-  0% { background-color: rgba(255, 165, 0, 0.15); }
-  100% { background-color: transparent; }
-}
-.log-new {
-  animation: log-flash 1s ease-out;
-}
+.pipeline-connector { position:relative; }
+.pipeline-connector::before { content:''; position:absolute; left:11px; top:0; bottom:0; width:1px; background:var(--color-terminal-700); }
 
-/* Pipeline Step Connector Line */
-.pipeline-connector {
-  position: relative;
-}
-.pipeline-connector::before {
-  content: '';
-  position: absolute;
-  left: 11px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: #222222;
-}
-
-/* Admin Select Dropdowns */
 .admin-select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23666' d='M0 2l4 4 4-4z'/%3E%3C/svg%3E");
@@ -138,19 +119,8 @@ body {
   padding-right: 18px;
 }
 
-/* WebSocket Connection Indicator */
-@keyframes ws-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.ws-connected {
-  animation: ws-pulse 3s infinite ease-in-out;
-}
+@keyframes ws-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.ws-connected { animation: ws-pulse 3s infinite ease-in-out; }
 
-/* Admin Chat Bubble Styles */
-.admin-chat-admin {
-  border-radius: 2px 8px 8px 8px;
-}
-.admin-chat-agent {
-  border-radius: 8px 2px 8px 8px;
-}
+.admin-chat-admin { border-radius: 2px 8px 8px 8px; }
+.admin-chat-agent { border-radius: 8px 2px 8px 8px; }
