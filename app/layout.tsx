@@ -31,11 +31,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="flex flex-col min-h-screen w-full bg-terminal-950 text-terminal-50 transition-colors duration-300">
+      <body className="flex flex-col min-h-screen bg-terminal-950 text-terminal-50 transition-colors duration-300">
         <AuthProvider>
           <BetaBanner />
-          {/* REMOVED side padding from root layout – let children handle their own spacing */}
-          <main className="flex-1 w-full">
+          <main className="flex-1 w-full mx-auto px-4 md:px-6 lg:px-8">
             {children}
           </main>
         </AuthProvider>
