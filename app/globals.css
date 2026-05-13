@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* ── Theme Configuration ─────────────────────────────────────────────────── */
+/* ── Theme Configuration (Dark default) ──────────────────────────────────── */
 @theme {
-  /* Dark palette (default) */
+  /* Dark palette */
   --color-terminal-950: #0A0A0F;
   --color-terminal-900: #111111;
   --color-terminal-800: #1A1A1A;
@@ -41,7 +41,6 @@
   --color-terminal-100: #1E293B;
   --color-terminal-50:  #0F172A;   /* Main text */
 
-  /* Accent tweaks for light background */
   --color-terminal-orange: #D97706;
   --color-terminal-green:  #059669;
   --color-terminal-red:    #DC2626;
@@ -63,64 +62,27 @@ body {
   overflow-x: hidden;
 }
 
-/* ── Scrollbars ──────────────────────────────────────────────────────────── */
+/* ── Scrollbars (adapt to theme) ─────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: var(--color-terminal-800); }
 ::-webkit-scrollbar-thumb { background: var(--color-terminal-600); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-terminal-orange); }
 
-/* ── Terminal Components (inherit theme colors) ──────────────────────────── */
+/* ── Reusable Terminal Components (use theme colors) ─────────────────────── */
 .terminal-panel {
   background-color: var(--color-terminal-900);
   border: 1px solid var(--color-terminal-700);
-  transition: border-color 0.2s;
 }
-.terminal-panel:hover { border-color: var(--color-terminal-600); }
-
 .terminal-header {
   background-color: var(--color-terminal-800);
   border-bottom: 1px solid var(--color-terminal-700);
-  padding: 4px 12px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
   color: var(--color-terminal-400);
   font-family: var(--font-mono);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  padding: 4px 12px;
 }
 
-.terminal-grid {
-  background-image:
-    linear-gradient(to right, var(--color-terminal-700) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-terminal-700) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* ── Animations (unchanged) ──────────────────────────────────────────────── */
+/* ── Animations ──────────────────────────────────────────────────────────── */
 @keyframes terminal-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
 .animate-terminal-pulse { animation: terminal-pulse 2s infinite ease-in-out; }
-
-@keyframes agent-active-glow { 0%,100%{box-shadow:0 0 4px rgba(16,185,129,.3)} 50%{box-shadow:0 0 8px rgba(16,185,129,.6)} }
-.agent-active { animation: agent-active-glow 2s infinite ease-in-out; }
-
-@keyframes log-flash { 0%{background-color:rgba(255,165,0,.15)} 100%{background-color:transparent} }
-.log-new { animation: log-flash 1s ease-out; }
-
-.pipeline-connector { position:relative; }
-.pipeline-connector::before { content:''; position:absolute; left:11px; top:0; bottom:0; width:1px; background:var(--color-terminal-700); }
-
-.admin-select {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath fill='%23666' d='M0 2l4 4 4-4z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 6px center;
-  padding-right: 18px;
-}
-
-@keyframes ws-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-.ws-connected { animation: ws-pulse 3s infinite ease-in-out; }
-
-.admin-chat-admin { border-radius: 2px 8px 8px 8px; }
-.admin-chat-agent { border-radius: 8px 2px 8px 8px; }

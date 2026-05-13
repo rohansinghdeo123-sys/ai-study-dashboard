@@ -18,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Inline script to set theme before paint – prevents flash */}
+        {/* Theme script – runs before paint, no flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -32,10 +32,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="bg-terminal-950 text-terminal-50 min-h-screen flex flex-col transition-colors duration-300">
+      <body className="flex flex-col min-h-screen bg-terminal-950 text-terminal-50 transition-colors duration-300">
         <AuthProvider>
           <BetaBanner />
-          <main className="flex-1 w-full max-w-[1440px] mx-auto px-4 md:px-6 lg:px-8">
+          {/* MAIN CENTERED CONTAINER – fills screen width with safe paddings */}
+          <main className="flex-1 w-full mx-auto px-4 md:px-6 lg:px-8">
             {children}
           </main>
         </AuthProvider>
