@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import Button from "@/components/ui/Button";
 
 // ─── Utility functions (unchanged) ────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
@@ -27,7 +28,7 @@ function getErrorMessage(error: unknown) {
   return "AUTH_REQUEST_FAILED";
 }
 
-// ─── Terminal sub‑components (restyled) ────────────────────────────────────
+// ─── Terminal sub‑components (unchanged) ──────────────────────────────────
 function TerminalBadge({
   children,
   tone = "blue",
@@ -82,7 +83,7 @@ function MetricTile({
   );
 }
 
-// ─── Particle background (chemical bond simulator) ─────────────────────────
+// ─── Particle background (unchanged) ───────────────────────────────────────
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
@@ -163,7 +164,7 @@ function ParticleCanvas() {
   );
 }
 
-// ─── Typing animation hook ──────────────────────────────────────────────────
+// ─── Typing animation hook (unchanged) ────────────────────────────────────
 function useTypingEffect(text: string, speed = 70) {
   const [displayed, setDisplayed] = useState("");
   const indexRef = useRef(0);
@@ -308,7 +309,6 @@ export default function LoginPage() {
                 Learning Intelligence Console
               </div>
 
-              {/* === SINGLE BRAND LOCKUP === */}
               <h1 className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00A3FF] to-amber-400">
                 AgentifyAI
               </h1>
@@ -319,10 +319,8 @@ export default function LoginPage() {
               <p className="mt-2 max-w-2xl text-base leading-8 text-gray-400">
                 One private AI coach that learns from every session, spots weak areas, and guides you daily — just like a personal tutor.
               </p>
-              {/* =============================== */}
             </div>
 
-            {/* Live status tiles */}
             <div className="mt-10 grid max-w-4xl grid-cols-2 border border-[#1A1A1A] md:grid-cols-4">
               <MetricTile label="Daily XP" value="LIVE" active />
               <MetricTile label="MCQ Engine" value="READY" />
@@ -330,7 +328,6 @@ export default function LoginPage() {
               <MetricTile label="Personal AI" value="ACTIVE" />
             </div>
 
-            {/* USP highlights */}
             <div className="mt-8 grid max-w-4xl gap-3 md:grid-cols-2">
               {[
                 [
@@ -355,7 +352,7 @@ export default function LoginPage() {
             </div>
           </section>
 
-          {/* Right panel – authentication card (unchanged) */}
+          {/* Right panel – authentication card (unchanged structure, upgraded buttons) */}
           <section className="flex items-center justify-center">
             <div
               className={cn(
@@ -396,9 +393,12 @@ export default function LoginPage() {
                       </p>
                     </div>
 
-                    <button
+                    {/* GOOGLE LOGIN BUTTON (primary variant) */}
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      className="w-full"
                       onClick={handleGoogleLogin}
-                      className="group flex w-full items-center justify-center gap-3 border border-white/10 bg-black/30 px-5 py-3 text-sm font-bold text-[#E6E6E6] transition-all hover:border-[#00A3FF] hover:bg-[#0F1A24] active:scale-[0.99] font-mono"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -411,7 +411,7 @@ export default function LoginPage() {
                         <path fill="#1976D2" d="M43.611 20.083h-1.611V20H24v8h11.303c-1.15 3.388-4.292 6-8.303 6-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z" />
                       </svg>
                       CONTINUE_WITH_GOOGLE
-                    </button>
+                    </Button>
 
                     <div className="my-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                       <div className="h-px bg-white/10" />
@@ -443,13 +443,15 @@ export default function LoginPage() {
                       </label>
 
                       {!otpSent ? (
-                        <button
+                        <Button
+                          variant="primary"
+                          size="lg"
+                          className="w-full"
                           onClick={handleSendOtp}
                           disabled={sendingOtp}
-                          className="w-full border border-[#00A3FF]/40 bg-[#00A3FF]/10 px-5 py-3 font-mono text-sm font-bold uppercase tracking-[0.16em] text-[#00A3FF] transition-all hover:bg-[#00A3FF]/20 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
                         >
                           {sendingOtp ? "SENDING_OTP..." : "SEND_OTP"}
-                        </button>
+                        </Button>
                       ) : (
                         <>
                           <label className="block">
@@ -471,24 +473,28 @@ export default function LoginPage() {
                             </div>
                           </label>
 
-                          <button
+                          <Button
+                            variant="primary"
+                            size="lg"
+                            className="w-full !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
                             onClick={handleVerifyOtp}
                             disabled={verifyingOtp}
-                            className="w-full border border-emerald-400/40 bg-emerald-400/10 px-5 py-3 font-mono text-sm font-bold uppercase tracking-[0.16em] text-emerald-400 transition-all hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98]"
                           >
                             {verifyingOtp ? "VERIFYING..." : "VERIFY_AND_CONTINUE"}
-                          </button>
+                          </Button>
 
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full"
                             onClick={() => {
                               setOtpSent(false);
                               setOtp("");
                               setAuthError("");
                             }}
-                            className="w-full border border-white/10 bg-transparent px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#6B6B6B] transition-colors hover:text-[#E6E6E6] hover:border-white/20"
                           >
                             CHANGE_PHONE_NUMBER
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>
