@@ -408,7 +408,12 @@ function buildChartData({
   });
 }
 
-// ─── Terminal glass components with enhanced spacing ────────────────────────
+// ─── Skeleton components ───────────────────────────────────────────────────
+function Skeleton({ className }: { className?: string }) {
+  return <div className={`animate-pulse rounded-md bg-white/10 ${className || ""}`} />;
+}
+
+// ─── Glass components (theme‑aware placeholders) ───────────────────────────
 function TerminalBadge({
   children,
   tone = "blue",
@@ -437,10 +442,12 @@ function GlassCard({
   label,
   value,
   accent = "neutral",
+  loading,
 }: {
   label: string;
   value: string | number;
   accent?: "neutral" | "orange" | "green" | "red" | "blue";
+  loading?: boolean;
 }) {
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 transition-all hover:border-white/20">
@@ -455,7 +462,7 @@ function GlassCard({
           accent === "neutral" && "text-white",
         )}
       >
-        {value}
+        {loading ? <Skeleton className="h-8 w-16" /> : value}
       </div>
     </div>
   );
@@ -503,7 +510,7 @@ function TrendIcon({ trend }: { trend?: number }) {
   return <span className="text-red-400 text-xs">↓</span>;
 }
 
-// ─── Main Dashboard Page (enhanced spacing & readability) ──────────────────
+// ─── Main Dashboard Page (instant skeleton loading) ────────────────────────
 export default function DashboardPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   const router = useRouter();
@@ -519,6 +526,9 @@ export default function DashboardPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [showAgentNotification, setShowAgentNotification] = useState(false);
 
+  // Data loading flag (independent of auth)
+  const [dataLoading, setDataLoading] = useState(true);
+
   const [data, setData] = useState<{
     progress: Progress;
     leaderboard: LeaderboardUser[];
@@ -526,7 +536,6 @@ export default function DashboardPage() {
     trends: TrendPoint[];
     weakAreas: WeakArea[];
     insights: Insight[];
-    loading: boolean;
     error: string | null;
   }>({
     progress: EMPTY_PROGRESS,
@@ -535,7 +544,6 @@ export default function DashboardPage() {
     trends: [],
     weakAreas: [],
     insights: [],
-    loading: true,
     error: null,
   });
 
@@ -546,7 +554,7 @@ export default function DashboardPage() {
     }
   }, [authLoading, user]);
 
-  // Auto‑refresh every 60 seconds
+  // Auto‑refresh every 60 seconds (always run once on mount)
   const fetchAllData = useCallback(async () => {
     if (!currentUserId) return;
     try {
@@ -617,7 +625,6 @@ export default function DashboardPage() {
         ),
         weakAreas: normalizeWeakAreas(analyticsSource),
         insights: normalizeInsights(analyticsSource),
-        loading: false,
         error: null,
       });
       setLastRefresh(new Date());
@@ -626,9 +633,10 @@ export default function DashboardPage() {
       setData((prev) => ({
         ...prev,
         progress: { ...EMPTY_PROGRESS, user_id: currentUserId },
-        loading: false,
         error: "BACKEND_SYNC_ERROR",
       }));
+    } finally {
+      setDataLoading(false);
     }
   }, [backendURL, currentUserId, currentDisplayName, user?.email, user?.phoneNumber]);
 
@@ -644,7 +652,7 @@ export default function DashboardPage() {
     }
   }, [authLoading, user, router, fetchAllData, currentUserId]);
 
-  // Derived analytics
+  // Derived analytics (always computed even if loading)
   const analytics = useMemo(() => {
     const computedAccuracy =
       data.progress.total_questions === 0
@@ -711,7 +719,6 @@ export default function DashboardPage() {
       .slice(0, 6);
   }, [data.sessions]);
 
-  // Personalised greeting
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -721,7 +728,6 @@ export default function DashboardPage() {
 
   const weakCount = data.weakAreas.length;
 
-  // Quick action handler
   const goToTopic = useCallback(
     (topic: string) => {
       router.push(`/dashboard/study?chapter=hydrocarbon&topic=${topic}`);
@@ -729,37 +735,41 @@ export default function DashboardPage() {
     [router],
   );
 
-  // Loading state
-  if (authLoading || data.loading) {
+  // Early return for unauthenticated users (no spinner needed)
+  if (authLoading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] font-mono text-[#00A3FF]">
+      <div className="flex min-h-screen items-center justify-center bg-terminal-950 font-mono text-terminal-blue">
         <div className="animate-pulse text-sm uppercase tracking-[0.28em]">
-          LOADING_TERMINAL_DATA...
+          {authLoading ? "VERIFYING_SESSION..." : "REDIRECTING..."}
         </div>
       </div>
     );
   }
 
-  // Agentified notification (shown only once after login)
+  // Agentified notification (shown only once)
   if (showAgentNotification) {
     return <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />;
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#0A0A0F] text-gray-200 p-5 md:p-8 space-y-8 font-sans">
-      {/* Header with greeting and last refresh */}
+    <div className="w-full min-h-screen bg-terminal-950 text-terminal-50 p-5 md:p-8 space-y-8 font-sans">
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-            {greeting}, <span className="text-[#00A3FF]">{currentDisplayName}</span>.
+          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+            {greeting}, <span className="text-terminal-blue">{currentDisplayName}</span>.
           </h1>
-          <p className="text-base text-gray-400 mt-1">
-            {weakCount > 0
-              ? `Your AI coach found ${weakCount} weak topic${weakCount > 1 ? "s" : ""} today.`
-              : "Your AI coach is analysing your latest sessions."}
+          <p className="text-base text-terminal-400 mt-1">
+            {dataLoading ? (
+              <Skeleton className="h-5 w-64" />
+            ) : weakCount > 0 ? (
+              `Your AI coach found ${weakCount} weak topic${weakCount > 1 ? "s" : ""} today.`
+            ) : (
+              "Your AI coach is analysing your latest sessions."
+            )}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
+        <div className="flex items-center gap-2 text-sm text-terminal-400">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
           Last updated: {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </div>
@@ -767,19 +777,21 @@ export default function DashboardPage() {
 
       {/* Top stat cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
-        <GlassCard label="System_User" value={currentDisplayName} />
-        <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" />
+        <GlassCard label="System_User" value={currentDisplayName} loading={dataLoading} />
+        <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" loading={dataLoading} />
         <GlassCard
           label="Accuracy_Index"
           value={`${analytics.accuracy}%`}
           accent={analytics.accuracy >= 75 ? "green" : analytics.accuracy >= 45 ? "orange" : "red"}
+          loading={dataLoading}
         />
-        <GlassCard label="Current_Streak" value={`${data.progress.streak} Days`} accent="orange" />
-        <GlassCard label="Terminal_Level" value={`LVL ${analytics.level}`} accent="orange" />
+        <GlassCard label="Current_Streak" value={`${data.progress.streak} Days`} accent="orange" loading={dataLoading} />
+        <GlassCard label="Terminal_Level" value={`LVL ${analytics.level}`} accent="orange" loading={dataLoading} />
         <GlassCard
           label="Backend_Status"
           value={data.error ? "SYNC_WARN" : "LIVE"}
           accent={data.error ? "red" : "green"}
+          loading={dataLoading}
         />
       </div>
 
@@ -822,280 +834,272 @@ export default function DashboardPage() {
             </div>
           }
         >
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorSignal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FFA500" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#FFA500" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A" vertical={false} />
-                <XAxis dataKey="label" stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0A0A0F",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    fontSize: "10px",
-                    backdropFilter: "blur(8px)",
-                  }}
-                  labelStyle={{ color: "#E5E7EB" }}
-                  itemStyle={{ color: "#FFA500" }}
-                  cursor={{ stroke: "rgba(255,165,0,0.3)", strokeWidth: 1 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  name={chartMode.toUpperCase()}
-                  stroke="#FFA500"
-                  fill="url(#colorSignal)"
-                  strokeWidth={2}
-                  animationDuration={900}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {dataLoading ? (
+            <div className="h-[350px] flex items-center justify-center">
+              <Skeleton className="h-64 w-full" />
+            </div>
+          ) : (
+            <div className="h-[350px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorSignal" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#FFA500" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#FFA500" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1A1A1A" vertical={false} />
+                  <XAxis dataKey="label" stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#555" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#0A0A0F",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "8px",
+                      fontSize: "10px",
+                      backdropFilter: "blur(8px)",
+                    }}
+                    labelStyle={{ color: "#E5E7EB" }}
+                    itemStyle={{ color: "#FFA500" }}
+                    cursor={{ stroke: "rgba(255,165,0,0.3)", strokeWidth: 1 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    name={chartMode.toUpperCase()}
+                    stroke="#FFA500"
+                    fill="url(#colorSignal)"
+                    strokeWidth={2}
+                    animationDuration={900}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </GlassPanel>
 
         <div className="col-span-12 lg:col-span-4 space-y-5">
           <GlassPanel title="LEVEL_PROGRESSION" tag="XP">
-            <div className="space-y-4">
-              <div className="flex justify-between items-baseline">
-                <span className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-mono">
-                  TOTAL_XP
-                </span>
-                <span className="text-4xl font-bold text-white">{data.progress.xp}</span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-1000"
-                  style={{ width: `${clamp(analytics.xpProgress)}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-[10px] uppercase tracking-[0.18em] text-gray-500 font-mono">
-                <span>LVL {analytics.level}</span>
-                <span>{100 - analytics.xpProgress} XP TO NEXT</span>
-                <span>LVL {analytics.level + 1}</span>
-              </div>
-            </div>
-          </GlassPanel>
-
-          <GlassPanel
-            title="GLOBAL_RANKINGS"
-            tag={currentRank ? `RANK_${currentRank.rank}` : "RANKING"}
-            right={
-              <button
-                onClick={() => {
-                  setSearchTerm(currentDisplayName);
-                  setSelectedRankId(currentUserId);
-                }}
-                className="rounded-md border border-orange-400/30 bg-orange-500/10 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-400 hover:bg-orange-500/20"
-              >
-                Find Me
-              </button>
-            }
-          >
-            <div className="border-b border-white/10 bg-black/20 p-3">
-              <input
-                type="text"
-                value={searchTerm}
-                placeholder="SEARCH NAME / ID..."
-                className="w-full border border-white/10 bg-black/30 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-white outline-none focus:border-orange-400 rounded-md placeholder-gray-600"
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="max-h-[220px] overflow-y-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="sticky top-0 border-b border-white/10 bg-black/20 text-gray-500 font-mono">
-                  <tr>
-                    <th className="p-2 font-normal">RANK</th>
-                    <th className="p-2 font-normal">TERMINAL_ID</th>
-                    <th className="p-2 text-right font-normal">XP</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {filteredLeaderboard.map((entry) => {
-                    const isCurrent = entry.user_id === currentUserId;
-                    const isSelected = entry.user_id === selectedRank?.user_id;
-                    return (
-                      <tr
-                        key={entry.user_id}
-                        onClick={() => setSelectedRankId(entry.user_id)}
-                        className={cn(
-                          "cursor-pointer transition-colors hover:bg-white/5",
-                          isCurrent && "bg-orange-500/10",
-                          isSelected && !isCurrent && "bg-blue-500/10",
-                        )}
-                      >
-                        <td className="p-2 text-gray-400">#{entry.rank}</td>
-                        <td className="max-w-[160px] truncate p-2 text-white">
-                          {entry.displayLabel}
-                          {isCurrent ? <span className="ml-2 text-[9px] text-emerald-400">YOU</span> : null}
-                        </td>
-                        <td className="p-2 text-right font-bold text-orange-400">{entry.xp}</td>
-                      </tr>
-                    );
-                  })}
-                  {!filteredLeaderboard.length && (
-                    <tr>
-                      <td colSpan={3} className="p-3 text-gray-600 text-center">
-                        NO_MATCHING_TERMINAL
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </GlassPanel>
-
-          <GlassPanel title="SELECTED_TERMINAL" tag="VIEW">
-            <div className="space-y-3">
-              {selectedRank ? (
-                <>
-                  <div className="flex justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em]">
-                    <span className="text-gray-500">User</span>
-                    <span className="truncate text-white">
-                      {getLeaderboardDisplayName(selectedRank, currentUserId, currentDisplayName)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em]">
-                    <span className="text-gray-500">UID</span>
-                    <span className="text-gray-300">{shortId(selectedRank.user_id)}</span>
-                  </div>
-                  <div className="flex justify-between border-b border-white/10 pb-2 text-[10px] uppercase tracking-[0.18em]">
-                    <span className="text-gray-500">XP</span>
-                    <span className="font-bold text-orange-400">{selectedRank.xp}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] uppercase tracking-[0.18em]">
-                    <span className="text-gray-500">Streak</span>
-                    <span className="text-emerald-400">{selectedRank.streak ?? 0} Days</span>
-                  </div>
-                </>
-              ) : (
-                <div className="text-[10px] uppercase tracking-[0.2em] text-gray-600">
-                  SELECT_A_RANKING_ROW
+            {dataLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-2 w-full" />
+                <div className="flex justify-between">
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-12" />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-mono">
+                    TOTAL_XP
+                  </span>
+                  <span className="text-4xl font-bold">{data.progress.xp}</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all duration-1000"
+                    style={{ width: `${clamp(analytics.xpProgress)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] uppercase tracking-[0.18em] text-gray-500 font-mono">
+                  <span>LVL {analytics.level}</span>
+                  <span>{100 - analytics.xpProgress} XP TO NEXT</span>
+                  <span>LVL {analytics.level + 1}</span>
+                </div>
+              </div>
+            )}
+          </GlassPanel>
+
+          {/* GLOBAL RANKINGS panel (simplified skeleton) */}
+          <GlassPanel title="GLOBAL_RANKINGS" tag={currentRank ? `RANK_${currentRank.rank}` : "RANKING"}>
+            {dataLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-6 w-full" />
+                <Skeleton className="h-6 w-full" />
+              </div>
+            ) : (
+              <>
+                <div className="border-b border-white/10 bg-black/20 p-3">
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    placeholder="SEARCH NAME / ID..."
+                    className="w-full border border-white/10 bg-black/30 px-4 py-2.5 text-xs uppercase tracking-[0.16em] text-white outline-none focus:border-orange-400 rounded-md placeholder-gray-600"
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="max-h-[220px] overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="sticky top-0 border-b border-white/10 bg-black/20 text-gray-500 font-mono">
+                      <tr>
+                        <th className="p-2 font-normal">RANK</th>
+                        <th className="p-2 font-normal">TERMINAL_ID</th>
+                        <th className="p-2 text-right font-normal">XP</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {filteredLeaderboard.map((entry) => {
+                        const isCurrent = entry.user_id === currentUserId;
+                        const isSelected = entry.user_id === selectedRank?.user_id;
+                        return (
+                          <tr
+                            key={entry.user_id}
+                            onClick={() => setSelectedRankId(entry.user_id)}
+                            className={cn(
+                              "cursor-pointer transition-colors hover:bg-white/5",
+                              isCurrent && "bg-orange-500/10",
+                              isSelected && !isCurrent && "bg-blue-500/10",
+                            )}
+                          >
+                            <td className="p-2 text-gray-400">#{entry.rank}</td>
+                            <td className="max-w-[160px] truncate p-2">
+                              {entry.displayLabel}
+                              {isCurrent ? <span className="ml-2 text-[9px] text-emerald-400">YOU</span> : null}
+                            </td>
+                            <td className="p-2 text-right font-bold text-orange-400">{entry.xp}</td>
+                          </tr>
+                        );
+                      })}
+                      {!filteredLeaderboard.length && (
+                        <tr>
+                          <td colSpan={3} className="p-3 text-gray-600 text-center">
+                            NO_MATCHING_TERMINAL
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </GlassPanel>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-5">
-        {/* Weak topic matrix with quick actions and trend icons */}
         <GlassPanel title="WEAK_TOPIC_MATRIX" tag="AI_SIGNAL" className="col-span-12 lg:col-span-5">
-          <div className="space-y-3">
-            {data.weakAreas.length ? (
-              data.weakAreas.map((topic) => (
-                <div
-                  key={topic.topic}
-                  className="rounded-xl border border-white/10 bg-black/20 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-base font-bold text-white uppercase font-mono">
-                        {topic.topic}
+          {dataLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : data.weakAreas.length ? (
+            data.weakAreas.map((topic) => (
+              <div
+                key={topic.topic}
+                className="rounded-xl border border-white/10 bg-black/20 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-base font-bold uppercase font-mono">
+                      {topic.topic}
+                    </span>
+                    <span className="flex items-center gap-1 text-sm">
+                      <TrendIcon trend={topic.trend} />
+                      <span className={cn(topic.accuracy >= 60 ? "text-emerald-400" : "text-red-400")}>
+                        {Math.round(topic.accuracy)}%
                       </span>
-                      <span className="flex items-center gap-1 text-sm">
-                        <TrendIcon trend={topic.trend} />
-                        <span className={cn(topic.accuracy >= 60 ? "text-emerald-400" : "text-red-400")}>
-                          {Math.round(topic.accuracy)}%
-                        </span>
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-white/5 mt-1">
-                      <div
-                        className={cn(
-                          "h-full rounded-full transition-all",
-                          topic.accuracy >= 60 ? "bg-emerald-500" : "bg-red-500",
-                        )}
-                        style={{ width: `${clamp(topic.accuracy)}%` }}
-                      />
-                    </div>
+                    </span>
                   </div>
-                  <button
-                    onClick={() => goToTopic(topic.topic)}
-                    className="shrink-0 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
-                  >
-                    Start Revision
-                  </button>
+                  <div className="h-1.5 w-full rounded-full bg-white/5 mt-1">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        topic.accuracy >= 60 ? "bg-emerald-500" : "bg-red-500",
+                      )}
+                      style={{ width: `${clamp(topic.accuracy)}%` }}
+                    />
+                  </div>
                 </div>
-              ))
-            ) : (
-              <div className="flex min-h-[140px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
-                NO_WEAK_TOPIC_SIGNAL_YET
+                <button
+                  onClick={() => goToTopic(topic.topic)}
+                  className="shrink-0 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
+                >
+                  Start Revision
+                </button>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="flex min-h-[140px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
+              NO_WEAK_TOPIC_SIGNAL_YET
+            </div>
+          )}
         </GlassPanel>
 
         <GlassPanel title="RECENT_SESSION_TAPE" tag="LIVE_LOG" className="col-span-12 lg:col-span-4">
-          <div className="max-h-[260px] overflow-y-auto space-y-2">
-            {recentSessions.length ? (
-              recentSessions.map((session, index) => (
-                <div
-                  key={`${session.id ?? index}-${session.topic ?? "session"}`}
-                  className="grid grid-cols-[1fr_80px_70px] items-center border-b border-white/5 py-3 px-3 text-[11px] uppercase tracking-[0.14em] hover:bg-white/5 rounded"
-                >
-                  <div className="truncate text-white">
-                    {session.topic ?? session.subject ?? "SESSION"}
-                    <div className="text-[10px] text-gray-600 mt-0.5">
-                      {getSessionDate(session)?.toLocaleString("en-IN") ?? "NO_TIMESTAMP"}
-                    </div>
-                  </div>
-                  <div className="text-right text-gray-400">
-                    {getSessionQuestions(session) || 1} Q
-                  </div>
-                  <div className="text-right font-bold text-orange-400">
-                    +{getSessionXp(session)}
+          {dataLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : recentSessions.length ? (
+            recentSessions.map((session, index) => (
+              <div
+                key={`${session.id ?? index}-${session.topic ?? "session"}`}
+                className="grid grid-cols-[1fr_80px_70px] items-center border-b border-white/5 py-3 px-3 text-[11px] uppercase tracking-[0.14em] hover:bg-white/5 rounded"
+              >
+                <div className="truncate">
+                  {session.topic ?? session.subject ?? "SESSION"}
+                  <div className="text-[10px] text-gray-600 mt-0.5">
+                    {getSessionDate(session)?.toLocaleString("en-IN") ?? "NO_TIMESTAMP"}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
-                SESSION_TAPE_STANDBY
+                <div className="text-right text-gray-400">
+                  {getSessionQuestions(session) || 1} Q
+                </div>
+                <div className="text-right font-bold text-orange-400">
+                  +{getSessionXp(session)}
+                </div>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
+              SESSION_TAPE_STANDBY
+            </div>
+          )}
         </GlassPanel>
 
         <GlassPanel title="AI_INSIGHT_FEED" tag="COACH" className="col-span-12 lg:col-span-3">
-          <div className="space-y-4">
-            {data.insights.length ? (
-              data.insights.map((insight, index) => (
-                <div
-                  key={`${insight.type}-${index}`}
-                  className="rounded-lg border border-white/10 bg-black/20 p-4"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="h-2 w-2 rounded-full bg-[#00A3FF] animate-pulse" />
-                    <span
-                      className={cn(
-                        "text-[10px] font-bold uppercase tracking-[0.2em]",
-                        insight.severity === "warning" && "text-orange-400",
-                        insight.severity === "success" && "text-emerald-400",
-                        insight.severity !== "warning" && insight.severity !== "success" && "text-[#00A3FF]",
-                      )}
-                    >
-                      {insight.type ?? "signal"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-300 leading-relaxed">{insight.message}</p>
+          {dataLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : data.insights.length ? (
+            data.insights.map((insight, index) => (
+              <div
+                key={`${insight.type}-${index}`}
+                className="rounded-lg border border-white/10 bg-black/20 p-4"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="h-2 w-2 rounded-full bg-[#00A3FF] animate-pulse" />
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold uppercase tracking-[0.2em]",
+                      insight.severity === "warning" && "text-orange-400",
+                      insight.severity === "success" && "text-emerald-400",
+                      insight.severity !== "warning" && insight.severity !== "success" && "text-[#00A3FF]",
+                    )}
+                  >
+                    {insight.type ?? "signal"}
+                  </span>
                 </div>
-              ))
-            ) : (
-              <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
-                AI_SIGNAL_PENDING
+                <p className="text-sm leading-relaxed">{insight.message}</p>
               </div>
-            )}
-          </div>
+            ))
+          ) : (
+            <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
+              AI_SIGNAL_PENDING
+            </div>
+          )}
         </GlassPanel>
       </div>
 
-      {/* Coach Widget – persistent across dashboard */}
       <CoachWidget />
     </div>
   );
