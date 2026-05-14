@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import AgentifiedNotification from "@/components/AgentifiedNotification";
 import CoachWidget from "@/components/CoachWidget";
+import Button from "@/components/ui/Button";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 interface Progress {
@@ -526,7 +527,6 @@ export default function DashboardPage() {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [showAgentNotification, setShowAgentNotification] = useState(false);
 
-  // Data loading flag (independent of auth)
   const [dataLoading, setDataLoading] = useState(true);
 
   const [data, setData] = useState<{
@@ -547,14 +547,12 @@ export default function DashboardPage() {
     error: null,
   });
 
-  // Agentified notification trigger
   useEffect(() => {
     if (!authLoading && user && !localStorage.getItem("agentify_notification_seen")) {
       setShowAgentNotification(true);
     }
   }, [authLoading, user]);
 
-  // Auto‑refresh every 60 seconds (always run once on mount)
   const fetchAllData = useCallback(async () => {
     if (!currentUserId) return;
     try {
@@ -652,7 +650,6 @@ export default function DashboardPage() {
     }
   }, [authLoading, user, router, fetchAllData, currentUserId]);
 
-  // Derived analytics (always computed even if loading)
   const analytics = useMemo(() => {
     const computedAccuracy =
       data.progress.total_questions === 0
@@ -735,7 +732,6 @@ export default function DashboardPage() {
     [router],
   );
 
-  // Early return for unauthenticated users (no spinner needed)
   if (authLoading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-terminal-950 font-mono text-terminal-blue">
@@ -746,7 +742,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Agentified notification (shown only once)
   if (showAgentNotification) {
     return <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />;
   }
@@ -804,32 +799,32 @@ export default function DashboardPage() {
           right={
             <div className="flex flex-wrap items-center gap-2">
               {(["xp", "accuracy", "attempts"] as const).map((mode) => (
-                <button
+                <Button
                   key={mode}
-                  onClick={() => setChartMode(mode)}
+                  variant="ghost"
+                  size="sm"
                   className={cn(
-                    "rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-all",
-                    chartMode === mode
-                      ? "border-orange-400/40 bg-orange-500/10 text-orange-400"
-                      : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
+                    "!font-mono",
+                    chartMode === mode ? "!text-orange-400 !bg-orange-500/10" : "!text-gray-500",
                   )}
+                  onClick={() => setChartMode(mode)}
                 >
                   {mode}
-                </button>
+                </Button>
               ))}
               {(["7D", "14D", "30D"] as const).map((range) => (
-                <button
+                <Button
                   key={range}
-                  onClick={() => setChartRange(range)}
+                  variant="ghost"
+                  size="sm"
                   className={cn(
-                    "rounded-md border px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] transition-all",
-                    chartRange === range
-                      ? "border-emerald-400/40 bg-emerald-500/10 text-emerald-400"
-                      : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
+                    "!font-mono",
+                    chartRange === range ? "!text-emerald-400 !bg-emerald-500/10" : "!text-gray-500",
                   )}
+                  onClick={() => setChartRange(range)}
                 >
                   {range}
-                </button>
+                </Button>
               ))}
             </div>
           }
@@ -914,7 +909,20 @@ export default function DashboardPage() {
           </GlassPanel>
 
           {/* GLOBAL RANKINGS panel (simplified skeleton) */}
-          <GlassPanel title="GLOBAL_RANKINGS" tag={currentRank ? `RANK_${currentRank.rank}` : "RANKING"}>
+          <GlassPanel title="GLOBAL_RANKINGS" tag={currentRank ? `RANK_${currentRank.rank}` : "RANKING"}
+            right={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm(currentDisplayName);
+                  setSelectedRankId(currentUserId);
+                }}
+              >
+                Find Me
+              </Button>
+            }
+          >
             {dataLoading ? (
               <div className="space-y-2">
                 <Skeleton className="h-8 w-full" />
@@ -1015,12 +1023,13 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => goToTopic(topic.topic)}
-                  className="shrink-0 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
                 >
                   Start Revision
-                </button>
+                </Button>
               </div>
             ))
           ) : (
