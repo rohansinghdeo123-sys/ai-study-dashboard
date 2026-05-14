@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter, useSearchParams } from "next/navigation";
+import Button from "@/components/ui/Button";
 
 // ------------------------------------------------------------------------------
 // Types (unchanged)
@@ -140,10 +141,9 @@ function ChemistryBlock({ value, className = "" }: { value: string; className?: 
 }
 
 // ------------------------------------------------------------------------------
-// UI Components
+// UI Components (unchanged except where noted)
 // ------------------------------------------------------------------------------
 
-// Glass‑morphism panel – same as TerminalPanel but with backdrop blur
 function GlassPanel({
   title,
   tag,
@@ -179,14 +179,12 @@ function GlassPanel({
   );
 }
 
-// Shimmer skeleton loader
 function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div className={`animate-pulse rounded-md bg-white/5 ${className}`} />
   );
 }
 
-// Floating +XP animation
 function XPFloat({ amount }: { amount: number }) {
   const [visible, setVisible] = useState(true);
   useEffect(() => {
@@ -203,7 +201,6 @@ function XPFloat({ amount }: { amount: number }) {
   );
 }
 
-// Achievement toast
 function AchievementToast({
   title,
   subtitle,
@@ -226,7 +223,6 @@ function AchievementToast({
   );
 }
 
-// Coach typing indicator (three bouncing dots)
 function CoachTyping() {
   return (
     <div className="flex items-center gap-1.5 px-4 py-3">
@@ -238,7 +234,7 @@ function CoachTyping() {
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page
+// Main Study Page (all buttons upgraded)
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -251,15 +247,14 @@ export default function StudyPage() {
   const coachInputRef = useRef<HTMLTextAreaElement>(null);
   const sessionStartTime = useRef<number>(Date.now());
 
-  // ----- UI state (new additions) -----
+  // ----- UI state (unchanged) -----
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [focusChat, setFocusChat] = useState(false);
   const [xpAnimation, setXpAnimation] = useState<{ amount: number; key: number } | null>(null);
   const [achievements, setAchievements] = useState<{ title: string; subtitle: string; key: number }[]>([]);
-  const [dailyGoal] = useState(30); // target questions per day
-  const [dailyQuestions, setDailyQuestions] = useState(0); // track answered today
+  const [dailyGoal] = useState(30);
+  const [dailyQuestions, setDailyQuestions] = useState(0);
 
-  // ----- Core state (unchanged) -----
   const urlChapter = searchParams.get("chapter") || "hydrocarbon";
   const urlTopic = searchParams.get("topic") || "alkanes";
 
@@ -308,7 +303,7 @@ export default function StudyPage() {
     streak: 0,
   });
 
-  // Derived stats
+  // Derived stats (unchanged)
   const level = useMemo(() => Math.floor(progress.xp / 100) + 1, [progress.xp]);
   const xpProgressPercent = useMemo(() => progress.xp % 100, [progress.xp]);
   const accuracy = useMemo(
@@ -348,7 +343,6 @@ export default function StudyPage() {
     }
   };
 
-  // Scroll chat to bottom
   useEffect(() => {
     coachEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [coachMessages, coachLoading]);
@@ -464,7 +458,6 @@ export default function StudyPage() {
     sessionStartTime.current = Date.now();
   }, [chapter, topic]);
 
-  // ----- Gamification helpers (NEW) -----
   const showXpAnimation = useCallback((amount: number) => {
     setXpAnimation({ amount, key: Date.now() });
   }, []);
@@ -473,7 +466,7 @@ export default function StudyPage() {
     setAchievements((prev) => [...prev, { title, subtitle, key: Date.now() }]);
   }, []);
 
-  // ----- Core logic (unchanged except where noted) -----
+  // ----- Core logic (unchanged) -----
   const saveResults = async (
     finalScore: number,
     totalQuestions: number,
@@ -536,11 +529,9 @@ export default function StudyPage() {
         ]);
         setToast("✅ Session logged successfully");
 
-        // Gamification: add to daily count, show XP animation
         setDailyQuestions((prev) => prev + totalQuestions);
         showXpAnimation(xpEarned);
 
-        // Achievements
         if (progress.streak >= 5) {
           triggerAchievement("5‑Day Streak!", "You're on fire. Keep the momentum.");
         }
@@ -706,7 +697,6 @@ export default function StudyPage() {
     coachInputRef.current?.focus();
   };
 
-  // Focus chat mode toggle
   const toggleFocusChat = () => setFocusChat((prev) => !prev);
 
   // ------------------------------------------------------------------------------
@@ -753,14 +743,16 @@ export default function StudyPage() {
       {/* Top navigation bar */}
       <header className="z-10 flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-2.5 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          {/* Sidebar toggle */}
-          <button
+          {/* Sidebar toggle – now a Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="!h-7 !w-7 !p-0 !border !border-white/20 !rounded-md !text-gray-400 hover:!border-white/40 hover:!text-white"
             onClick={() => setSidebarOpen((o) => !o)}
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-white/20 text-gray-400 hover:border-white/40 hover:text-white"
             aria-label="Toggle sidebar"
           >
             ☰
-          </button>
+          </Button>
           <div className="flex items-center gap-5 text-xs font-medium">
             <span className="text-gray-500">MODULE <span className="text-orange-400">{chapter.toUpperCase()}</span></span>
             <span className="text-gray-500">TOPIC <span className="text-orange-400">{topic.toUpperCase()}</span></span>
@@ -769,7 +761,6 @@ export default function StudyPage() {
         </div>
 
         <div className="flex items-center gap-5 text-xs">
-          {/* Daily goal ring */}
           <div className="relative flex items-center gap-1.5">
             <svg className="h-6 w-6 -rotate-90" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/10" />
@@ -798,7 +789,7 @@ export default function StudyPage() {
 
       {/* Main layout */}
       <div className={`flex flex-1 overflow-hidden transition-all duration-300 ${focusChat ? "flex-col" : ""}`}>
-        {/* ---- SIDEBAR (collapsible) ---- */}
+        {/* ---- SIDEBAR ---- */}
         {!focusChat && (
           <aside
             className={`overflow-y-auto border-r border-white/10 bg-[#0A0A0F] transition-all duration-300 ${
@@ -831,17 +822,19 @@ export default function StudyPage() {
                       <label className="mb-1.5 block text-[10px] uppercase text-gray-600">Topic</label>
                       <div className="space-y-1.5">
                         {topicsByChapter[chapter]?.map((t) => (
-                          <button
+                          <Button
                             key={t.value}
-                            onClick={() => { setTopic(t.value); updateURL(chapter, t.value); }}
-                            className={`w-full rounded-lg border px-3 py-2.5 text-left text-sm transition-all ${
+                            variant="secondary"
+                            size="sm"
+                            className={`w-full !justify-start !text-left !px-3 !py-2.5 ${
                               topic === t.value
-                                ? "border-orange-500/50 bg-orange-500/10 text-orange-400 shadow-[0_0_8px_rgba(255,165,0,0.15)]"
-                                : "border-white/10 bg-black/30 text-gray-400 hover:border-white/30 hover:text-white"
+                                ? "!border-orange-500/50 !bg-orange-500/10 !text-orange-400 !shadow-[0_0_8px_rgba(255,165,0,0.15)]"
+                                : "!border-white/10 !bg-black/30 !text-gray-400 hover:!border-white/30 hover:!text-white"
                             }`}
+                            onClick={() => { setTopic(t.value); updateURL(chapter, t.value); }}
                           >
                             {t.label.toUpperCase()}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -851,61 +844,71 @@ export default function StudyPage() {
                 <GlassPanel title="Mode_Config" tag="CTL">
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setMode("revision")}
-                        className={`rounded-lg border py-2 text-xs font-bold transition-all ${
+                      <Button
+                        variant={mode === "revision" ? "primary" : "secondary"}
+                        size="sm"
+                        className={`!py-2 !text-xs !font-bold ${
                           mode === "revision"
-                            ? "border-blue-500/50 bg-blue-500/10 text-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.2)]"
-                            : "border-white/10 bg-black/30 text-gray-500"
+                            ? "!bg-blue-500/10 !text-blue-400 !border-blue-500/50 hover:!bg-blue-500/20"
+                            : "!bg-black/30 !text-gray-500 !border-white/10"
                         }`}
+                        onClick={() => setMode("revision")}
                       >
                         REVISION
-                      </button>
-                      <button
-                        onClick={() => setMode("exam")}
-                        className={`rounded-lg border py-2 text-xs font-bold transition-all ${
+                      </Button>
+                      <Button
+                        variant={mode === "exam" ? "primary" : "secondary"}
+                        size="sm"
+                        className={`!py-2 !text-xs !font-bold ${
                           mode === "exam"
-                            ? "border-orange-500/50 bg-orange-500/10 text-orange-400 shadow-[0_0_8px_rgba(255,165,0,0.2)]"
-                            : "border-white/10 bg-black/30 text-gray-500"
+                            ? "!bg-orange-500/10 !text-orange-400 !border-orange-500/50 hover:!bg-orange-500/20"
+                            : "!bg-black/30 !text-gray-500 !border-white/10"
                         }`}
+                        onClick={() => setMode("exam")}
                       >
                         EXAM LAB
-                      </button>
+                      </Button>
                     </div>
                     {mode === "revision" && (
                       <div className="space-y-1.5 pt-1">
                         {(["summary", "explain", "key"] as const).map((type) => (
-                          <button
+                          <Button
                             key={type}
-                            onClick={() => handleRevision(type)}
+                            variant="secondary"
+                            size="sm"
                             disabled={loadingRevision || authLoading}
-                            className={`w-full rounded-lg border px-3 py-2.5 text-left text-xs transition-all ${
+                            className={`w-full !justify-start !text-left !px-3 !py-2.5 !text-xs ${
                               activeRevisionTab === type
-                                ? "border-blue-500/50 bg-blue-500/10 text-blue-400 shadow-[0_0_6px_rgba(59,130,246,0.15)]"
-                                : "border-white/10 bg-black/30 text-gray-400 hover:border-white/30 hover:text-white"
-                            } disabled:opacity-50`}
+                                ? "!border-blue-500/50 !bg-blue-500/10 !text-blue-400"
+                                : "!border-white/10 !bg-black/30 !text-gray-400 hover:!border-white/30 hover:!text-white"
+                            }`}
+                            onClick={() => handleRevision(type)}
                           >
                             {type === "summary" ? "SMART_SUMMARY" : type === "explain" ? "DEEP_EXPLAIN" : "KEY_POINTS"}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}
                     {mode === "exam" && (
                       <div className="space-y-1.5 pt-1">
-                        <button
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="w-full !justify-start !text-left !px-3 !py-2.5 !text-xs !font-bold !bg-orange-500/10 !text-orange-400 !border-orange-500/40 hover:!bg-orange-500/20"
                           onClick={generateMCQs}
                           disabled={loadingExam || authLoading}
-                          className="w-full rounded-lg border border-orange-500/40 bg-orange-500/10 px-3 py-2.5 text-left text-xs font-bold text-orange-400 transition-all hover:bg-orange-500/20 disabled:opacity-50"
                         >
                           GENERATE_MCQ
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="w-full !justify-start !text-left !px-3 !py-2.5 !text-xs !bg-black/30 !text-gray-400 hover:!border-orange-500/40 hover:!text-orange-400"
                           onClick={generateProbable}
                           disabled={loadingExam || authLoading}
-                          className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2.5 text-left text-xs text-gray-400 transition-all hover:border-orange-500/40 hover:text-orange-400 disabled:opacity-50"
                         >
                           PROBABLE_QUESTIONS
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -964,12 +967,9 @@ export default function StudyPage() {
                 headerRight={
                   <div className="flex items-center gap-2">
                     {revisionOutput && (
-                      <button
-                        onClick={handleCopyRevision}
-                        className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-green-400/40 hover:text-green-400"
-                      >
+                      <Button variant="ghost" size="sm" onClick={handleCopyRevision}>
                         COPY
-                      </button>
+                      </Button>
                     )}
                     {loadingRevision ? (
                       <span className="text-xs text-orange-400 animate-pulse">PROCESSING...</span>
@@ -1007,12 +1007,9 @@ export default function StudyPage() {
                         <span className={`text-xs font-bold ${answeredCount === mcqs.length ? "text-green-400" : "text-gray-500"}`}>
                           SCORE: {score}/{mcqs.length}
                         </span>
-                        <button
-                          onClick={restartGeneratedMcqs}
-                          className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-orange-400/40 hover:text-orange-400"
-                        >
+                        <Button variant="secondary" size="sm" onClick={restartGeneratedMcqs}>
                           RESTART
-                        </button>
+                        </Button>
                       </div>
                     }
                   >
@@ -1094,7 +1091,7 @@ export default function StudyPage() {
           </main>
         )}
 
-        {/* ---- RIGHT: AI COACH (always visible, expands in focus mode) ---- */}
+        {/* ---- RIGHT: AI COACH ---- */}
         <aside
           className={`flex min-h-0 flex-col border-l border-white/10 bg-[#0A0A0F] ${
             focusChat ? "flex-1" : "w-96 min-w-[24rem]"
@@ -1106,28 +1103,18 @@ export default function StudyPage() {
             className="flex flex-1 flex-col"
             headerRight={
               <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleFocusChat}
-                  className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-blue-400/40 hover:text-blue-400"
-                  title={focusChat ? "Exit focus mode" : "Focus chat"}
-                >
+                <Button variant="ghost" size="sm" onClick={toggleFocusChat}>
                   {focusChat ? "⊠" : "⊡"}
-                </button>
+                </Button>
                 <span className={`text-xs ${coachStatus === "COACH_ONLINE" ? "text-green-400" : "text-orange-400"}`}>
                   {coachStatus || "INIT"}
                 </span>
-                <button
-                  onClick={() => userId && loadCoachDashboard(userId)}
-                  className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-gray-400 hover:border-orange-400/40 hover:text-orange-400"
-                >
+                <Button variant="ghost" size="sm" onClick={() => userId && loadCoachDashboard(userId)}>
                   SYNC
-                </button>
-                <button
-                  onClick={() => setCoachMessages([])}
-                  className="rounded-md border border-white/20 px-2 py-1 text-[10px] text-red-400 hover:border-red-500/40"
-                >
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => setCoachMessages([])}>
                   CLEAR
-                </button>
+                </Button>
               </div>
             }
           >
@@ -1160,7 +1147,6 @@ export default function StudyPage() {
 
               {/* Chat area */}
               <div className="flex flex-1 flex-col overflow-hidden rounded-lg border border-white/5 bg-black/20">
-                {/* Messages */}
                 <div className="flex-1 space-y-4 overflow-y-auto p-4">
                   {coachMessages.length === 0 ? (
                     <div className="flex h-full items-center justify-center text-center text-sm text-gray-600">
@@ -1213,13 +1199,9 @@ export default function StudyPage() {
                 <div className="border-t border-white/10 p-3">
                   <div className="mb-2 flex gap-2">
                     {["What should I study next?", "Find my weakest area.", "Make a 30 min revision plan."].map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => setCoachInput(p)}
-                        className="rounded-md border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-400 hover:border-orange-400/30 hover:text-orange-400"
-                      >
+                      <Button key={p} variant="ghost" size="sm" onClick={() => setCoachInput(p)}>
                         {p}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                   <div className="flex gap-2">
@@ -1232,13 +1214,15 @@ export default function StudyPage() {
                       rows={2}
                       className="flex-1 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white placeholder-gray-600 outline-none focus:border-orange-400"
                     />
-                    <button
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="!bg-orange-500 !text-black hover:!bg-orange-400"
                       onClick={handleAskCoach}
                       disabled={coachLoading || !coachInput.trim() || authLoading}
-                      className="rounded-lg bg-orange-500 px-5 text-xs font-bold text-black transition-all hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       SEND
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
