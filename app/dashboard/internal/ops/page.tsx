@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Button from "@/components/ui/Button";
 
 // ─── Types (unchanged) ─────────────────────────────────────────────────────
 interface AgentStatus {
@@ -53,14 +54,12 @@ const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 const POLL_INTERVAL_MS = 1500;
 
 // ─── Agent hierarchy & ROBUST voice configuration ──────────────────────────
-// Each agent gets a priority list of voice names to try (first match wins).
-// Falls back to any voice matching the target language.
 const AGENT_ROLES: Record<string, {
   role: string;
   reportsTo: string | null;
   voice: {
-    preferredNames: string[];   // tried in order
-    lang: string;               // fallback language match
+    preferredNames: string[];
+    lang: string;
     basePitch: number;
     baseRate: number;
   };
@@ -271,30 +270,24 @@ function resolveAgentVoice(agentId: string): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
 
-  // 1. Try each preferred name (exact match)
   for (const preferred of config.preferredNames) {
     const match = voices.find((v) => v.name === preferred);
     if (match) return match;
   }
 
-  // 2. Try partial name match (e.g. "Google UK English Male" contains "Google UK")
   for (const preferred of config.preferredNames) {
     const match = voices.find((v) => v.name.includes(preferred) || preferred.includes(v.name));
     if (match) return match;
   }
 
-  // 3. Fallback: any voice matching the target language
   const langMatch = voices.find((v) => v.lang.startsWith(config.lang));
   if (langMatch) return langMatch;
 
-  // 4. Last resort: first available voice
   return voices[0] || null;
 }
 
 function speakAgentMessage(agentId: string, text: string, status?: string) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
-
-  // ❌ REMOVED: window.speechSynthesis.cancel(); — this was killing the queue!
 
   const config = AGENT_ROLES[agentId]?.voice;
   if (!config) return;
@@ -302,7 +295,6 @@ function speakAgentMessage(agentId: string, text: string, status?: string) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = config.lang;
 
-  // Apply dynamic pitch/rate variation based on agent status
   let pitchMod = 0;
   let rateMod = 0;
   if (status === "running") { pitchMod = 0.03; rateMod = 0.04; }
@@ -313,11 +305,9 @@ function speakAgentMessage(agentId: string, text: string, status?: string) {
   utterance.rate = Math.min(2.5, Math.max(0.3, config.baseRate + rateMod));
   utterance.volume = 1.0;
 
-  // Use the robust voice resolver
   const voice = resolveAgentVoice(agentId);
   if (voice) utterance.voice = voice;
 
-  // Add utterance to the queue — it will play after the current one finishes
   window.speechSynthesis.speak(utterance);
 }
 
@@ -358,10 +348,9 @@ export default function InternalOpsPage() {
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const adminReady = !loading && !claimsLoading && isAdmin;
 
-  // Pre‑load voices on mount (voices are loaded asynchronously in Chrome)
+  // Pre‑load voices on mount
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
-    // Trigger voice loading
     window.speechSynthesis.getVoices();
     const handleVoicesChanged = () => { window.speechSynthesis.getVoices(); };
     window.speechSynthesis.addEventListener("voiceschanged", handleVoicesChanged);
@@ -606,7 +595,6 @@ export default function InternalOpsPage() {
     setIsSpeaking(false);
   };
 
-  // Meeting helpers
   const toggleMeetingAgent = (agentId: string) => {
     setMeetingAgentIds((prev) =>
       prev.includes(agentId) ? prev.filter((id) => id !== agentId) : [...prev, agentId],
@@ -743,14 +731,15 @@ export default function InternalOpsPage() {
                         <span className="text-gray-600">{timeSince(agent.last_activity)}</span>
                       </div>
                     </button>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => requestReport(agent.agent_id)}
-                        className="w-full rounded border border-[#00A3FF]/20 bg-[#00A3FF]/10 px-2 py-1 text-[9px] font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-colors"
-                      >
-                        Request Report
-                      </button>
-                    </div>
+                    {/* Report button – now using Button */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="w-full !border-[#00A3FF]/20 !bg-[#00A3FF]/10 !text-[#00A3FF] hover:!bg-[#00A3FF]/20"
+                      onClick={() => requestReport(agent.agent_id)}
+                    >
+                      Request Report
+                    </Button>
                   </div>
                 ))
               )}
@@ -767,16 +756,18 @@ export default function InternalOpsPage() {
           right={
             <div className="flex items-center gap-3">
               {(["logs", "chat", "pipeline", "meeting"] as const).map((tab) => (
-                <button
+                <Button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  variant="ghost"
+                  size="sm"
                   className={cn(
-                    "text-[10px] font-bold uppercase tracking-wider transition-colors font-mono",
-                    activeTab === tab ? "text-[#00A3FF]" : "text-gray-600 hover:text-gray-300",
+                    "!text-[10px] !font-bold !uppercase !tracking-wider !font-mono",
+                    activeTab === tab ? "!text-[#00A3FF]" : "!text-gray-600 hover:!text-gray-300",
                   )}
+                  onClick={() => setActiveTab(tab)}
                 >
                   {tab}
-                </button>
+                </Button>
               ))}
             </div>
           }
@@ -830,23 +821,20 @@ export default function InternalOpsPage() {
                       <span className="font-bold text-[#00A3FF] uppercase">COMM_CHANNEL: {selectedAgent}</span>
                       <div className="flex gap-1">
                         {["restart", "pause", "resume", "clear_memory"].map((cmd) => (
-                          <button
-                            key={cmd}
-                            onClick={() => sendCommand(selectedAgent, cmd)}
-                            className="rounded border border-white/10 px-2 py-1 text-[10px] text-gray-400 hover:border-[#00A3FF] hover:text-[#00A3FF] transition-colors"
-                          >
+                          <Button key={cmd} variant="ghost" size="sm" onClick={() => sendCommand(selectedAgent, cmd)}>
                             {cmd.toUpperCase()}
-                          </button>
+                          </Button>
                         ))}
-                        <button
+                        <Button
+                          variant="danger"
+                          size="sm"
                           onClick={() => {
                             if (!selectedAgent) return;
                             setChatMessages((prev) => prev.filter((msg) => msg.agent_id !== selectedAgent));
                           }}
-                          className="rounded border border-red-500/20 px-2 py-1 text-[10px] text-red-400 hover:border-red-500/40 hover:text-red-300 transition-colors"
                         >
                           CLEAR CHAT
-                        </button>
+                        </Button>
                       </div>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-3 pr-2">
@@ -878,19 +866,19 @@ export default function InternalOpsPage() {
                         placeholder={`Message ${selectedAgent}...`}
                         className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
                       />
-                      <button
+                      {/* Voice input button */}
+                      <Button
+                        variant={isListening ? "danger" : "secondary"}
+                        size="sm"
                         onClick={toggleListening}
                         disabled={!recognitionRef.current}
-                        className={`rounded-lg border px-3 py-2 text-xs font-bold transition-colors ${
-                          isListening ? "border-red-400/40 bg-red-400/10 text-red-400" : "border-[#00A3FF]/20 bg-[#00A3FF]/10 text-[#00A3FF]"
-                        }`}
-                        title="Voice input"
+                        className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#00A3FF]/20 !bg-[#00A3FF]/10 !text-[#00A3FF]"}
                       >
                         🎤
-                      </button>
-                      <button onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()} className="rounded-lg bg-[#00A3FF]/20 border border-[#00A3FF]/30 px-4 py-2 text-xs font-bold text-[#00A3FF] hover:bg-[#00A3FF]/30 disabled:opacity-40 transition-colors">
+                      </Button>
+                      <Button variant="primary" size="sm" onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}>
                         SEND
-                      </button>
+                      </Button>
                     </div>
                   </>
                 )}
@@ -934,12 +922,10 @@ export default function InternalOpsPage() {
                 <div className="flex items-center justify-between mb-3 text-xs">
                   <span className="font-bold text-[#00A3FF] uppercase">TEAM MEETING</span>
                   <div className="flex gap-2">
-                    <button onClick={selectAllMeetingAgents} className="rounded border border-white/10 px-2 py-1 text-[10px] text-gray-400 hover:text-white">ALL</button>
-                    <button onClick={clearMeetingAgents} className="rounded border border-white/10 px-2 py-1 text-[10px] text-gray-400 hover:text-white">CLEAR</button>
+                    <Button variant="secondary" size="sm" onClick={selectAllMeetingAgents}>ALL</Button>
+                    <Button variant="secondary" size="sm" onClick={clearMeetingAgents}>CLEAR</Button>
                     {isSpeaking && (
-                      <button onClick={stopSpeaking} className="rounded border border-red-400/20 bg-red-400/10 px-2 py-1 text-[10px] text-red-400 hover:bg-red-400/20">
-                        STOP VOICE
-                      </button>
+                      <Button variant="danger" size="sm" onClick={stopSpeaking}>STOP VOICE</Button>
                     )}
                   </div>
                 </div>
@@ -994,13 +980,14 @@ export default function InternalOpsPage() {
                     placeholder="Broadcast to selected agents..."
                     className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
                   />
-                  <button
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={sendMeetingMessage}
                     disabled={meetingAgentIds.length === 0 || !meetingInput.trim() || Object.values(meetingLoading).some(Boolean)}
-                    className="rounded-lg bg-[#00A3FF]/20 border border-[#00A3FF]/30 px-4 py-2 text-xs font-bold text-[#00A3FF] hover:bg-[#00A3FF]/30 disabled:opacity-40 transition-colors"
                   >
                     BROADCAST
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
