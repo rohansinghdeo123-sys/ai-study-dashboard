@@ -869,23 +869,51 @@ export default function StudyPage() {
   };
 
   // ── Voice: Speech Synthesis (Coach speaks) ──────────────────────────────
-  const speakCoachMessage = (text: string) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find((v) => v.name.includes("Google US English Female") || v.name.includes("Samantha") || v.name.includes("Fiona"));
-    if (preferred) utterance.voice = preferred;
-    utterance.lang = "en-US";
-    utterance.pitch = 1.05;
-    utterance.rate = 1.0;
-    utterance.volume = 1;
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    synthRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  };
+  // ── Voice: Speech Synthesis (Coach speaks) ──────────────────────────────
+const speakCoachMessage = (text: string) => {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+
+  // 1. Sanitize: remove spaces before punctuation to avoid "dot", "comma" etc.
+  const sanitized = text
+    .replace(/\s+([.,!?;:])/g, "$1")   // remove space before punctuation
+    .replace(/\s+/g, " ")              // collapse multiple spaces
+    .trim();
+
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(sanitized);
+  const voices = window.speechSynthesis.getVoices();
+
+  // 2. Best‑effort female voice selection
+  const preferred = [
+    "Google US English Female",
+    "Microsoft Zira - English (United States)",
+    "Samantha",
+    "Fiona",
+    "Karen",
+    "Susan",
+  ];
+
+  let chosen = voices.find((v) => preferred.includes(v.name));
+  if (!chosen) {
+    chosen = voices.find(
+      (v) => v.lang.startsWith("en-US") && v.name.toLowerCase().includes("female")
+    );
+  }
+  if (!chosen) chosen = voices[0];
+
+  if (chosen) utterance.voice = chosen;
+  utterance.lang = "en-US";
+  utterance.pitch = 1.05;   // slightly warmer
+  utterance.rate = 0.95;    // slightly slower, more natural
+  utterance.volume = 1;
+
+  utterance.onstart = () => setIsSpeaking(true);
+  utterance.onend = () => setIsSpeaking(false);
+  utterance.onerror = () => setIsSpeaking(false);
+  synthRef.current = utterance;
+  window.speechSynthesis.speak(utterance);
+};
 
   const stopSpeaking = () => {
     if (window.speechSynthesis) {
