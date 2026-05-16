@@ -395,7 +395,7 @@ export default function StudyPage() {
   const coachName = coachProfile?.coach_name || "AI Coach";
   const studentName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const currentAccuracy = progress.totalQuestions === 0 ? 0 : Math.round((progress.totalCorrect / progress.totalQuestions) * 100);
-  const weakTopics = coachSignal?.weakest_topic || (coachProfile?.weak_topics_snapshot?.[0]?.topic);
+  const weakTopics = coachSignal?.weakest_topic;
   const nextAction = coachProfile?.next_best_action ||
     coachSignal?.recommended_action ||
     "Complete one focused question set, then review only incorrect answers.";
