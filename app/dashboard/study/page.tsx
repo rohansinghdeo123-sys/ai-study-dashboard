@@ -33,6 +33,13 @@ interface CoachMessage {
   timestamp: string;
 }
 
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: CoachMessage[];
+  lastUpdated: number; // timestamp
+}
+
 interface ProgressState {
   totalTests: number;
   totalQuestions: number;
@@ -219,7 +226,71 @@ function CollapsiblePanel({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools + Quick Actions + Voice
+// History Sidebar Component
+// ------------------------------------------------------------------------------
+function HistorySidebar({
+  open,
+  onClose,
+  sessions,
+  currentSessionId,
+  onSelectSession,
+  onNewChat,
+  onClearAll,
+}: {
+  open: boolean;
+  onClose: () => void;
+  sessions: ChatSession[];
+  currentSessionId: string;
+  onSelectSession: (id: string) => void;
+  onNewChat: () => void;
+  onClearAll: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-40 flex">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-50 flex flex-col w-80 max-w-[85%] h-full bg-[#0E0E13] border-r border-white/10 shadow-2xl animate-slide-in-left">
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-gray-300">History</h2>
+          <Button variant="ghost" size="sm" onClick={onClose}>✕</Button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {sessions.length === 0 ? (
+            <div className="text-center text-xs text-gray-600 mt-8">No conversations yet.</div>
+          ) : (
+            sessions.map((session) => (
+              <button
+                key={session.id}
+                onClick={() => { onSelectSession(session.id); onClose(); }}
+                className={`w-full text-left p-3 rounded-lg transition-colors ${
+                  session.id === currentSessionId
+                    ? "bg-orange-500/20 border border-orange-400/30"
+                    : "hover:bg-white/5 border border-transparent"
+                }`}
+              >
+                <div className="text-sm font-medium truncate">{session.title}</div>
+                <div className="text-[10px] text-gray-500 mt-1">
+                  {new Date(session.lastUpdated).toLocaleString()}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+        <div className="border-t border-white/10 p-3 space-y-2">
+          <Button variant="secondary" size="sm" className="w-full" onClick={() => { onNewChat(); onClose(); }}>
+            + New Chat
+          </Button>
+          <Button variant="danger" size="sm" className="w-full" onClick={onClearAll}>
+            Clear All History
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------------------
+// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools + Quick Actions + Voice + History
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -291,6 +362,13 @@ export default function StudyPage() {
   const [dailyGoal] = useState(30);
   const [dailyQuestions, setDailyQuestions] = useState(0);
 
+  // History sidebar
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
+    return "session_" + Date.now();
+  });
+
   const [progress, setProgress] = useState<ProgressState>({
     totalTests: 0,
     totalQuestions: 0,
@@ -316,6 +394,50 @@ export default function StudyPage() {
     coachSignal?.recommended_action ||
     "Complete one focused question set, then review only incorrect answers.";
 
+  // ── Persistence helpers ─────────────────────────────────────────────────
+  const saveSessions = useCallback((updatedSessions: ChatSession[]) => {
+    try {
+      localStorage.setItem("agentify_chat_sessions", JSON.stringify(updatedSessions));
+    } catch {}
+  }, []);
+
+  const loadSessions = useCallback((): ChatSession[] => {
+    try {
+      const raw = localStorage.getItem("agentify_chat_sessions");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  // Load sessions on mount
+  useEffect(() => {
+    setSessions(loadSessions());
+  }, []);
+
+  // Auto-save current session whenever messages change
+  useEffect(() => {
+    if (coachMessages.length === 0) return;
+    setSessions((prev) => {
+      const title = coachMessages.find((m) => m.role === "user")?.content.slice(0, 60) || "New Chat";
+      const existing = [...prev];
+      const idx = existing.findIndex((s) => s.id === currentSessionId);
+      const updated: ChatSession = {
+        id: currentSessionId,
+        title,
+        messages: coachMessages,
+        lastUpdated: Date.now(),
+      };
+      if (idx >= 0) {
+        existing[idx] = updated;
+      } else {
+        existing.unshift(updated);
+      }
+      saveSessions(existing);
+      return existing;
+    });
+  }, [coachMessages, currentSessionId, saveSessions]);
+
   // ── Helpers ──────────────────────────────────────────────────────────────
   const updateURL = useCallback(
     (nextChapter: string, nextTopic: string) => {
@@ -334,10 +456,8 @@ export default function StudyPage() {
     }
   };
 
-  // Clear revision output
   const clearRevision = () => setRevisionOutput("");
 
-  // Clear all exam data
   const clearExam = () => {
     setMcqs([]);
     setProbableOutput("");
@@ -650,7 +770,32 @@ export default function StudyPage() {
     coachInputRef.current?.focus();
   };
 
-  const clearChat = () => setCoachMessages([]);
+  // ── History management ──────────────────────────────────────────────────
+  const startNewChat = () => {
+    const newId = "session_" + Date.now();
+    setCurrentSessionId(newId);
+    setCoachMessages([]);
+  };
+
+  const loadSession = (id: string) => {
+    const session = sessions.find((s) => s.id === id);
+    if (session) {
+      setCoachMessages(session.messages);
+      setCurrentSessionId(session.id);
+    }
+  };
+
+  const clearAllHistory = () => {
+    if (confirm("Delete all chat history? This cannot be undone.")) {
+      setSessions([]);
+      localStorage.removeItem("agentify_chat_sessions");
+      startNewChat();
+    }
+  };
+
+  const clearChat = () => {
+    setCoachMessages([]);
+  };
 
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
   useEffect(() => {
@@ -759,6 +904,11 @@ export default function StudyPage() {
           100% { opacity: 1; transform: translateY(0); }
         }
         .animate-in.slide-in-from-bottom { animation: slide-in-from-bottom 0.3s ease-out; }
+        @keyframes slide-in-from-left {
+          0% { opacity: 0; transform: translateX(-20px); }
+          100% { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in-left { animation: slide-in-from-left 0.25s ease-out; }
       `}</style>
 
       {toast && (
@@ -771,9 +921,23 @@ export default function StudyPage() {
         <AchievementToast key={a.key} title={a.title} subtitle={a.subtitle} onClose={() => setAchievements((prev) => prev.filter((x) => x.key !== a.key))} />
       ))}
 
+      {/* History Sidebar */}
+      <HistorySidebar
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        sessions={sessions}
+        currentSessionId={currentSessionId}
+        onSelectSession={loadSession}
+        onNewChat={startNewChat}
+        onClearAll={clearAllHistory}
+      />
+
       {/* Header */}
       <header className="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-3 shrink-0">
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} title="Conversation history">
+            ☰
+          </Button>
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-base font-bold text-white">{coachName}</span>
           <span className="text-xs text-gray-500">{coachStatus}</span>
@@ -785,6 +949,7 @@ export default function StudyPage() {
           <span className="text-xs text-gray-500">XP {progress.xp}</span>
           <span className="text-xs text-gray-500">LVL {level}</span>
           <span className="text-xs text-gray-500">STREAK {progress.streak}d</span>
+          <Button variant="secondary" size="sm" onClick={startNewChat}>New Chat</Button>
           <Button variant="danger" size="sm" onClick={clearChat}>Clear Chat</Button>
         </div>
       </header>
