@@ -219,7 +219,7 @@ function CollapsiblePanel({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools
+// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools + Quick Actions
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -631,6 +631,35 @@ export default function StudyPage() {
 
   const clearChat = () => setCoachMessages([]);
 
+  // ── Dynamic Quick Actions ──────────────────────────────────────────────
+  const quickActions = useMemo(() => {
+    // Default actions when chat is empty
+    if (coachMessages.length === 0) {
+      return [
+        { label: "Study plan", prompt: "Create a study plan for me based on my progress." },
+        { label: "Explain a topic", prompt: "Explain a chemistry topic of my choice." },
+        { label: "Quiz me", prompt: "Generate 5 MCQs on a topic I should practice." },
+        { label: "Revision help", prompt: "Give me key revision points for my weakest topic." },
+      ];
+    }
+    // After conversation has started, offer context-aware actions
+    const lastMsg = coachMessages[coachMessages.length - 1];
+    const lastCoachMsg = [...coachMessages].reverse().find((m) => m.role === "coach");
+
+    const actions = [];
+    // Always offer next best action if available
+    if (nextBestAction) {
+      actions.push({ label: "What to do next", prompt: nextBestAction });
+    }
+    // If the last coach message mentioned a topic, offer to quiz on it
+    if (lastCoachMsg && (lastCoachMsg.content.includes("alkane") || lastCoachMsg.content.includes("matter") || lastCoachMsg.content.includes("state"))) {
+      actions.push({ label: "Quiz on this topic", prompt: "Give me 5 MCQs on the last topic we discussed." });
+    }
+    actions.push({ label: "Revision summary", prompt: "Give me a quick revision summary of the last topic." });
+    actions.push({ label: "I'm stuck", prompt: "I'm feeling stuck. Help me get unstuck." });
+    return actions.slice(0, 4); // Max 4 buttons
+  }, [coachMessages, nextBestAction]);
+
   if (authLoading || coachBooting) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0A0A0F] text-[#00A3FF] animate-pulse text-sm uppercase tracking-widest">
@@ -906,6 +935,21 @@ export default function StudyPage() {
           )}
           {xpAnimation && <XPFloat key={xpAnimation.key} amount={xpAnimation.amount} />}
           <div ref={coachEndRef} />
+        </div>
+
+        {/* Dynamic Quick-Action Buttons */}
+        <div className="px-4 pb-1 flex flex-wrap gap-2 justify-center">
+          {quickActions.map((action) => (
+            <Button
+              key={action.prompt}
+              variant="ghost"
+              size="sm"
+              className="text-xs !text-gray-400 hover:!text-white !border !border-white/10 hover:!border-white/30"
+              onClick={() => { setCoachInput(action.prompt); coachInputRef.current?.focus(); }}
+            >
+              {action.label}
+            </Button>
+          ))}
         </div>
 
         {/* Input */}
