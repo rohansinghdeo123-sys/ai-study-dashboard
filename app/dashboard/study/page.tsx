@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Ultimate Version
+// Main Study Page – Casual greeting, one-time only
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -323,7 +323,7 @@ export default function StudyPage() {
   // Thinking state (shown before streaming starts)
   const [thinkingMessage, setThinkingMessage] = useState<string | null>(null);
 
-  // Greeting flag
+  // Greeting flag – only once per page load
   const [hasGreeted, setHasGreeted] = useState(false);
 
   // Revision panel (collapsible)
@@ -394,8 +394,6 @@ export default function StudyPage() {
   const answeredCount = Object.keys(selectedAnswers).length;
   const coachName = coachProfile?.coach_name || "AI Coach";
   const studentName = user?.displayName || user?.email?.split("@")[0] || "Student";
-  const currentAccuracy = progress.totalQuestions === 0 ? 0 : Math.round((progress.totalCorrect / progress.totalQuestions) * 100);
-  const weakTopics = coachSignal?.weakest_topic;
   const nextAction = coachProfile?.next_best_action ||
     coachSignal?.recommended_action ||
     "Complete one focused question set, then review only incorrect answers.";
@@ -717,7 +715,6 @@ export default function StudyPage() {
   const speakCoachMessage = (text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-    // Deep cleanup
     let clean = text
       .replace(/#{1,6}\s+/g, "")
       .replace(/\*\*(.+?)\*\*/g, "$1")
@@ -811,13 +808,11 @@ export default function StudyPage() {
     ]);
     setCoachInput("");
     setCoachLoading(true);
-    // Show a thinking message for a natural feel
-    const thinkMsg = customPrompt ? "🔍 Analysing your progress..." : "🧠 Thinking...";
+    const thinkMsg = customPrompt ? "👋 Saying hello..." : "🧠 Thinking...";
     setThinkingMessage(thinkMsg);
 
     try {
       const headers = await authHeaders();
-      // Slight artificial delay to make the thinking feel natural (800ms)
       await new Promise((r) => setTimeout(r, 800));
       setThinkingMessage(null);
 
@@ -898,7 +893,7 @@ export default function StudyPage() {
     const newId = "session_" + Date.now();
     setCurrentSessionId(newId);
     setCoachMessages([]);
-    setHasGreeted(false);
+    // Keep hasGreeted true – no repeat greeting
   };
 
   const loadSession = (id: string) => {
@@ -919,7 +914,7 @@ export default function StudyPage() {
 
   const clearChat = () => {
     setCoachMessages([]);
-    setHasGreeted(false);
+    // Keep hasGreeted true – no repeat greeting
   };
 
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
@@ -977,24 +972,17 @@ export default function StudyPage() {
     return actions.slice(0, 4);
   }, [coachMessages, nextAction]);
 
-  // ── Coach Proactive Greeting ────────────────────────────────────────────
+  // ── One‑time casual greeting ────────────────────────────────────────────
   useEffect(() => {
     if (authLoading || coachBooting || !coachProfile || hasGreeted) return;
-    if (coachMessages.length !== 0) return; // only greet in empty chat
+    if (coachMessages.length !== 0) return;
 
     const hour = new Date().getHours();
     const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
 
-    // Build a dynamic, natural greeting prompt
-    const weakTopicStr = weakTopics ? `Your recent accuracy in '${weakTopics}' needs a boost.` : "";
-    const streakStr = progress.streak > 0 ? `You've built a ${progress.streak}-day streak.` : "Let's start building a streak today.";
-    const xpStr = progress.xp > 0 ? `You've earned ${progress.xp} XP so far.` : "";
+    const prompt = `Good ${timeOfDay}, ${studentName}! I'm ${coachName}, your personal AI coach. How can I help you today?`;
 
-    const prompt = `Good ${timeOfDay}, ${studentName}! ${streakStr} ${xpStr} ${weakTopicStr} ${nextAction ? `I suggest: ${nextAction}` : ""} Keep it friendly and encouraging. Do not use markdown or bullet points.`;
-
-    // Trigger the coach's first message via streaming, with a custom thinking message
     handleAskCoach(prompt);
-
     setHasGreeted(true);
   }, [authLoading, coachBooting, coachProfile, hasGreeted]);
 
