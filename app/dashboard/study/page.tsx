@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – all features + streaming
+// Main Study Page – all features + streaming + natural female voice
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -868,52 +868,97 @@ export default function StudyPage() {
     }
   };
 
-  // ── Voice: Speech Synthesis (Coach speaks) ──────────────────────────────
-  // ── Voice: Speech Synthesis (Coach speaks) ──────────────────────────────
-const speakCoachMessage = (text: string) => {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  // ── Voice: Speech Synthesis (Coach speaks) – IMPROVED ────────────────────
+  const speakCoachMessage = (text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-  // 1. Sanitize: remove spaces before punctuation to avoid "dot", "comma" etc.
-  const sanitized = text
-    .replace(/\s+([.,!?;:])/g, "$1")   // remove space before punctuation
-    .replace(/\s+/g, " ")              // collapse multiple spaces
-    .trim();
+    // ----- 1. Deep cleanup of the text for speech -----
+    let clean = text
+      // Remove markdown headers
+      .replace(/#{1,6}\s+/g, "")
+      // Remove bold/italic markers
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      // Remove bullet points and numbered lists
+      .replace(/^[\s]*[-*+]\s+/gm, "")
+      .replace(/^\d+[.)]\s+/gm, "")
+      // Remove any URLs
+      .replace(/https?:\/\/\S+/g, "")
+      // Replace newlines with a full stop to create natural pauses
+      .replace(/\n+/g, ". ")
+      // Remove spaces before punctuation
+      .replace(/\s+([.,!?;:])/g, "$1")
+      // Remove any double punctuation left over
+      .replace(/\.{2,}/g, ".")
+      // Collapse multiple spaces
+      .replace(/\s+/g, " ")
+      .trim();
 
-  window.speechSynthesis.cancel();
+    if (!clean) return;
 
-  const utterance = new SpeechSynthesisUtterance(sanitized);
-  const voices = window.speechSynthesis.getVoices();
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
 
-  // 2. Best‑effort female voice selection
-  const preferred = [
-    "Google US English Female",
-    "Microsoft Zira - English (United States)",
-    "Samantha",
-    "Fiona",
-    "Karen",
-    "Susan",
-  ];
+    const utterance = new SpeechSynthesisUtterance(clean);
+    const voices = window.speechSynthesis.getVoices();
 
-  let chosen = voices.find((v) => preferred.includes(v.name));
-  if (!chosen) {
-    chosen = voices.find(
-      (v) => v.lang.startsWith("en-US") && v.name.toLowerCase().includes("female")
-    );
-  }
-  if (!chosen) chosen = voices[0];
+    // ----- 2. Aggressive female voice search -----
+    // Preferred names across Chrome, Edge, Firefox, Safari, Windows, macOS
+    const femaleNames = [
+      "Google US English Female",
+      "Microsoft Zira - English (United States)",
+      "Microsoft Zira",
+      "Samantha",
+      "Fiona",
+      "Karen",
+      "Susan",
+      "Moira",
+      "Veena",
+      "Hazel",
+      "Microsoft Hazel - English (United Kingdom)",
+      "Anna",
+      "Petra",
+      "Helena",
+      "Laura",
+      "Selene",
+    ];
 
-  if (chosen) utterance.voice = chosen;
-  utterance.lang = "en-US";
-  utterance.pitch = 1.05;   // slightly warmer
-  utterance.rate = 0.95;    // slightly slower, more natural
-  utterance.volume = 1;
+    let chosen = null;
+    for (const name of femaleNames) {
+      chosen = voices.find((v) => v.name === name);
+      if (chosen) break;
+    }
 
-  utterance.onstart = () => setIsSpeaking(true);
-  utterance.onend = () => setIsSpeaking(false);
-  utterance.onerror = () => setIsSpeaking(false);
-  synthRef.current = utterance;
-  window.speechSynthesis.speak(utterance);
-};
+    // Fallback: any en-US voice with "female" in name
+    if (!chosen) {
+      chosen = voices.find(
+        (v) => v.lang.startsWith("en-US") && v.name.toLowerCase().includes("female")
+      );
+    }
+
+    // Further fallback: any en-GB female
+    if (!chosen) {
+      chosen = voices.find(
+        (v) => v.lang.startsWith("en-GB") && v.name.toLowerCase().includes("female")
+      );
+    }
+
+    // Last resort: first available voice (might be male, but we have no choice)
+    if (!chosen) chosen = voices[0];
+
+    if (chosen) utterance.voice = chosen;
+    utterance.lang = "en-US";
+    utterance.pitch = 1.05;   // warm
+    utterance.rate = 0.95;    // natural pace
+    utterance.volume = 1;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    synthRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
 
   const stopSpeaking = () => {
     if (window.speechSynthesis) {
