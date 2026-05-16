@@ -219,7 +219,7 @@ function CollapsiblePanel({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools + Quick Actions
+// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools + Quick Actions + Voice
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -241,6 +241,12 @@ export default function StudyPage() {
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachBooting, setCoachBooting] = useState(false);
   const [coachStatus, setCoachStatus] = useState("");
+
+  // Voice states
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Revision panel (collapsible)
   const [revisionOpen, setRevisionOpen] = useState(false);
@@ -593,11 +599,12 @@ export default function StudyPage() {
         }),
       });
       const data = await res.json();
+      const reply = data.answer || "I am online, but I could not generate a complete coaching response.";
       setCoachMessages((prev) => [
         ...prev,
         {
           role: "coach",
-          content: data.answer || "I am online, but I could not generate a complete coaching response.",
+          content: reply,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
@@ -608,6 +615,8 @@ export default function StudyPage() {
         next_best_action: data.next_best_action || prev?.next_best_action,
         daily_strategy: data.daily_strategy || prev?.daily_strategy,
       }));
+      // Speak the reply
+      speakCoachMessage(reply);
     } catch {
       setCoachMessages((prev) => [
         ...prev,
@@ -631,9 +640,71 @@ export default function StudyPage() {
 
   const clearChat = () => setCoachMessages([]);
 
+  // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setCoachInput((prev) => prev + " " + transcript);
+      setIsListening(false);
+      // Auto send after a short delay
+      setTimeout(() => {
+        coachInputRef.current?.focus();
+        handleAskCoach();
+      }, 500);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+  }, []); // eslint-disable-line
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  // ── Voice: Speech Synthesis (Coach speaks) ──────────────────────────────
+  const speakCoachMessage = (text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Choose a pleasant female voice that sounds like a coach
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find((v) => v.name.includes("Google US English Female") || v.name.includes("Samantha") || v.name.includes("Fiona"));
+    if (preferred) utterance.voice = preferred;
+    utterance.lang = "en-US";
+    utterance.pitch = 1.05;
+    utterance.rate = 1.0;
+    utterance.volume = 1;
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    synthRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
   // ── Dynamic Quick Actions ──────────────────────────────────────────────
   const quickActions = useMemo(() => {
-    // Default actions when chat is empty
     if (coachMessages.length === 0) {
       return [
         { label: "Study plan", prompt: "Create a study plan for me based on my progress." },
@@ -642,22 +713,15 @@ export default function StudyPage() {
         { label: "Revision help", prompt: "Give me key revision points for my weakest topic." },
       ];
     }
-    // After conversation has started, offer context-aware actions
-    const lastMsg = coachMessages[coachMessages.length - 1];
     const lastCoachMsg = [...coachMessages].reverse().find((m) => m.role === "coach");
-
     const actions = [];
-    // Always offer next best action if available
-    if (nextBestAction) {
-      actions.push({ label: "What to do next", prompt: nextBestAction });
-    }
-    // If the last coach message mentioned a topic, offer to quiz on it
+    if (nextBestAction) actions.push({ label: "What to do next", prompt: nextBestAction });
     if (lastCoachMsg && (lastCoachMsg.content.includes("alkane") || lastCoachMsg.content.includes("matter") || lastCoachMsg.content.includes("state"))) {
       actions.push({ label: "Quiz on this topic", prompt: "Give me 5 MCQs on the last topic we discussed." });
     }
     actions.push({ label: "Revision summary", prompt: "Give me a quick revision summary of the last topic." });
     actions.push({ label: "I'm stuck", prompt: "I'm feeling stuck. Help me get unstuck." });
-    return actions.slice(0, 4); // Max 4 buttons
+    return actions.slice(0, 4);
   }, [coachMessages, nextBestAction]);
 
   if (authLoading || coachBooting) {
@@ -704,6 +768,9 @@ export default function StudyPage() {
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="text-base font-bold text-white">{coachName}</span>
           <span className="text-xs text-gray-500">{coachStatus}</span>
+          {isSpeaking && (
+            <button onClick={stopSpeaking} className="ml-2 text-xs text-red-400 hover:text-red-300">🔇 Stop</button>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-gray-500">XP {progress.xp}</span>
@@ -952,9 +1019,9 @@ export default function StudyPage() {
           ))}
         </div>
 
-        {/* Input */}
+        {/* Input with Voice */}
         <div className="border-t border-white/10 px-4 py-3">
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-end">
             <textarea
               ref={coachInputRef}
               value={coachInput}
@@ -964,6 +1031,16 @@ export default function StudyPage() {
               rows={1}
               className="flex-1 resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-orange-400"
             />
+            {/* Microphone button */}
+            <Button
+              variant={isListening ? "danger" : "secondary"}
+              size="sm"
+              onClick={toggleListening}
+              disabled={!recognitionRef.current}
+              className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-blue-400/20 !bg-blue-400/10 !text-blue-400"}
+            >
+              🎤
+            </Button>
             <Button
               variant="primary"
               size="md"
