@@ -334,6 +334,18 @@ export default function StudyPage() {
     }
   };
 
+  // Clear revision output
+  const clearRevision = () => setRevisionOutput("");
+
+  // Clear all exam data
+  const clearExam = () => {
+    setMcqs([]);
+    setProbableOutput("");
+    setExamStatus("");
+    setSelectedAnswers({});
+    setScore(0);
+  };
+
   useEffect(() => {
     coachEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [coachMessages, coachLoading]);
@@ -653,7 +665,6 @@ export default function StudyPage() {
       const transcript = event.results[0][0].transcript;
       setCoachInput((prev) => prev + " " + transcript);
       setIsListening(false);
-      // Auto send after a short delay
       setTimeout(() => {
         coachInputRef.current?.focus();
         handleAskCoach();
@@ -662,7 +673,7 @@ export default function StudyPage() {
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
-  }, []); // eslint-disable-line
+  }, []);
 
   const toggleListening = () => {
     if (!recognitionRef.current) return;
@@ -678,10 +689,8 @@ export default function StudyPage() {
   // ── Voice: Speech Synthesis (Coach speaks) ──────────────────────────────
   const speakCoachMessage = (text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    // Choose a pleasant female voice that sounds like a coach
     const voices = window.speechSynthesis.getVoices();
     const preferred = voices.find((v) => v.name.includes("Google US English Female") || v.name.includes("Samantha") || v.name.includes("Fiona"));
     if (preferred) utterance.voice = preferred;
@@ -832,7 +841,10 @@ export default function StudyPage() {
                 {loadingRevision ? "Loading..." : "Generate"}
               </Button>
               {revisionOutput && (
-                <Button variant="ghost" size="sm" onClick={handleCopyRevision}>Copy</Button>
+                <>
+                  <Button variant="ghost" size="sm" onClick={handleCopyRevision}>Copy</Button>
+                  <Button variant="ghost" size="sm" onClick={clearRevision}>Clear</Button>
+                </>
               )}
             </div>
             {revisionOutput && (
@@ -874,6 +886,9 @@ export default function StudyPage() {
               >
                 {loadingExam ? "Generating..." : "Generate"}
               </Button>
+              {(mcqs.length > 0 || probableOutput) && (
+                <Button variant="danger" size="sm" onClick={clearExam}>Clear</Button>
+              )}
             </div>
             {loadingExam && <p className="text-sm text-gray-500">Generating exam content...</p>}
             {examStatus && <p className="text-sm text-gray-500">{examStatus}</p>}
