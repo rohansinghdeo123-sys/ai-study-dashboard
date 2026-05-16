@@ -37,7 +37,7 @@ interface ChatSession {
   id: string;
   title: string;
   messages: CoachMessage[];
-  lastUpdated: number; // timestamp
+  lastUpdated: number;
 }
 
 interface ProgressState {
@@ -226,7 +226,7 @@ function CollapsiblePanel({
 }
 
 // ------------------------------------------------------------------------------
-// History Sidebar Component
+// History Sidebar Component (unchanged)
 // ------------------------------------------------------------------------------
 function HistorySidebar({
   open,
@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Full‑screen AI Coach Chat + Collapsible Tools + Quick Actions + Voice + History
+// Main Study Page – all features + streaming
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -302,6 +302,7 @@ export default function StudyPage() {
   const coachEndRef = useRef<HTMLDivElement>(null);
   const coachInputRef = useRef<HTMLTextAreaElement>(null);
   const sessionStartTime = useRef<number>(Date.now());
+  const streamControllerRef = useRef<AbortController | null>(null);
 
   // Coach & chat
   const [coachProfile, setCoachProfile] = useState<CoachProfile | null>(null);
@@ -365,9 +366,7 @@ export default function StudyPage() {
   // History sidebar
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [currentSessionId, setCurrentSessionId] = useState<string>(() => {
-    return "session_" + Date.now();
-  });
+  const [currentSessionId, setCurrentSessionId] = useState<string>(() => "session_" + Date.now());
 
   const [progress, setProgress] = useState<ProgressState>({
     totalTests: 0,
@@ -410,12 +409,10 @@ export default function StudyPage() {
     }
   }, []);
 
-  // Load sessions on mount
   useEffect(() => {
     setSessions(loadSessions());
   }, []);
 
-  // Auto-save current session whenever messages change
   useEffect(() => {
     if (coachMessages.length === 0) return;
     setSessions((prev) => {
@@ -457,7 +454,6 @@ export default function StudyPage() {
   };
 
   const clearRevision = () => setRevisionOutput("");
-
   const clearExam = () => {
     setMcqs([]);
     setProbableOutput("");
@@ -469,6 +465,12 @@ export default function StudyPage() {
   useEffect(() => {
     coachEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [coachMessages, coachLoading]);
+
+  useEffect(() => {
+    return () => {
+      streamControllerRef.current?.abort();
+    };
+  }, []);
 
   const authHeaders = async () => {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -704,22 +706,35 @@ export default function StudyPage() {
     }
   };
 
-  // ── Coach Chat ──────────────────────────────────────────────────────────
+  // ── Streaming Coach Chat ─────────────────────────────────────────────────
   const handleAskCoach = async () => {
     if (!coachInput.trim() || !userId || authLoading || coachLoading) return;
     const query = coachInput.trim();
+
+    // Abort any previous stream
+    streamControllerRef.current?.abort();
+    const controller = new AbortController();
+    streamControllerRef.current = controller;
+
     const userMsg: CoachMessage = {
       role: "user",
       content: query,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
-    setCoachMessages((prev) => [...prev, userMsg]);
+
+    setCoachMessages((prev) => [
+      ...prev,
+      userMsg,
+      { role: "coach", content: "", timestamp: "" },
+    ]);
     setCoachInput("");
     setCoachLoading(true);
+
     try {
-      const res = await fetch(`${backendURL}/coach/chat`, {
+      const headers = await authHeaders();
+      const res = await fetch(`${backendURL}/coach/chat/stream`, {
         method: "POST",
-        headers: await authHeaders(),
+        headers,
         body: JSON.stringify({
           user_id: userId,
           message: query,
@@ -729,33 +744,57 @@ export default function StudyPage() {
           topic: topic,
           session_id: `coach-${userId}`,
         }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      const reply = data.answer || "I am online, but I could not generate a complete coaching response.";
-      setCoachMessages((prev) => [
-        ...prev,
-        {
-          role: "coach",
-          content: reply,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        },
-      ]);
-      setCoachProfile((prev) => ({
-        ...(prev || {}),
-        coach_id: data.coach_id || prev?.coach_id,
-        coach_name: data.coach_name || prev?.coach_name,
-        next_best_action: data.next_best_action || prev?.next_best_action,
-        daily_strategy: data.daily_strategy || prev?.daily_strategy,
-      }));
-      // Speak the reply
-      speakCoachMessage(reply);
-    } catch {
-      setCoachMessages((prev) => [
-        ...prev,
-        { role: "coach", content: "COACH_CONNECTION_ERROR: I could not reach the coaching agent.", timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
-      ]);
+
+      if (!res.ok || !res.body) throw new Error("Stream failed");
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const token = line.slice(6);
+            fullText += token;
+            setCoachMessages((prev) => {
+              const updated = [...prev];
+              const last = updated[updated.length - 1];
+              if (last.role === "coach") {
+                last.content = fullText;
+                last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+              }
+              return updated;
+            });
+          }
+        }
+      }
+
+      // Stream finished – speak the full message
+      speakCoachMessage(fullText);
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        setCoachMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last && last.role === "coach") {
+            last.content = "I'm having trouble responding right now. Please try again.";
+            last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          }
+          return updated;
+        });
+      }
+    } finally {
+      setCoachLoading(false);
+      streamControllerRef.current = null;
     }
-    setCoachLoading(false);
   };
 
   const handleCoachKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -793,9 +832,7 @@ export default function StudyPage() {
     }
   };
 
-  const clearChat = () => {
-    setCoachMessages([]);
-  };
+  const clearChat = () => setCoachMessages([]);
 
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
   useEffect(() => {
@@ -1149,7 +1186,7 @@ export default function StudyPage() {
                       <span className={`text-xs font-semibold ${msg.role === "user" ? "text-blue-400 ml-auto" : "text-orange-400"}`}>
                         {msg.role === "user" ? "You" : coachName}
                       </span>
-                      <span className="text-[10px] text-gray-600">{msg.timestamp}</span>
+                      {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
                     </div>
                     <div className={`rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
@@ -1157,6 +1194,7 @@ export default function StudyPage() {
                         : "bg-white/5 text-gray-200 rounded-bl-md"
                     }`}>
                       <ChemistryBlock value={msg.content} />
+                      {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
                     </div>
                   </div>
                   {msg.role === "user" && (
@@ -1168,19 +1206,6 @@ export default function StudyPage() {
               </div>
             ))
           )}
-          {coachLoading && (
-            <div className="flex justify-start">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
-                  {coachName[0]}
-                </div>
-                <div className="rounded-2xl bg-white/5 px-5 py-3 rounded-bl-md">
-                  <CoachTyping />
-                </div>
-              </div>
-            </div>
-          )}
-          {xpAnimation && <XPFloat key={xpAnimation.key} amount={xpAnimation.amount} />}
           <div ref={coachEndRef} />
         </div>
 
@@ -1211,7 +1236,6 @@ export default function StudyPage() {
               rows={1}
               className="flex-1 resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-orange-400"
             />
-            {/* Microphone button */}
             <Button
               variant={isListening ? "danger" : "secondary"}
               size="sm"
