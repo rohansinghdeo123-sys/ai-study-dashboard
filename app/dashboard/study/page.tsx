@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – all features + streaming + natural female voice
+// Main Study Page – Ultimate Version
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -319,6 +319,12 @@ export default function StudyPage() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  // Thinking state (shown before streaming starts)
+  const [thinkingMessage, setThinkingMessage] = useState<string | null>(null);
+
+  // Greeting flag
+  const [hasGreeted, setHasGreeted] = useState(false);
 
   // Revision panel (collapsible)
   const [revisionOpen, setRevisionOpen] = useState(false);
@@ -387,9 +393,10 @@ export default function StudyPage() {
   );
   const answeredCount = Object.keys(selectedAnswers).length;
   const coachName = coachProfile?.coach_name || "AI Coach";
-
-  const nextBestAction =
-    coachProfile?.next_best_action ||
+  const studentName = user?.displayName || user?.email?.split("@")[0] || "Student";
+  const currentAccuracy = progress.totalQuestions === 0 ? 0 : Math.round((progress.totalCorrect / progress.totalQuestions) * 100);
+  const weakTopics = coachSignal?.weakest_topic || (coachProfile?.weak_topics_snapshot?.[0]?.topic);
+  const nextAction = coachProfile?.next_best_action ||
     coachSignal?.recommended_action ||
     "Complete one focused question set, then review only incorrect answers.";
 
@@ -706,19 +713,94 @@ export default function StudyPage() {
     }
   };
 
-  // ── Streaming Coach Chat ─────────────────────────────────────────────────
-  const handleAskCoach = async () => {
-    if (!coachInput.trim() || !userId || authLoading || coachLoading) return;
-    const query = coachInput.trim();
+  // ── Voice: Speech Synthesis (Coach speaks) – ULTIMATE ────────────────────
+  const speakCoachMessage = (text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-    // Abort any previous stream
+    // Deep cleanup
+    let clean = text
+      .replace(/#{1,6}\s+/g, "")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/^[\s]*[-*+]\s+/gm, "")
+      .replace(/^\d+[.)]\s+/gm, "")
+      .replace(/https?:\/\/\S+/g, "")
+      .replace(/\n+/g, ". ")
+      .replace(/\s+([.,!?;:])/g, "$1")
+      .replace(/\.{2,}/g, ".")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!clean) return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(clean);
+    const voices = window.speechSynthesis.getVoices();
+
+    const femaleNames = [
+      "Google US English Female",
+      "Microsoft Zira - English (United States)",
+      "Microsoft Zira",
+      "Samantha",
+      "Fiona",
+      "Karen",
+      "Susan",
+      "Moira",
+      "Veena",
+      "Hazel",
+      "Microsoft Hazel - English (United Kingdom)",
+    ];
+
+    let chosen = null;
+    for (const name of femaleNames) {
+      chosen = voices.find((v) => v.name === name);
+      if (chosen) break;
+    }
+
+    if (!chosen) {
+      chosen = voices.find(
+        (v) => v.lang.startsWith("en-US") && v.name.toLowerCase().includes("female")
+      );
+    }
+    if (!chosen) {
+      chosen = voices.find(
+        (v) => v.lang.startsWith("en-GB") && v.name.toLowerCase().includes("female")
+      );
+    }
+    if (!chosen) chosen = voices[0];
+
+    if (chosen) utterance.voice = chosen;
+    utterance.lang = "en-US";
+    utterance.pitch = 1.05;
+    utterance.rate = 0.95;
+    utterance.volume = 1;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    synthRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
+  // ── Streaming Coach Chat (with thinking indicator) ──────────────────────
+  const handleAskCoach = async (customPrompt?: string) => {
+    const input = (customPrompt || coachInput).trim();
+    if (!input || !userId || authLoading || coachLoading) return;
+
     streamControllerRef.current?.abort();
     const controller = new AbortController();
     streamControllerRef.current = controller;
 
     const userMsg: CoachMessage = {
       role: "user",
-      content: query,
+      content: input,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
@@ -729,15 +811,22 @@ export default function StudyPage() {
     ]);
     setCoachInput("");
     setCoachLoading(true);
+    // Show a thinking message for a natural feel
+    const thinkMsg = customPrompt ? "🔍 Analysing your progress..." : "🧠 Thinking...";
+    setThinkingMessage(thinkMsg);
 
     try {
       const headers = await authHeaders();
+      // Slight artificial delay to make the thinking feel natural (800ms)
+      await new Promise((r) => setTimeout(r, 800));
+      setThinkingMessage(null);
+
       const res = await fetch(`${backendURL}/coach/chat/stream`, {
         method: "POST",
         headers,
         body: JSON.stringify({
           user_id: userId,
-          message: query,
+          message: input,
           mode: "coach",
           intent: "study_advice",
           subject: "Chemistry",
@@ -759,7 +848,6 @@ export default function StudyPage() {
 
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split("\n");
-
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const token = line.slice(6);
@@ -777,10 +865,10 @@ export default function StudyPage() {
         }
       }
 
-      // Stream finished – speak the full message
       speakCoachMessage(fullText);
     } catch (err: any) {
       if (err.name !== "AbortError") {
+        setThinkingMessage(null);
         setCoachMessages((prev) => {
           const updated = [...prev];
           const last = updated[updated.length - 1];
@@ -793,6 +881,7 @@ export default function StudyPage() {
       }
     } finally {
       setCoachLoading(false);
+      setThinkingMessage(null);
       streamControllerRef.current = null;
     }
   };
@@ -804,16 +893,12 @@ export default function StudyPage() {
     }
   };
 
-  const applyNextBestAction = () => {
-    setCoachInput(nextBestAction);
-    coachInputRef.current?.focus();
-  };
-
   // ── History management ──────────────────────────────────────────────────
   const startNewChat = () => {
     const newId = "session_" + Date.now();
     setCurrentSessionId(newId);
     setCoachMessages([]);
+    setHasGreeted(false);
   };
 
   const loadSession = (id: string) => {
@@ -832,7 +917,10 @@ export default function StudyPage() {
     }
   };
 
-  const clearChat = () => setCoachMessages([]);
+  const clearChat = () => {
+    setCoachMessages([]);
+    setHasGreeted(false);
+  };
 
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
   useEffect(() => {
@@ -868,105 +956,6 @@ export default function StudyPage() {
     }
   };
 
-  // ── Voice: Speech Synthesis (Coach speaks) – IMPROVED ────────────────────
-  const speakCoachMessage = (text: string) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-
-    // ----- 1. Deep cleanup of the text for speech -----
-    let clean = text
-      // Remove markdown headers
-      .replace(/#{1,6}\s+/g, "")
-      // Remove bold/italic markers
-      .replace(/\*\*(.+?)\*\*/g, "$1")
-      .replace(/\*(.+?)\*/g, "$1")
-      // Remove bullet points and numbered lists
-      .replace(/^[\s]*[-*+]\s+/gm, "")
-      .replace(/^\d+[.)]\s+/gm, "")
-      // Remove any URLs
-      .replace(/https?:\/\/\S+/g, "")
-      // Replace newlines with a full stop to create natural pauses
-      .replace(/\n+/g, ". ")
-      // Remove spaces before punctuation
-      .replace(/\s+([.,!?;:])/g, "$1")
-      // Remove any double punctuation left over
-      .replace(/\.{2,}/g, ".")
-      // Collapse multiple spaces
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (!clean) return;
-
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(clean);
-    const voices = window.speechSynthesis.getVoices();
-
-    // ----- 2. Aggressive female voice search -----
-    // Preferred names across Chrome, Edge, Firefox, Safari, Windows, macOS
-    const femaleNames = [
-      "Google US English Female",
-      "Microsoft Zira - English (United States)",
-      "Microsoft Zira",
-      "Samantha",
-      "Fiona",
-      "Karen",
-      "Susan",
-      "Moira",
-      "Veena",
-      "Hazel",
-      "Microsoft Hazel - English (United Kingdom)",
-      "Anna",
-      "Petra",
-      "Helena",
-      "Laura",
-      "Selene",
-    ];
-
-    let chosen = null;
-    for (const name of femaleNames) {
-      chosen = voices.find((v) => v.name === name);
-      if (chosen) break;
-    }
-
-    // Fallback: any en-US voice with "female" in name
-    if (!chosen) {
-      chosen = voices.find(
-        (v) => v.lang.startsWith("en-US") && v.name.toLowerCase().includes("female")
-      );
-    }
-
-    // Further fallback: any en-GB female
-    if (!chosen) {
-      chosen = voices.find(
-        (v) => v.lang.startsWith("en-GB") && v.name.toLowerCase().includes("female")
-      );
-    }
-
-    // Last resort: first available voice (might be male, but we have no choice)
-    if (!chosen) chosen = voices[0];
-
-    if (chosen) utterance.voice = chosen;
-    utterance.lang = "en-US";
-    utterance.pitch = 1.05;   // warm
-    utterance.rate = 0.95;    // natural pace
-    utterance.volume = 1;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    synthRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopSpeaking = () => {
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
   // ── Dynamic Quick Actions ──────────────────────────────────────────────
   const quickActions = useMemo(() => {
     if (coachMessages.length === 0) {
@@ -979,14 +968,35 @@ export default function StudyPage() {
     }
     const lastCoachMsg = [...coachMessages].reverse().find((m) => m.role === "coach");
     const actions = [];
-    if (nextBestAction) actions.push({ label: "What to do next", prompt: nextBestAction });
+    if (nextAction) actions.push({ label: "What to do next", prompt: nextAction });
     if (lastCoachMsg && (lastCoachMsg.content.includes("alkane") || lastCoachMsg.content.includes("matter") || lastCoachMsg.content.includes("state"))) {
       actions.push({ label: "Quiz on this topic", prompt: "Give me 5 MCQs on the last topic we discussed." });
     }
     actions.push({ label: "Revision summary", prompt: "Give me a quick revision summary of the last topic." });
     actions.push({ label: "I'm stuck", prompt: "I'm feeling stuck. Help me get unstuck." });
     return actions.slice(0, 4);
-  }, [coachMessages, nextBestAction]);
+  }, [coachMessages, nextAction]);
+
+  // ── Coach Proactive Greeting ────────────────────────────────────────────
+  useEffect(() => {
+    if (authLoading || coachBooting || !coachProfile || hasGreeted) return;
+    if (coachMessages.length !== 0) return; // only greet in empty chat
+
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+
+    // Build a dynamic, natural greeting prompt
+    const weakTopicStr = weakTopics ? `Your recent accuracy in '${weakTopics}' needs a boost.` : "";
+    const streakStr = progress.streak > 0 ? `You've built a ${progress.streak}-day streak.` : "Let's start building a streak today.";
+    const xpStr = progress.xp > 0 ? `You've earned ${progress.xp} XP so far.` : "";
+
+    const prompt = `Good ${timeOfDay}, ${studentName}! ${streakStr} ${xpStr} ${weakTopicStr} ${nextAction ? `I suggest: ${nextAction}` : ""} Keep it friendly and encouraging. Do not use markdown or bullet points.`;
+
+    // Trigger the coach's first message via streaming, with a custom thinking message
+    handleAskCoach(prompt);
+
+    setHasGreeted(true);
+  }, [authLoading, coachBooting, coachProfile, hasGreeted]);
 
   if (authLoading || coachBooting) {
     return (
@@ -1228,56 +1238,61 @@ export default function StudyPage() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-          {coachMessages.length === 0 ? (
+          {coachMessages.length === 0 && !thinkingMessage ? (
             <div className="flex h-full items-center justify-center text-center">
               <div className="max-w-md space-y-3">
                 <p className="text-2xl font-bold text-white">{coachName}</p>
-                <p className="text-sm text-gray-400">
-                  Your personal AI coach is ready. Ask me anything — doubts, study plans, revision summaries, or exam prep.
-                </p>
-                {nextBestAction && (
-                  <button
-                    onClick={applyNextBestAction}
-                    className="text-sm text-orange-400 hover:text-orange-300 underline underline-offset-4"
-                  >
-                    {nextBestAction}
-                  </button>
-                )}
+                <p className="text-sm text-gray-400">Warming up your personal coach…</p>
               </div>
             </div>
           ) : (
-            coachMessages.map((msg, idx) => (
-              <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className="flex max-w-[85%] gap-3">
-                  {msg.role === "coach" && (
+            <>
+              {thinkingMessage && (
+                <div className="flex justify-start">
+                  <div className="flex max-w-[85%] gap-3">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
                       {coachName[0]}
                     </div>
-                  )}
-                  <div>
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className={`text-xs font-semibold ${msg.role === "user" ? "text-blue-400 ml-auto" : "text-orange-400"}`}>
-                        {msg.role === "user" ? "You" : coachName}
-                      </span>
-                      {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
-                    </div>
-                    <div className={`rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
-                      msg.role === "user"
-                        ? "bg-blue-500/20 text-blue-100 rounded-br-md"
-                        : "bg-white/5 text-gray-200 rounded-bl-md"
-                    }`}>
-                      <ChemistryBlock value={msg.content} />
-                      {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
+                    <div className="rounded-2xl px-5 py-3 rounded-bl-md bg-white/5 text-gray-400 flex items-center gap-2">
+                      <span className="animate-pulse">{thinkingMessage}</span>
+                      <CoachTyping />
                     </div>
                   </div>
-                  {msg.role === "user" && (
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400">
-                      U
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))
+              )}
+              {coachMessages.map((msg, idx) => (
+                <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className="flex max-w-[85%] gap-3">
+                    {msg.role === "coach" && (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
+                        {coachName[0]}
+                      </div>
+                    )}
+                    <div>
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className={`text-xs font-semibold ${msg.role === "user" ? "text-blue-400 ml-auto" : "text-orange-400"}`}>
+                          {msg.role === "user" ? "You" : coachName}
+                        </span>
+                        {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
+                      </div>
+                      <div className={`rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                        msg.role === "user"
+                          ? "bg-blue-500/20 text-blue-100 rounded-br-md"
+                          : "bg-white/5 text-gray-200 rounded-bl-md"
+                      }`}>
+                        <ChemistryBlock value={msg.content} />
+                        {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
+                      </div>
+                    </div>
+                    {msg.role === "user" && (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400">
+                        U
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </>
           )}
           <div ref={coachEndRef} />
         </div>
@@ -1322,7 +1337,7 @@ export default function StudyPage() {
               variant="primary"
               size="md"
               className="!bg-orange-500 !text-black hover:!bg-orange-400"
-              onClick={handleAskCoach}
+              onClick={() => handleAskCoach()}
               disabled={coachLoading || !coachInput.trim()}
             >
               Send
