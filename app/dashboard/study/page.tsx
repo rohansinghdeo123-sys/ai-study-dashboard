@@ -852,52 +852,43 @@ export default function StudyPage() {
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
-            const payload = line.slice(6);
-            // Skip the [DONE] marker
-            if (payload === "[DONE]") continue;
+  const payload = line.slice(6);
+  if (payload === "[DONE]") continue;
 
-            // If the payload looks like valid base64 (only base64 characters, longer than 40 chars),
-            // decode the whole answer and display it immediately.
-            if (/^[A-Za-z0-9+/=]+$/.test(payload) && payload.length > 40) {
-              try {
-                const decoded = atob(payload);
-                fullText = decoded;
-                setThinkingMessage(null);
-                setCoachMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last.role === "coach") {
-                    last.content = fullText;
-                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                  }
-                  return updated;
-                });
-                // The whole answer has been decoded – no need to process more lines
-                break;
-              } catch {
-                // If decode fails, fall through to normal token handling
-              }
-            }
-
-            // Normal token (progress or streaming tokens)
-            if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
-              setThinkingMessage(payload);
-            } else {
-              fullText += payload;
-              setThinkingMessage(null);
-              setCoachMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last.role === "coach") {
-                  last.content = fullText;
-                  last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                }
-                return updated;
-              });
-            }
-          }
+  // If the payload is very long (> 50 chars) and has no spaces, it's base64.
+  if (payload.length > 50 && !payload.includes(" ")) {
+    try {
+      const decoded = atob(payload);
+      fullText = decoded;
+      setThinkingMessage(null);
+      setCoachMessages((prev) => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last.role === "coach") {
+          last.content = fullText;
+          last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
         }
+        return updated;
+      });
+      break; // no more processing needed
+    } catch {
+      // fallback to normal token handling
+      fullText += payload;
+    }
+  } else {
+    fullText += payload;
+    setThinkingMessage(null);
+    setCoachMessages((prev) => {
+      const updated = [...prev];
+      const last = updated[updated.length - 1];
+      if (last.role === "coach") {
+        last.content = fullText;
+        last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       }
+      return updated;
+    });
+  }
+}
 
       // Speak only if user used the microphone
       if (shouldSpeak) {
