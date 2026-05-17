@@ -194,9 +194,10 @@ function getUserDisplayName(user: any) {
   return user?.displayName || user?.phoneNumber || user?.email || user?.uid || "UNKNOWN_USER";
 }
 
+// ── IMPROVED: uses shortId for missing names ──────────────────────────────
 function getLeaderboardDisplayName(entry: LeaderboardUser, currentUserId: string, currentDisplayName: string) {
   if (entry.user_id === currentUserId) return currentDisplayName;
-  return entry.display_name || entry.name || entry.phone || entry.email || entry.user_id;
+  return entry.display_name || entry.name || entry.phone || entry.email || shortId(entry.user_id);
 }
 
 async function readJson(url: string) {
@@ -511,7 +512,7 @@ function TrendIcon({ trend }: { trend?: number }) {
   return <span className="text-red-400 text-xs">↓</span>;
 }
 
-// ─── Main Dashboard Page (instant skeleton loading) ────────────────────────
+// ─── Main Dashboard Page ───────────────────────────────────────────────────
 export default function DashboardPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   const router = useRouter();
@@ -1078,6 +1079,11 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
+            </div>
+          ) : data.progress.total_tests === 0 ? (
+            /* No tests taken – show placeholder regardless of any stale insights */
+            <div className="flex min-h-[160px] items-center justify-center text-xs uppercase tracking-[0.24em] text-gray-600">
+              AI_SIGNAL_PENDING
             </div>
           ) : data.insights.length ? (
             data.insights.map((insight, index) => (
