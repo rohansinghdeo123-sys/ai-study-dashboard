@@ -91,6 +91,26 @@ interface CoachDashboard {
   latest_signal?: CoachDailySignal | null;
 }
 
+type AgentStageId = "drafting" | "reviewing" | "delivering";
+type AgentStageStatus = "pending" | "active" | "done";
+
+interface AgentStageState {
+  id: AgentStageId;
+  agent: string;
+  title: string;
+  detail: string;
+  status: AgentStageStatus;
+}
+
+interface AgentStagePayload {
+  type: "agent_stage";
+  stage: AgentStageId;
+  status: AgentStageStatus;
+  agent?: string;
+  title?: string;
+  detail?: string;
+}
+
 interface SpeechRecognitionResultEventLike {
   results: {
     [resultIndex: number]: {
@@ -228,6 +248,80 @@ function normalizeCoachTransportText(value: string) {
   return payloads.join("\n");
 }
 
+const AGENT_STAGE_ORDER: AgentStageId[] = ["drafting", "reviewing", "delivering"];
+
+function createAgentStages(): AgentStageState[] {
+  return [
+    {
+      id: "drafting",
+      agent: "Draft Agent",
+      title: "Drafting",
+      detail: "Building the first subject-focused answer.",
+      status: "pending",
+    },
+    {
+      id: "reviewing",
+      agent: "Subject Reviewer",
+      title: "Reviewing",
+      detail: "Checking clarity, accuracy, examples, and exam usefulness.",
+      status: "pending",
+    },
+    {
+      id: "delivering",
+      agent: "Final Tutor",
+      title: "Delivering",
+      detail: "Preparing the final formatted response.",
+      status: "pending",
+    },
+  ];
+}
+
+function parseAgentStagePayload(value: string): AgentStagePayload | null {
+  if (!value.trim().startsWith("{")) return null;
+
+  try {
+    const parsed = JSON.parse(value) as Partial<AgentStagePayload>;
+    if (
+      parsed.type === "agent_stage" &&
+      parsed.stage &&
+      parsed.status &&
+      AGENT_STAGE_ORDER.includes(parsed.stage) &&
+      ["pending", "active", "done"].includes(parsed.status)
+    ) {
+      return parsed as AgentStagePayload;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function applyAgentStageUpdate(stages: AgentStageState[], update: AgentStagePayload) {
+  const activeIndex = AGENT_STAGE_ORDER.indexOf(update.stage);
+
+  return stages.map((stage) => {
+    const stageIndex = AGENT_STAGE_ORDER.indexOf(stage.id);
+    let status = stage.status;
+
+    if (update.status === "active") {
+      if (stageIndex < activeIndex) status = "done";
+      if (stageIndex === activeIndex) status = "active";
+      if (stageIndex > activeIndex) status = "pending";
+    } else if (stage.id === update.stage) {
+      status = update.status;
+    }
+
+    return {
+      ...stage,
+      agent: stage.id === update.stage && update.agent ? update.agent : stage.agent,
+      title: stage.id === update.stage && update.title ? update.title : stage.title,
+      detail: stage.id === update.stage && update.detail ? update.detail : stage.detail,
+      status,
+    };
+  });
+}
+
 function CoachAnswerBlock({ value }: { value: string }) {
   const normalized = normalizeCoachTransportText(value);
   const blocks = normalized.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
@@ -267,6 +361,75 @@ function CoachAnswerBlock({ value }: { value: string }) {
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function AgentPipeline({
+  stages,
+  coachName,
+}: {
+  stages: AgentStageState[];
+  coachName: string;
+}) {
+  return (
+    <div className="rounded-2xl rounded-bl-md border border-orange-400/15 bg-white/[0.055] px-5 py-4 text-sm shadow-[0_0_30px_rgba(0,0,0,0.25)]">
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">
+            {coachName} answer pipeline
+          </p>
+          <p className="mt-1 text-xs text-gray-500">Specialist response in progress</p>
+        </div>
+        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+          Live
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {stages.map((stage, index) => {
+          const isActive = stage.status === "active";
+          const isDone = stage.status === "done";
+
+          return (
+            <div key={stage.id} className="flex gap-3">
+              <div className="flex flex-col items-center">
+                <div
+                  className={`flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-bold transition-colors ${
+                    isDone
+                      ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                      : isActive
+                      ? "border-orange-300/50 bg-orange-400/15 text-orange-200"
+                      : "border-white/10 bg-black/20 text-gray-600"
+                  }`}
+                >
+                  {isDone ? "✓" : String(index + 1).padStart(2, "0")}
+                </div>
+                {index < stages.length - 1 && (
+                  <div className={`mt-2 h-8 w-px ${isDone ? "bg-emerald-400/30" : "bg-white/10"}`} />
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1 pb-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`text-xs font-bold uppercase tracking-wide ${
+                      isActive ? "text-orange-200" : isDone ? "text-emerald-300" : "text-gray-500"
+                    }`}
+                  >
+                    {stage.title}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider text-gray-600">{stage.agent}</span>
+                  {isActive && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-300" />}
+                </div>
+                <p className={`mt-1 text-xs leading-5 ${isActive ? "text-gray-300" : "text-gray-500"}`}>
+                  {stage.detail}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -436,6 +599,8 @@ export default function StudyPage() {
   const [coachLoading, setCoachLoading] = useState(false);
   const [coachBooting, setCoachBooting] = useState(false);
   const [coachStatus, setCoachStatus] = useState("");
+  const [agentStages, setAgentStages] = useState<AgentStageState[]>(() => createAgentStages());
+  const [showAgentPipeline, setShowAgentPipeline] = useState(false);
 
   // Voice states
   const [isListening, setIsListening] = useState(false);
@@ -941,7 +1106,14 @@ export default function StudyPage() {
     ]);
     setCoachInput("");
     setCoachLoading(true);
-    setThinkingMessage("🧠 Thinking...");
+    setThinkingMessage(null);
+    setAgentStages(
+      createAgentStages().map((stage) => ({
+        ...stage,
+        status: stage.id === "drafting" ? "active" : "pending",
+      })),
+    );
+    setShowAgentPipeline(true);
 
     // Determine intent based on user message
     const lower = input.toLowerCase();
@@ -994,6 +1166,14 @@ export default function StudyPage() {
 
         if (payload === "[DONE]") {
           streamDone = true;
+          return;
+        }
+
+        const stagePayload = parseAgentStagePayload(payload);
+        if (stagePayload) {
+          setShowAgentPipeline(true);
+          setThinkingMessage(null);
+          setAgentStages((prev) => applyAgentStageUpdate(prev, stagePayload));
           return;
         }
 
@@ -1075,6 +1255,7 @@ export default function StudyPage() {
     } finally {
       setCoachLoading(false);
       setThinkingMessage(null);
+      setShowAgentPipeline(false);
       streamControllerRef.current = null;
     }
   };
@@ -1091,6 +1272,8 @@ export default function StudyPage() {
     const newId = "session_" + Date.now();
     setCurrentSessionId(newId);
     setCoachMessages([]);
+    setShowAgentPipeline(false);
+    setAgentStages(createAgentStages());
   };
 
   const loadSession = (id: string) => {
@@ -1098,6 +1281,8 @@ export default function StudyPage() {
     if (session) {
       setCoachMessages(session.messages);
       setCurrentSessionId(session.id);
+      setShowAgentPipeline(false);
+      setAgentStages(createAgentStages());
     }
   };
 
@@ -1111,6 +1296,8 @@ export default function StudyPage() {
 
   const clearChat = () => {
     setCoachMessages([]);
+    setShowAgentPipeline(false);
+    setAgentStages(createAgentStages());
   };
 
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
@@ -1432,42 +1619,63 @@ export default function StudyPage() {
                   </div>
                 </div>
               )}
-              {coachMessages.map((msg, idx) => (
-                <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              {showAgentPipeline && (
+                <div className="flex justify-start">
                   <div className="flex max-w-[85%] gap-3">
-                    {msg.role === "coach" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
-                        {coachName[0]}
-                      </div>
-                    )}
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
+                      {coachName[0]}
+                    </div>
                     <div>
                       <div className="mb-1 flex items-center gap-2">
-                        <span className={`text-xs font-semibold ${msg.role === "user" ? "text-blue-400 ml-auto" : "text-orange-400"}`}>
-                          {msg.role === "user" ? "You" : coachName}
-                        </span>
-                        {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
+                        <span className="text-xs font-semibold text-orange-400">{coachName}</span>
+                        <span className="text-[10px] uppercase tracking-wider text-gray-600">multi-agent</span>
                       </div>
-                      <div className={`max-w-full rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
-                        msg.role === "user"
-                          ? "bg-blue-500/20 text-blue-100 rounded-br-md"
-                          : "bg-white/5 text-gray-200 rounded-bl-md"
-                      }`}>
-                        {msg.role === "coach" ? (
-                          <CoachAnswerBlock value={msg.content} />
-                        ) : (
-                          <ChemistryBlock value={msg.content} />
-                        )}
-                        {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
-                      </div>
+                      <AgentPipeline stages={agentStages} coachName={coachName} />
                     </div>
-                    {msg.role === "user" && (
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400">
-                        U
-                      </div>
-                    )}
                   </div>
                 </div>
-              ))}
+              )}
+              {coachMessages.map((msg, idx) => {
+                const hidePendingCoachBubble = msg.role === "coach" && !msg.content && showAgentPipeline && coachLoading;
+                if (hidePendingCoachBubble) return null;
+
+                return (
+                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className="flex max-w-[85%] gap-3">
+                      {msg.role === "coach" && (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
+                          {coachName[0]}
+                        </div>
+                      )}
+                      <div>
+                        <div className="mb-1 flex items-center gap-2">
+                          <span className={`text-xs font-semibold ${msg.role === "user" ? "text-blue-400 ml-auto" : "text-orange-400"}`}>
+                            {msg.role === "user" ? "You" : coachName}
+                          </span>
+                          {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
+                        </div>
+                        <div className={`max-w-full rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
+                          msg.role === "user"
+                            ? "bg-blue-500/20 text-blue-100 rounded-br-md"
+                            : "bg-white/5 text-gray-200 rounded-bl-md"
+                        }`}>
+                          {msg.role === "coach" ? (
+                            <CoachAnswerBlock value={msg.content} />
+                          ) : (
+                            <ChemistryBlock value={msg.content} />
+                          )}
+                          {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
+                        </div>
+                      </div>
+                      {msg.role === "user" && (
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400">
+                          U
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </>
           )}
           <div ref={coachEndRef} />
