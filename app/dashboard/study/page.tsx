@@ -321,7 +321,7 @@ export default function StudyPage() {
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Thinking state (shown before streaming starts)
+  // Thinking state
   const [thinkingMessage, setThinkingMessage] = useState<string | null>(null);
 
   // Revision panel (collapsible)
@@ -852,43 +852,52 @@ export default function StudyPage() {
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
-  const payload = line.slice(6);
-  if (payload === "[DONE]") continue;
+            const payload = line.slice(6);
+            // Skip the [DONE] marker
+            if (payload === "[DONE]") continue;
 
-  // If the payload is very long (> 50 chars) and has no spaces, it's base64.
-  if (payload.length > 50 && !payload.includes(" ")) {
-    try {
-      const decoded = atob(payload);
-      fullText = decoded;
-      setThinkingMessage(null);
-      setCoachMessages((prev) => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last.role === "coach") {
-          last.content = fullText;
-          last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            // If the payload is long (> 40 chars) and has no spaces, it's base64
+            if (payload.length > 40 && !payload.includes(" ")) {
+              try {
+                const decoded = atob(payload);
+                console.log("✅ Base64 decoded:", decoded.substring(0, 60) + "...");
+                fullText = decoded;
+                setThinkingMessage(null);
+                setCoachMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === "coach") {
+                    last.content = fullText;
+                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  }
+                  return updated;
+                });
+                break;
+              } catch (err) {
+                console.warn("Base64 decode failed, falling back", err);
+                fullText += payload;
+              }
+            } else {
+              // Normal token (progress or streaming tokens)
+              if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
+                setThinkingMessage(payload);
+              } else {
+                fullText += payload;
+                setThinkingMessage(null);
+                setCoachMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === "coach") {
+                    last.content = fullText;
+                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  }
+                  return updated;
+                });
+              }
+            }
+          }
         }
-        return updated;
-      });
-      break; // no more processing needed
-    } catch {
-      // fallback to normal token handling
-      fullText += payload;
-    }
-  } else {
-    fullText += payload;
-    setThinkingMessage(null);
-    setCoachMessages((prev) => {
-      const updated = [...prev];
-      const last = updated[updated.length - 1];
-      if (last.role === "coach") {
-        last.content = fullText;
-        last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       }
-      return updated;
-    });
-  }
-}
 
       // Speak only if user used the microphone
       if (shouldSpeak) {
