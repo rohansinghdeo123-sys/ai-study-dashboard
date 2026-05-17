@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Base64‑decoding for complete answers
+// Main Study Page – Plain‑Text Marker Answer Capture
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -785,7 +785,7 @@ export default function StudyPage() {
     }
   };
 
-  // ── Streaming Coach Chat (base64‑aware) ────────────────────────────────
+  // ── Streaming Coach Chat (Marker‑based) ────────────────────────────────
   const handleAskCoach = async () => {
     const input = coachInput.trim();
     if (!input || !userId || authLoading || coachLoading) return;
@@ -840,6 +840,8 @@ export default function StudyPage() {
       const decoder = new TextDecoder();
       let fullText = "";
       let buffer = "";
+      let capturingAnswer = false;
+      let capturedAnswer = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -853,47 +855,52 @@ export default function StudyPage() {
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const payload = line.slice(6);
-            // Skip the [DONE] marker
+
+            // Detect answer start
+            if (payload === "[ANSWER_START]") {
+              capturingAnswer = true;
+              continue;
+            }
+            // Detect answer end
+            if (payload === "[ANSWER_END]") {
+              capturingAnswer = false;
+              fullText = capturedAnswer;
+              capturedAnswer = "";
+              setThinkingMessage(null);
+              setCoachMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last.role === "coach") {
+                  last.content = fullText;
+                  last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                }
+                return updated;
+              });
+              continue;
+            }
             if (payload === "[DONE]") continue;
 
-            // If the payload is long (> 40 chars) and has no spaces, it's base64
-            if (payload.length > 40 && !payload.includes(" ")) {
-              try {
-                const decoded = atob(payload);
-                console.log("✅ Base64 decoded:", decoded.substring(0, 60) + "...");
-                fullText = decoded;
-                setThinkingMessage(null);
-                setCoachMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last.role === "coach") {
-                    last.content = fullText;
-                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                  }
-                  return updated;
-                });
-                break;
-              } catch (err) {
-                console.warn("Base64 decode failed, falling back", err);
-                fullText += payload;
-              }
+            // While capturing, accumulate lines
+            if (capturingAnswer) {
+              capturedAnswer += (capturedAnswer ? "\n" : "") + payload;
+              continue;
+            }
+
+            // Normal tokens (progress, error, etc.)
+            if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
+              setThinkingMessage(payload);
             } else {
-              // Normal token (progress or streaming tokens)
-              if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
-                setThinkingMessage(payload);
-              } else {
-                fullText += payload;
-                setThinkingMessage(null);
-                setCoachMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last.role === "coach") {
-                    last.content = fullText;
-                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                  }
-                  return updated;
-                });
-              }
+              fullText += payload;
+              setThinkingMessage(null);
+              setCoachMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last.role === "coach") {
+                  last.content = fullText;
+                  last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                }
+                return updated;
+              });
             }
           }
         }
