@@ -91,6 +91,34 @@ interface CoachDashboard {
   latest_signal?: CoachDailySignal | null;
 }
 
+interface SpeechRecognitionResultEventLike {
+  results: {
+    [resultIndex: number]: {
+      [alternativeIndex: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+};
+
 // ------------------------------------------------------------------------------
 // Chemistry rendering (unchanged)
 // ------------------------------------------------------------------------------
@@ -144,6 +172,101 @@ function ChemistryBlock({ value, className = "" }: { value: string; className?: 
           {index < lines.length - 1 ? <br /> : null}
         </span>
       ))}
+    </div>
+  );
+}
+
+function looksLikeBase64Payload(value: string) {
+  const compact = value.trim().replace(/\s/g, "");
+  return compact.length > 40 && compact.length % 4 === 0 && /^[A-Za-z0-9+/]+={0,2}$/.test(compact);
+}
+
+function decodeBase64Utf8(value: string) {
+  if (typeof window === "undefined" || !window.atob) {
+    throw new Error("Base64 decoding is only available in the browser.");
+  }
+  const compact = value.trim().replace(/\s/g, "");
+  const binary = window.atob(compact);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function normalizeCoachTransportText(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+
+  if (looksLikeBase64Payload(trimmed)) {
+    try {
+      return decodeBase64Utf8(trimmed);
+    } catch {
+      return value;
+    }
+  }
+
+  if (!trimmed.includes("data:") && !trimmed.includes("[DONE]")) {
+    return value;
+  }
+
+  const payloads = trimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^data:\s?/, ""))
+    .filter((line) => line && line !== "[DONE]");
+
+  if (!payloads.length) return "";
+
+  const compactPayload = payloads.join("");
+  if (looksLikeBase64Payload(compactPayload)) {
+    try {
+      return decodeBase64Utf8(compactPayload);
+    } catch {
+      return payloads.join("\n");
+    }
+  }
+
+  return payloads.join("\n");
+}
+
+function CoachAnswerBlock({ value }: { value: string }) {
+  const normalized = normalizeCoachTransportText(value);
+  const blocks = normalized.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+
+  if (blocks.length <= 1) {
+    return <ChemistryBlock value={normalized} className="break-words [overflow-wrap:anywhere]" />;
+  }
+
+  return (
+    <div className="space-y-4 break-words [overflow-wrap:anywhere]">
+      {blocks.map((block, blockIndex) => {
+        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+        const heading = lines[0]?.endsWith(":") && lines[0].length <= 70 ? lines[0] : null;
+        const bodyLines = heading ? lines.slice(1) : lines;
+
+        return (
+          <section key={`${heading ?? "section"}-${blockIndex}`} className="space-y-2">
+            {heading && (
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-orange-300">
+                {renderChemistryText(heading.replace(/:$/, ""))}
+              </h3>
+            )}
+            <div className="space-y-1.5 text-[14px] leading-6 text-gray-200">
+              {bodyLines.map((line, lineIndex) => {
+                const bullet = line.match(/^[-•]\s+(.*)$/);
+                if (bullet) {
+                  return (
+                    <div key={lineIndex} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-300/70" />
+                      <span className="min-w-0">{renderChemistryText(bullet[1])}</span>
+                    </div>
+                  );
+                }
+                return <p key={lineIndex}>{renderChemistryText(line)}</p>;
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -318,7 +441,7 @@ export default function StudyPage() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [shouldSpeak, setShouldSpeak] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Thinking state
@@ -406,7 +529,18 @@ export default function StudyPage() {
   const loadSessions = useCallback((): ChatSession[] => {
     try {
       const raw = localStorage.getItem("agentify_chat_sessions");
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as ChatSession[];
+      return parsed.map((session) => ({
+        ...session,
+        messages: session.messages.map((message) => ({
+          ...message,
+          content:
+            message.role === "coach"
+              ? normalizeCoachTransportText(message.content)
+              : message.content,
+        })),
+      }));
     } catch {
       return [];
     }
@@ -714,7 +848,7 @@ export default function StudyPage() {
     if (!shouldSpeak) return;
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-    let clean = text
+    const clean = normalizeCoachTransportText(text)
       .replace(/#{1,6}\s+/g, "")
       .replace(/\*\*(.+?)\*\*/g, "$1")
       .replace(/\*(.+?)\*/g, "$1")
@@ -840,63 +974,83 @@ export default function StudyPage() {
       const decoder = new TextDecoder();
       let fullText = "";
       let buffer = "";
+      let streamDone = false;
+
+      const updateLastCoachMessage = (content: string) => {
+        setCoachMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === "coach") {
+            last.content = content;
+            last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          }
+          return updated;
+        });
+      };
+
+      const applyStreamPayload = (rawPayload: string) => {
+        const payload = rawPayload.trim();
+        if (!payload) return;
+
+        if (payload === "[DONE]") {
+          streamDone = true;
+          return;
+        }
+
+        if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
+          setThinkingMessage(payload);
+          return;
+        }
+
+        if (looksLikeBase64Payload(payload)) {
+          try {
+            fullText = decodeBase64Utf8(payload);
+          } catch {
+            fullText = normalizeCoachTransportText(payload);
+          }
+        } else {
+          fullText += normalizeCoachTransportText(payload);
+        }
+
+        setThinkingMessage(null);
+        updateLastCoachMessage(fullText);
+      };
+
+      const processSseEvent = (eventBlock: string) => {
+        const dataLines = eventBlock
+          .split(/\r?\n/)
+          .map((line) => line.trimEnd())
+          .filter((line) => line.startsWith("data:"));
+
+        if (!dataLines.length) {
+          applyStreamPayload(eventBlock);
+          return;
+        }
+
+        const payloadParts = dataLines.map((line) => line.replace(/^data:\s?/, ""));
+        const compactPayload = payloadParts.join("").trim();
+        const readablePayload = payloadParts.join("\n").trim();
+        applyStreamPayload(looksLikeBase64Payload(compactPayload) ? compactPayload : readablePayload);
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        // Keep the last incomplete line in buffer
-        buffer = lines.pop() || "";
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const payload = line.slice(6);
-            if (payload === "[DONE]") continue;
+        const events = buffer.split(/\r?\n\r?\n/);
+        buffer = events.pop() || "";
 
-            // If the payload looks like valid base64 (only base64 chars, longer than 40),
-            // decode the whole answer and display it immediately.
-            if (/^[A-Za-z0-9+/=]+$/.test(payload) && payload.length > 40) {
-              try {
-                const decoded = atob(payload);
-                fullText = decoded;
-                setThinkingMessage(null);
-                setCoachMessages((prev) => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last.role === "coach") {
-                    last.content = fullText;
-                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                  }
-                  return updated;
-                });
-                break; // whole answer is done
-              } catch (err) {
-                console.warn("Base64 decode failed, falling back", err);
-                fullText += payload; // fallback
-              }
-              continue;
-            }
-
-            // Normal tokens (progress or streaming)
-            if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
-              setThinkingMessage(payload);
-            } else {
-              fullText += payload;
-              setThinkingMessage(null);
-              setCoachMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last.role === "coach") {
-                  last.content = fullText;
-                  last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                }
-                return updated;
-              });
-            }
-          }
+        for (const eventBlock of events) {
+          processSseEvent(eventBlock);
         }
+
+        if (streamDone) break;
+      }
+
+      if (buffer.trim() && !streamDone) {
+        processSseEvent(buffer);
       }
 
       // Speak only if user used the microphone
@@ -904,8 +1058,9 @@ export default function StudyPage() {
         speakCoachMessage(fullText);
         setShouldSpeak(false);
       }
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
+    } catch (err: unknown) {
+      const errorName = err instanceof Error ? err.name : "";
+      if (errorName !== "AbortError") {
         setThinkingMessage(null);
         setCoachMessages((prev) => {
           const updated = [...prev];
@@ -961,13 +1116,14 @@ export default function StudyPage() {
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-    const recognition = new SpeechRecognition();
+    const speechWindow = window as SpeechRecognitionWindow;
+    const SpeechRecognitionCtor = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+    const recognition = new SpeechRecognitionCtor();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-US";
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionResultEventLike) => {
       const transcript = event.results[0][0].transcript;
       setCoachInput((prev) => prev + " " + transcript);
       setIsListening(false);
@@ -1130,7 +1286,7 @@ export default function StudyPage() {
                 <label className="block text-[10px] uppercase text-gray-600 mb-1">Mode</label>
                 <select
                   value={revMode}
-                  onChange={(e) => setRevMode(e.target.value as any)}
+                  onChange={(e) => setRevMode(e.target.value as "summary" | "explain" | "key")}
                   className="rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-blue-400"
                 >
                   <option value="summary">Summary</option>
@@ -1291,12 +1447,16 @@ export default function StudyPage() {
                         </span>
                         {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
                       </div>
-                      <div className={`rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                      <div className={`max-w-full rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
                         msg.role === "user"
                           ? "bg-blue-500/20 text-blue-100 rounded-br-md"
                           : "bg-white/5 text-gray-200 rounded-bl-md"
                       }`}>
-                        <ChemistryBlock value={msg.content} />
+                        {msg.role === "coach" ? (
+                          <CoachAnswerBlock value={msg.content} />
+                        ) : (
+                          <ChemistryBlock value={msg.content} />
+                        )}
                         {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
                       </div>
                     </div>
