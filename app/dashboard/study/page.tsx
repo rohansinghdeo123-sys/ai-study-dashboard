@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – No greeting, voice only on mic, study vs planning intent
+// Main Study Page – Base64‑decoding for complete answers
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -317,7 +317,7 @@ export default function StudyPage() {
   // Voice states
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [shouldSpeak, setShouldSpeak] = useState(false);   // only speak when voice was used
+  const [shouldSpeak, setShouldSpeak] = useState(false);
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
@@ -785,7 +785,7 @@ export default function StudyPage() {
     }
   };
 
-  // ── Streaming Coach Chat (voice only if shouldSpeak) ────────────────────
+  // ── Streaming Coach Chat (base64‑aware) ────────────────────────────────
   const handleAskCoach = async () => {
     const input = coachInput.trim();
     if (!input || !userId || authLoading || coachLoading) return;
@@ -837,46 +837,66 @@ export default function StudyPage() {
       if (!res.ok || !res.body) throw new Error("Stream failed");
 
       const reader = res.body.getReader();
-const decoder = new TextDecoder();
-let fullText = "";
-let buffer = "";
+      const decoder = new TextDecoder();
+      let fullText = "";
+      let buffer = "";
 
-while (true) {
-  const { done, value } = await reader.read();
-  if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-  buffer += decoder.decode(value, { stream: true });
-  const lines = buffer.split("\n");
-  // Keep the last incomplete line in buffer
-  buffer = lines.pop() || "";
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // Keep the last incomplete line in buffer
+        buffer = lines.pop() || "";
 
-  for (const line of lines) {
-    if (line.startsWith("event: progress")) {
-      // The data for the event is on the next line(s)
-      // We'll just set a thinking message state here
-      // (extract data from subsequent lines)
-    } else if (line.startsWith("data: ")) {
-      const content = line.slice(6);
-      // If it's a progress message, update thinkingMessage
-      if (content.startsWith("🧠") || content.startsWith("📚") || content.startsWith("✨")) {
-        setThinkingMessage(content);
-      } else {
-        // It's the final answer
-        fullText += content;
-        setThinkingMessage(null);
-        setCoachMessages((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (last.role === "coach") {
-            last.content = fullText;
-            last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const payload = line.slice(6);
+            // Skip the [DONE] marker
+            if (payload === "[DONE]") continue;
+
+            // If the payload is long and has no spaces, it's likely base64
+            if (payload.length > 50 && !payload.includes(" ")) {
+              try {
+                const decoded = atob(payload);   // decode base64
+                fullText = decoded;
+                setThinkingMessage(null);
+                setCoachMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === "coach") {
+                    last.content = fullText;
+                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  }
+                  return updated;
+                });
+                // Base64 answer is the entire message – we can stop processing further lines
+                break;
+              } catch {
+                // Not valid base64 – fall through to normal handling
+              }
+            }
+
+            // Normal token (progress or streaming tokens)
+            if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
+              setThinkingMessage(payload);
+            } else {
+              fullText += payload;
+              setThinkingMessage(null);
+              setCoachMessages((prev) => {
+                const updated = [...prev];
+                const last = updated[updated.length - 1];
+                if (last.role === "coach") {
+                  last.content = fullText;
+                  last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                }
+                return updated;
+              });
+            }
           }
-          return updated;
-        });
+        }
       }
-    }
-  }
-}
 
       // Speak only if user used the microphone
       if (shouldSpeak) {
