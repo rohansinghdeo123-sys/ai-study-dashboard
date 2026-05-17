@@ -211,9 +211,29 @@ function decodeBase64Utf8(value: string) {
   return new TextDecoder().decode(bytes);
 }
 
+function stripSseDataPrefix(value: string) {
+  let output = value.trim();
+  while (/^data:\s?/i.test(output)) {
+    output = output.replace(/^data:\s?/i, "").trim();
+  }
+  return output;
+}
+
+function extractAgentStagePayloads(value: string): AgentStagePayload[] {
+  const matches = value.match(/\{[^{}]*"type"\s*:\s*"agent_stage"[^{}]*\}/g) ?? [];
+  return matches
+    .map((match) => parseAgentStagePayload(match))
+    .filter((payload): payload is AgentStagePayload => payload !== null);
+}
+
+function removeAgentStagePayloads(value: string) {
+  return value.replace(/\{[^{}]*"type"\s*:\s*"agent_stage"[^{}]*\}/g, "").trim();
+}
+
 function normalizeCoachTransportText(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) return value;
+  const withoutStageEvents = removeAgentStagePayloads(value);
+  const trimmed = stripSseDataPrefix(withoutStageEvents);
+  if (!trimmed) return "";
 
   if (looksLikeBase64Payload(trimmed)) {
     try {
@@ -231,7 +251,8 @@ function normalizeCoachTransportText(value: string) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => line.replace(/^data:\s?/, ""))
+    .map((line) => stripSseDataPrefix(line))
+    .map((line) => removeAgentStagePayloads(line))
     .filter((line) => line && line !== "[DONE]");
 
   if (!payloads.length) return "";
@@ -277,10 +298,11 @@ function createAgentStages(): AgentStageState[] {
 }
 
 function parseAgentStagePayload(value: string): AgentStagePayload | null {
-  if (!value.trim().startsWith("{")) return null;
+  const payload = stripSseDataPrefix(value);
+  if (!payload.startsWith("{")) return null;
 
   try {
-    const parsed = JSON.parse(value) as Partial<AgentStagePayload>;
+    const parsed = JSON.parse(payload) as Partial<AgentStagePayload>;
     if (
       parsed.type === "agent_stage" &&
       parsed.stage &&
@@ -372,60 +394,57 @@ function AgentPipeline({
   stages: AgentStageState[];
   coachName: string;
 }) {
+  const activeStage = stages.find((stage) => stage.status === "active") ?? stages[stages.length - 1];
+
   return (
-    <div className="rounded-2xl rounded-bl-md border border-orange-400/15 bg-white/[0.055] px-5 py-4 text-sm shadow-[0_0_30px_rgba(0,0,0,0.25)]">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-300/80">
-            {coachName} answer pipeline
-          </p>
-          <p className="mt-1 text-xs text-gray-500">Specialist response in progress</p>
+    <div className="w-full max-w-xl rounded-xl rounded-bl-md border border-white/10 bg-[#111116]/95 px-4 py-3 text-sm shadow-[0_16px_45px_rgba(0,0,0,0.35)]">
+      <div className="mb-3 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-300" />
+            <p className="text-xs font-semibold text-gray-100">{coachName} is preparing an answer</p>
+          </div>
+          <p className="mt-1 text-[11px] text-gray-500">{activeStage.detail}</p>
         </div>
-        <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-          Live
-        </span>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {stages.map((stage, index) => {
           const isActive = stage.status === "active";
           const isDone = stage.status === "done";
 
           return (
-            <div key={stage.id} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-bold transition-colors ${
-                    isDone
-                      ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
-                      : isActive
-                      ? "border-orange-300/50 bg-orange-400/15 text-orange-200"
-                      : "border-white/10 bg-black/20 text-gray-600"
-                  }`}
-                >
-                  {isDone ? "✓" : String(index + 1).padStart(2, "0")}
-                </div>
-                {index < stages.length - 1 && (
-                  <div className={`mt-2 h-8 w-px ${isDone ? "bg-emerald-400/30" : "bg-white/10"}`} />
-                )}
+            <div
+              key={stage.id}
+              className={`group flex items-center gap-3 rounded-lg px-2.5 py-2 transition-colors ${
+                isActive ? "bg-white/[0.055]" : "bg-transparent"
+              }`}
+            >
+              <div
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] transition-colors ${
+                  isDone
+                    ? "border-emerald-400/35 bg-emerald-400/10 text-emerald-300"
+                    : isActive
+                    ? "border-orange-300/45 bg-orange-400/10 text-orange-200"
+                    : "border-white/10 bg-black/20 text-gray-600"
+                }`}
+              >
+                {isDone ? "✓" : isActive ? <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-300" /> : index + 1}
               </div>
 
-              <div className="min-w-0 flex-1 pb-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`text-xs font-bold uppercase tracking-wide ${
-                      isActive ? "text-orange-200" : isDone ? "text-emerald-300" : "text-gray-500"
-                    }`}
-                  >
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={`text-xs font-medium ${isActive ? "text-gray-100" : isDone ? "text-gray-300" : "text-gray-500"}`}>
                     {stage.title}
                   </span>
-                  <span className="text-[10px] uppercase tracking-wider text-gray-600">{stage.agent}</span>
-                  {isActive && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-orange-300" />}
+                  <span className="h-1 w-1 rounded-full bg-gray-700" />
+                  <span className="truncate text-[11px] text-gray-500">{stage.agent}</span>
                 </div>
-                <p className={`mt-1 text-xs leading-5 ${isActive ? "text-gray-300" : "text-gray-500"}`}>
-                  {stage.detail}
-                </p>
               </div>
+
+              <span className={`text-[10px] uppercase tracking-wider ${isDone ? "text-emerald-400/80" : isActive ? "text-orange-300/80" : "text-gray-600"}`}>
+                {isDone ? "Done" : isActive ? "Running" : "Queued"}
+              </span>
             </div>
           );
         })}
@@ -1161,7 +1180,7 @@ export default function StudyPage() {
       };
 
       const applyStreamPayload = (rawPayload: string) => {
-        const payload = rawPayload.trim();
+        let payload = stripSseDataPrefix(rawPayload);
         if (!payload) return;
 
         if (payload === "[DONE]") {
@@ -1169,12 +1188,15 @@ export default function StudyPage() {
           return;
         }
 
-        const stagePayload = parseAgentStagePayload(payload);
-        if (stagePayload) {
+        const stagePayloads = extractAgentStagePayloads(payload);
+        if (stagePayloads.length) {
           setShowAgentPipeline(true);
           setThinkingMessage(null);
-          setAgentStages((prev) => applyAgentStageUpdate(prev, stagePayload));
-          return;
+          setAgentStages((prev) =>
+            stagePayloads.reduce((current, stagePayload) => applyAgentStageUpdate(current, stagePayload), prev),
+          );
+          payload = removeAgentStagePayloads(payload);
+          if (!payload) return;
         }
 
         if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
@@ -1200,14 +1222,14 @@ export default function StudyPage() {
         const dataLines = eventBlock
           .split(/\r?\n/)
           .map((line) => line.trimEnd())
-          .filter((line) => line.startsWith("data:"));
+          .filter((line) => /^data:/i.test(line.trim()));
 
         if (!dataLines.length) {
           applyStreamPayload(eventBlock);
           return;
         }
 
-        const payloadParts = dataLines.map((line) => line.replace(/^data:\s?/, ""));
+        const payloadParts = dataLines.map((line) => stripSseDataPrefix(line));
         const compactPayload = payloadParts.join("").trim();
         const readablePayload = payloadParts.join("\n").trim();
         applyStreamPayload(looksLikeBase64Payload(compactPayload) ? compactPayload : readablePayload);
