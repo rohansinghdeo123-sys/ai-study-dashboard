@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Plain‑Text Marker Answer Capture
+// Main Study Page – Base64‑Aware
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -785,7 +785,7 @@ export default function StudyPage() {
     }
   };
 
-  // ── Streaming Coach Chat (Marker‑based) ────────────────────────────────
+  // ── Streaming Coach Chat (Base64‑Aware) ────────────────────────────────
   const handleAskCoach = async () => {
     const input = coachInput.trim();
     if (!input || !userId || authLoading || coachLoading) return;
@@ -840,8 +840,6 @@ export default function StudyPage() {
       const decoder = new TextDecoder();
       let fullText = "";
       let buffer = "";
-      let capturingAnswer = false;
-      let capturedAnswer = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -855,38 +853,33 @@ export default function StudyPage() {
         for (const line of lines) {
           if (line.startsWith("data: ")) {
             const payload = line.slice(6);
-
-            // Detect answer start
-            if (payload === "[ANSWER_START]") {
-              capturingAnswer = true;
-              continue;
-            }
-            // Detect answer end
-            if (payload === "[ANSWER_END]") {
-              capturingAnswer = false;
-              fullText = capturedAnswer;
-              capturedAnswer = "";
-              setThinkingMessage(null);
-              setCoachMessages((prev) => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last.role === "coach") {
-                  last.content = fullText;
-                  last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                }
-                return updated;
-              });
-              continue;
-            }
             if (payload === "[DONE]") continue;
 
-            // While capturing, accumulate lines
-            if (capturingAnswer) {
-              capturedAnswer += (capturedAnswer ? "\n" : "") + payload;
+            // If the payload looks like valid base64 (only base64 chars, longer than 40),
+            // decode the whole answer and display it immediately.
+            if (/^[A-Za-z0-9+/=]+$/.test(payload) && payload.length > 40) {
+              try {
+                const decoded = atob(payload);
+                fullText = decoded;
+                setThinkingMessage(null);
+                setCoachMessages((prev) => {
+                  const updated = [...prev];
+                  const last = updated[updated.length - 1];
+                  if (last.role === "coach") {
+                    last.content = fullText;
+                    last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  }
+                  return updated;
+                });
+                break; // whole answer is done
+              } catch (err) {
+                console.warn("Base64 decode failed, falling back", err);
+                fullText += payload; // fallback
+              }
               continue;
             }
 
-            // Normal tokens (progress, error, etc.)
+            // Normal tokens (progress or streaming)
             if (payload.startsWith("🧠") || payload.startsWith("📚") || payload.startsWith("✨")) {
               setThinkingMessage(payload);
             } else {
