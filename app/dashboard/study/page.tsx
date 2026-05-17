@@ -837,31 +837,46 @@ export default function StudyPage() {
       if (!res.ok || !res.body) throw new Error("Stream failed");
 
       const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
+const decoder = new TextDecoder();
+let fullText = "";
+let buffer = "";
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const token = line.slice(6);
-            fullText += token;
-            setCoachMessages((prev) => {
-              const updated = [...prev];
-              const last = updated[updated.length - 1];
-              if (last.role === "coach") {
-                last.content = fullText;
-                last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-              }
-              return updated;
-            });
+  buffer += decoder.decode(value, { stream: true });
+  const lines = buffer.split("\n");
+  // Keep the last incomplete line in buffer
+  buffer = lines.pop() || "";
+
+  for (const line of lines) {
+    if (line.startsWith("event: progress")) {
+      // The data for the event is on the next line(s)
+      // We'll just set a thinking message state here
+      // (extract data from subsequent lines)
+    } else if (line.startsWith("data: ")) {
+      const content = line.slice(6);
+      // If it's a progress message, update thinkingMessage
+      if (content.startsWith("🧠") || content.startsWith("📚") || content.startsWith("✨")) {
+        setThinkingMessage(content);
+      } else {
+        // It's the final answer
+        fullText += content;
+        setThinkingMessage(null);
+        setCoachMessages((prev) => {
+          const updated = [...prev];
+          const last = updated[updated.length - 1];
+          if (last.role === "coach") {
+            last.content = fullText;
+            last.timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           }
-        }
+          return updated;
+        });
       }
+    }
+  }
+}
 
       // Speak only if user used the microphone
       if (shouldSpeak) {
