@@ -290,7 +290,7 @@ function HistorySidebar({
 }
 
 // ------------------------------------------------------------------------------
-// Main Study Page – Casual greeting, one-time only
+// Main Study Page – No greeting, voice only on mic, study vs planning intent
 // ------------------------------------------------------------------------------
 export default function StudyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -317,14 +317,12 @@ export default function StudyPage() {
   // Voice states
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [shouldSpeak, setShouldSpeak] = useState(false);   // only speak when voice was used
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   // Thinking state (shown before streaming starts)
   const [thinkingMessage, setThinkingMessage] = useState<string | null>(null);
-
-  // Greeting flag – only once per page load
-  const [hasGreeted, setHasGreeted] = useState(false);
 
   // Revision panel (collapsible)
   const [revisionOpen, setRevisionOpen] = useState(false);
@@ -711,8 +709,9 @@ export default function StudyPage() {
     }
   };
 
-  // ── Voice: Speech Synthesis (Coach speaks) – ULTIMATE ────────────────────
+  // ── Voice: Speech Synthesis (Coach speaks) – only when shouldSpeak is true
   const speakCoachMessage = (text: string) => {
+    if (!shouldSpeak) return;
     if (typeof window === "undefined" || !window.speechSynthesis) return;
 
     let clean = text
@@ -786,9 +785,9 @@ export default function StudyPage() {
     }
   };
 
-  // ── Streaming Coach Chat (with thinking indicator) ──────────────────────
-  const handleAskCoach = async (customPrompt?: string) => {
-    const input = (customPrompt || coachInput).trim();
+  // ── Streaming Coach Chat (voice only if shouldSpeak) ────────────────────
+  const handleAskCoach = async () => {
+    const input = coachInput.trim();
     if (!input || !userId || authLoading || coachLoading) return;
 
     streamControllerRef.current?.abort();
@@ -808,8 +807,12 @@ export default function StudyPage() {
     ]);
     setCoachInput("");
     setCoachLoading(true);
-    const thinkMsg = customPrompt ? "👋 Saying hello..." : "🧠 Thinking...";
-    setThinkingMessage(thinkMsg);
+    setThinkingMessage("🧠 Thinking...");
+
+    // Determine intent based on user message
+    const lower = input.toLowerCase();
+    const isPlanning = /plan|schedule|routine|study plan/i.test(lower);
+    const intent = isPlanning ? "planning" : "study_advice";
 
     try {
       const headers = await authHeaders();
@@ -823,7 +826,7 @@ export default function StudyPage() {
           user_id: userId,
           message: input,
           mode: "coach",
-          intent: "study_advice",
+          intent: intent,
           subject: "Chemistry",
           topic: topic,
           session_id: `coach-${userId}`,
@@ -860,7 +863,11 @@ export default function StudyPage() {
         }
       }
 
-      speakCoachMessage(fullText);
+      // Speak only if user used the microphone
+      if (shouldSpeak) {
+        speakCoachMessage(fullText);
+        setShouldSpeak(false);
+      }
     } catch (err: any) {
       if (err.name !== "AbortError") {
         setThinkingMessage(null);
@@ -893,7 +900,6 @@ export default function StudyPage() {
     const newId = "session_" + Date.now();
     setCurrentSessionId(newId);
     setCoachMessages([]);
-    // Keep hasGreeted true – no repeat greeting
   };
 
   const loadSession = (id: string) => {
@@ -914,7 +920,6 @@ export default function StudyPage() {
 
   const clearChat = () => {
     setCoachMessages([]);
-    // Keep hasGreeted true – no repeat greeting
   };
 
   // ── Voice: Speech Recognition (Mic) ─────────────────────────────────────
@@ -930,6 +935,7 @@ export default function StudyPage() {
       const transcript = event.results[0][0].transcript;
       setCoachInput((prev) => prev + " " + transcript);
       setIsListening(false);
+      setShouldSpeak(true);   // user used voice → AI should speak
       setTimeout(() => {
         coachInputRef.current?.focus();
         handleAskCoach();
@@ -971,20 +977,6 @@ export default function StudyPage() {
     actions.push({ label: "I'm stuck", prompt: "I'm feeling stuck. Help me get unstuck." });
     return actions.slice(0, 4);
   }, [coachMessages, nextAction]);
-
-  // ── One‑time casual greeting ────────────────────────────────────────────
-  useEffect(() => {
-    if (authLoading || coachBooting || !coachProfile || hasGreeted) return;
-    if (coachMessages.length !== 0) return;
-
-    const hour = new Date().getHours();
-    const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
-
-    const prompt = `Good ${timeOfDay}, ${studentName}! I'm ${coachName}, your personal AI coach. How can I help you today?`;
-
-    handleAskCoach(prompt);
-    setHasGreeted(true);
-  }, [authLoading, coachBooting, coachProfile, hasGreeted]);
 
   if (authLoading || coachBooting) {
     return (
@@ -1230,7 +1222,7 @@ export default function StudyPage() {
             <div className="flex h-full items-center justify-center text-center">
               <div className="max-w-md space-y-3">
                 <p className="text-2xl font-bold text-white">{coachName}</p>
-                <p className="text-sm text-gray-400">Warming up your personal coach…</p>
+                <p className="text-sm text-gray-400">Your personal AI coach is ready. Ask me anything.</p>
               </div>
             </div>
           ) : (
@@ -1325,7 +1317,7 @@ export default function StudyPage() {
               variant="primary"
               size="md"
               className="!bg-orange-500 !text-black hover:!bg-orange-400"
-              onClick={() => handleAskCoach()}
+              onClick={handleAskCoach}
               disabled={coachLoading || !coachInput.trim()}
             >
               Send

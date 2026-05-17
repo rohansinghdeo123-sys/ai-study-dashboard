@@ -337,8 +337,9 @@ export default function InternalOpsPage() {
   const [meetingLoading, setMeetingLoading] = useState<Record<string, boolean>>({});
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Voice states (for individual chat)
+  // Voice states
   const [isListening, setIsListening] = useState(false);
+  const [shouldSpeak, setShouldSpeak] = useState(false);  // only speak when mic used
   const recognitionRef = useRef<any>(null);
 
   const versionRef = useRef(0);
@@ -417,7 +418,7 @@ export default function InternalOpsPage() {
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages]);
   useEffect(() => { meetingEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatMessages, meetingLoading]);
 
-  // Voice recognition setup
+  // Voice recognition setup – sets shouldSpeak when used
   useEffect(() => {
     if (typeof window === "undefined") return;
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -430,6 +431,7 @@ export default function InternalOpsPage() {
       const transcript = event.results[0][0].transcript;
       setChatInput((prev) => prev + " " + transcript);
       setIsListening(false);
+      setShouldSpeak(true);   // user used mic → agents may speak
     };
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
@@ -463,11 +465,12 @@ export default function InternalOpsPage() {
     } catch (error) { console.error("Command error:", error); }
   };
 
-  // Single-agent chat
+  // Single-agent chat – voice only if shouldSpeak
   const sendChatMessage = async () => {
     if (!chatInput.trim() || !selectedAgent || chatLoading) return;
 
     const userText = chatInput.trim();
+    const useVoice = shouldSpeak;   // capture before resetting
 
     const userMsg: ChatMessage = {
       role: "admin",
@@ -503,9 +506,13 @@ export default function InternalOpsPage() {
           metadata: data.metadata,
         },
       ]);
-      const agent = agents.find((a) => a.agent_id === selectedAgent);
-      speakAgentMessage(selectedAgent, agentAnswer, agent?.status);
-      setIsSpeaking(true);
+
+      if (useVoice) {
+        const agent = agents.find((a) => a.agent_id === selectedAgent);
+        speakAgentMessage(selectedAgent, agentAnswer, agent?.status);
+        setIsSpeaking(true);
+        setShouldSpeak(false);  // reset after speaking
+      }
     } catch {
       setChatMessages((prev) => [
         ...prev,
@@ -528,11 +535,12 @@ export default function InternalOpsPage() {
     setChatInput("Provide a concise status report of your current tasks, performance metrics, and any issues that need attention.");
   };
 
-  // Meeting broadcast
+  // Meeting broadcast – voice only if shouldSpeak (set before calling)
   const sendMeetingMessage = async () => {
     if (!meetingInput.trim() || meetingAgentIds.length === 0) return;
 
     const userText = meetingInput.trim();
+    const useVoice = shouldSpeak;
 
     const adminMsg: ChatMessage = {
       role: "admin",
@@ -543,7 +551,7 @@ export default function InternalOpsPage() {
 
     setChatMessages((prev) => [...prev, adminMsg]);
     setMeetingInput("");
-    setIsSpeaking(true);
+    setIsSpeaking(useVoice);
 
     const loadingState: Record<string, boolean> = {};
     meetingAgentIds.forEach((id) => (loadingState[id] = true));
@@ -573,8 +581,11 @@ export default function InternalOpsPage() {
             metadata: data.metadata,
           },
         ]);
-        const agent = agents.find((a) => a.agent_id === agentId);
-        speakAgentMessage(agentId, agentAnswer, agent?.status);
+
+        if (useVoice) {
+          const agent = agents.find((a) => a.agent_id === agentId);
+          speakAgentMessage(agentId, agentAnswer, agent?.status);
+        }
       } catch {
         setChatMessages((prev) => [
           ...prev,
@@ -592,7 +603,7 @@ export default function InternalOpsPage() {
 
     await Promise.allSettled(promises);
     poll();
-    setIsSpeaking(false);
+    setShouldSpeak(false);
   };
 
   const toggleMeetingAgent = (agentId: string) => {
@@ -731,7 +742,6 @@ export default function InternalOpsPage() {
                         <span className="text-gray-600">{timeSince(agent.last_activity)}</span>
                       </div>
                     </button>
-                    {/* Report button – now using Button */}
                     <Button
                       variant="secondary"
                       size="sm"
@@ -866,7 +876,6 @@ export default function InternalOpsPage() {
                         placeholder={`Message ${selectedAgent}...`}
                         className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
                       />
-                      {/* Voice input button */}
                       <Button
                         variant={isListening ? "danger" : "secondary"}
                         size="sm"
