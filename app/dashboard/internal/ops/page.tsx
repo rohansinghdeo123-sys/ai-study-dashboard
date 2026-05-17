@@ -339,7 +339,7 @@ export default function InternalOpsPage() {
 
   // Voice states
   const [isListening, setIsListening] = useState(false);
-  const [shouldSpeak, setShouldSpeak] = useState(false);  // only speak when mic used
+  const [shouldSpeak, setShouldSpeak] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const versionRef = useRef(0);
@@ -429,14 +429,23 @@ export default function InternalOpsPage() {
     recognition.lang = "en-US";
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setChatInput((prev) => prev + " " + transcript);
+      // Decide which input to fill based on active tab
+      if (activeTab === "meeting") {
+        setMeetingInput((prev) => prev + " " + transcript);
+        // Auto-send after a short pause
+        setTimeout(() => sendMeetingMessage(), 300);
+      } else {
+        setChatInput((prev) => prev + " " + transcript);
+        // Auto-send for chat too
+        setTimeout(() => sendChatMessage(), 300);
+      }
       setIsListening(false);
       setShouldSpeak(true);   // user used mic → agents may speak
     };
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
     recognitionRef.current = recognition;
-  }, []);
+  }, [activeTab]); // depend on activeTab so it fills the right input
 
   const toggleListening = () => {
     if (!recognitionRef.current) return;
@@ -535,7 +544,7 @@ export default function InternalOpsPage() {
     setChatInput("Provide a concise status report of your current tasks, performance metrics, and any issues that need attention.");
   };
 
-  // Meeting broadcast – voice only if shouldSpeak (set before calling)
+  // Meeting broadcast – voice only if shouldSpeak
   const sendMeetingMessage = async () => {
     if (!meetingInput.trim() || meetingAgentIds.length === 0) return;
 
@@ -925,7 +934,7 @@ export default function InternalOpsPage() {
               </div>
             )}
 
-            {/* MEETING */}
+            {/* MEETING (now with microphone) */}
             {activeTab === "meeting" && (
               <div className="flex flex-col h-full overflow-hidden">
                 <div className="flex items-center justify-between mb-3 text-xs">
@@ -989,6 +998,16 @@ export default function InternalOpsPage() {
                     placeholder="Broadcast to selected agents..."
                     className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 outline-none"
                   />
+                  {/* Microphone button for meeting */}
+                  <Button
+                    variant={isListening ? "danger" : "secondary"}
+                    size="sm"
+                    onClick={toggleListening}
+                    disabled={!recognitionRef.current}
+                    className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#00A3FF]/20 !bg-[#00A3FF]/10 !text-[#00A3FF]"}
+                  >
+                    🎤
+                  </Button>
                   <Button
                     variant="primary"
                     size="sm"
