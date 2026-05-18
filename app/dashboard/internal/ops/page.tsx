@@ -214,9 +214,9 @@ function GlassCard({
     neutral: "text-gray-300",
   };
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-4 transition-all hover:border-white/20">
-      <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 font-mono">{label}</div>
-      <div className={cn("mt-2 text-2xl font-bold", colorMap[tone])}>{value}</div>
+    <div className="rounded-lg border border-white/10 bg-[#0E1118]/90 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90">
+      <div className="text-[11px] font-medium text-slate-500">{label}</div>
+      <div className={cn("mt-2 text-2xl font-semibold", colorMap[tone])}>{value}</div>
       {sub ? <div className="mt-1 text-[10px] text-gray-600">{sub}</div> : null}
     </div>
   );
@@ -238,14 +238,14 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden flex flex-col",
+        "flex flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-2.5 shrink-0">
+      <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 font-mono">
-            {title}
+          <span className="text-sm font-semibold text-slate-200">
+            {title.replace(/_/g, " ")}
           </span>
           {tag && (
             <span className="rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 uppercase font-mono">
@@ -688,9 +688,23 @@ export default function InternalOpsPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="flex flex-col h-full space-y-4 text-white font-sans">
+    <div className="flex h-full flex-col space-y-4 text-slate-200">
+      <div className="rounded-lg border border-white/10 bg-[#0E1118]/90 px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">Agent Operations</div>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Autonomous agent control plane</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Monitor health, quality, latency, logs, and multi-agent communication.
+            </p>
+          </div>
+          <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-slate-400">
+            {connected ? "Connected" : "Offline"}
+          </div>
+        </div>
+      </div>
       {/* Top system stats bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
         <GlassCard label="Agents" value={`${agents.length}`} sub={`${agents.filter((a) => a.status === "running").length} active`} tone="blue" />
         <GlassCard label="Requests" value={`${stats?.total_requests ?? 0}`} tone="neutral" />
         <GlassCard label="Success" value={`${stats?.total_success ?? 0}`} tone="green" />

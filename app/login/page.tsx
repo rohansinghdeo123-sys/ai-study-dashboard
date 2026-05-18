@@ -86,15 +86,15 @@ function MetricTile({
   return (
     <div
       className={cn(
-        "border border-[#1A1A1A] bg-[#080808] px-4 py-3 font-mono transition-colors duration-300",
-        active && "border-l-[#00A3FF] bg-[#0F1A24]",
+        "rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 transition-colors duration-300",
+        active && "border-cyan-300/25 bg-cyan-300/10",
       )}
     >
-      <div className="text-[9px] uppercase tracking-[0.24em] text-[#6B6B6B]">{label}</div>
+      <div className="text-[11px] text-slate-500">{label}</div>
       <div
         className={cn(
-          "mt-2 text-sm font-bold",
-          active ? "text-[#00A3FF]" : "text-[#E6E6E6]",
+          "mt-2 text-sm font-semibold",
+          active ? "text-cyan-100" : "text-slate-200",
         )}
       >
         {value}
@@ -260,16 +260,16 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] font-mono text-[#00A3FF]">
-        <div className="animate-pulse text-[11px] uppercase tracking-[0.28em]">
-          INITIALIZING_AUTH_TERMINAL...
+      <div className="flex min-h-screen items-center justify-center bg-[#07080D] text-cyan-200">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm shadow-2xl shadow-black/20">
+          Preparing secure sign in...
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050505] text-[#E6E6E6] antialiased">
+    <div className="relative min-h-screen overflow-hidden bg-[#07080D] text-slate-100 antialiased">
       <ParticleCanvas />
 
       {/* Background overlays */}
@@ -293,7 +293,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10">
-        <main className="grid min-h-screen grid-cols-1 gap-0 px-6 py-8 lg:grid-cols-[minmax(0,1.05fr)_520px] lg:px-14 xl:px-20">
+        <main className="mx-auto grid min-h-screen max-w-[1480px] grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1.05fr)_500px] lg:px-10 xl:px-12">
           {/* Left panel – Clean and bold */}
           <section className="flex flex-col justify-center">
             <div className="mb-8 flex flex-wrap items-center gap-3">
@@ -307,19 +307,19 @@ export default function LoginPage() {
                 Learning Intelligence Console
               </div>
 
-              <h1 className="text-7xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-[#00A3FF] to-amber-400">
+              <h1 className="text-5xl font-semibold tracking-tight text-white md:text-6xl">
                 AgentifyAI
               </h1>
 
-              <p className="mt-4 text-2xl font-semibold text-amber-400 font-mono tracking-tight">
-                Personal AI Agent
+              <p className="mt-5 text-2xl font-semibold text-cyan-100">
+                Your personal study command center
               </p>
-              <p className="mt-2 max-w-2xl text-base leading-8 text-gray-400">
-                One private AI coach that learns from every session, spots weak areas, and guides you daily — just like a personal tutor.
+              <p className="mt-3 max-w-2xl text-base leading-8 text-slate-400">
+                A private AI coach that explains concepts clearly, tracks progress, and guides the next best study action.
               </p>
             </div>
 
-            <div className="mt-10 grid max-w-4xl grid-cols-2 border border-[#1A1A1A] md:grid-cols-4">
+            <div className="mt-10 grid max-w-4xl grid-cols-2 gap-3 md:grid-cols-4">
               <MetricTile label="Daily XP" value="LIVE" active />
               <MetricTile label="MCQ Engine" value="READY" />
               <MetricTile label="Analytics" value="SYNC" />
@@ -339,12 +339,12 @@ export default function LoginPage() {
               ].map(([label, detail]) => (
                 <div
                   key={label}
-                  className="border border-[#1A1A1A] bg-[#080808]/90 p-4 hover:border-[#00A3FF]/30 transition-colors duration-200"
+                  className="rounded-lg border border-white/10 bg-white/[0.04] p-4 transition-colors duration-200 hover:border-cyan-300/30"
                 >
-                  <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-amber-400 font-mono">
+                  <div className="text-[11px] font-semibold text-amber-200">
                     {label}
                   </div>
-                  <div className="mt-2 text-sm text-[#9A9A9A]">{detail}</div>
+                  <div className="mt-2 text-sm leading-6 text-slate-400">{detail}</div>
                 </div>
               ))}
             </div>
@@ -354,20 +354,20 @@ export default function LoginPage() {
           <section className="flex items-center justify-center">
             <div
               className={cn(
-                "w-full border border-white/10 bg-[#0A0A0A]/70 backdrop-blur-xl shadow-[0_0_80px_rgba(0,163,255,0.08)] transition-all duration-500",
+                "w-full rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
                 shake && "animate-shake",
-                granted && "border-[#00A3FF] shadow-[0_0_40px_rgba(0,163,255,0.3)]",
+                granted && "border-cyan-300/30 shadow-[0_0_40px_rgba(34,211,238,0.16)]",
               )}
             >
-              <div className="flex items-center justify-between border-b border-white/10 bg-black/30 px-4 py-3 backdrop-blur-sm">
+              <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3 backdrop-blur-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#6B6B6B] font-mono">
-                    AUTH_GATEWAY
+                  <span className="text-[11px] font-semibold text-slate-500">
+                    Secure sign in
                   </span>
                   <TerminalBadge tone="blue">SECURE</TerminalBadge>
                 </div>
-                <span className="text-[9px] uppercase tracking-[0.24em] text-[#00A3FF] font-mono">
-                  {granted ? "GRANTED" : "LIVE"}
+                <span className="text-[11px] text-cyan-200">
+                  {granted ? "Granted" : "Ready"}
                 </span>
               </div>
 
@@ -380,13 +380,13 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <div className="mb-8">
-                      <div className="text-[10px] uppercase tracking-[0.28em] text-[#6B6B6B] font-mono">
-                        Sign in module
+                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+                        Account access
                       </div>
-                      <h2 className="mt-3 text-2xl font-bold text-[#E6E6E6]">
+                      <h2 className="mt-3 text-2xl font-semibold text-white">
                         Welcome back
                       </h2>
-                      <p className="mt-2 text-sm leading-6 text-[#9A9A9A]">
+                      <p className="mt-2 text-sm leading-6 text-slate-400">
                         Continue with Google or verify your mobile number.
                       </p>
                     </div>
@@ -408,13 +408,13 @@ export default function LoginPage() {
                         <path fill="#4CAF50" d="M24 44c5.153 0 9.86-1.977 13.411-5.197l-6.19-5.238C29.219 35.091 26.715 36 24 36c-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44z" />
                         <path fill="#1976D2" d="M43.611 20.083h-1.611V20H24v8h11.303c-1.15 3.388-4.292 6-8.303 6-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z" />
                       </svg>
-                      CONTINUE_WITH_GOOGLE
+                      Continue with Google
                     </Button>
 
                     <div className="my-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                       <div className="h-px bg-white/10" />
-                      <span className="text-[9px] uppercase tracking-[0.32em] text-[#6B6B6B] font-mono">
-                        PHONE_OTP
+                        <span className="text-[11px] font-medium text-slate-500">
+                        Phone OTP
                       </span>
                       <div className="h-px bg-white/10" />
                     </div>
@@ -448,7 +448,7 @@ export default function LoginPage() {
                           onClick={handleSendOtp}
                           disabled={sendingOtp}
                         >
-                          {sendingOtp ? "SENDING_OTP..." : "SEND_OTP"}
+                          {sendingOtp ? "Sending OTP..." : "Send OTP"}
                         </Button>
                       ) : (
                         <>
@@ -478,7 +478,7 @@ export default function LoginPage() {
                             onClick={handleVerifyOtp}
                             disabled={verifyingOtp}
                           >
-                            {verifyingOtp ? "VERIFYING..." : "VERIFY_AND_CONTINUE"}
+                            {verifyingOtp ? "Verifying..." : "Verify and continue"}
                           </Button>
 
                           <Button
@@ -491,7 +491,7 @@ export default function LoginPage() {
                               setAuthError("");
                             }}
                           >
-                            CHANGE_PHONE_NUMBER
+                            Change phone number
                           </Button>
                         </>
                       )}

@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Sidebar from "@/components/Sidebar";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode, useState, useCallback } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 const ADMIN_ROUTE = "/dashboard/internal/ops";
 
@@ -31,9 +31,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!authReady || !user || !isAdmin) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a") {
-        e.preventDefault();
+    const handler = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "a") {
+        event.preventDefault();
         router.push(ADMIN_ROUTE);
       }
     };
@@ -45,9 +45,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const toggleNavbar = useCallback(() => setNavbarOpen((prev) => !prev), []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "b") {
-        e.preventDefault();
+    const handler = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key.toLowerCase() === "b") {
+        event.preventDefault();
         toggleSidebar();
       }
     };
@@ -56,9 +56,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [toggleSidebar]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "n") {
-        e.preventDefault();
+    const handler = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
         toggleNavbar();
       }
     };
@@ -68,8 +68,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (!authReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] font-mono text-[#00A3FF]">
-        <div className="animate-pulse">INITIALIZING TERMINAL...</div>
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#07080D] text-sm text-cyan-200">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 shadow-2xl shadow-black/20">
+          Loading AgentifyAI...
+        </div>
       </div>
     );
   }
@@ -78,38 +80,43 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isAdminRoute && !isAdmin) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0A0A0F] text-gray-200 font-sans">
+    <div className="flex h-full min-h-[720px] overflow-hidden bg-[#07080D] font-sans text-slate-200">
       <Sidebar collapsed={!sidebarOpen} onToggle={toggleSidebar} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Navbar collapsed={!navbarOpen} onToggle={toggleNavbar} />
 
         {!navbarOpen && (
-          <div className="flex items-center justify-end border-b border-white/10 bg-white/[0.02] px-4 py-1">
+          <div className="flex items-center justify-end border-b border-white/10 bg-[#0B0D12]/90 px-4 py-1">
             <button
               onClick={toggleNavbar}
-              className="flex items-center gap-1 text-[10px] font-mono text-gray-500 hover:text-white transition-colors"
+              className="rounded-md px-2 py-1 text-xs text-slate-500 transition hover:bg-white/[0.04] hover:text-white"
             >
-              <span>▼</span> EXPAND
+              Expand top bar
             </button>
           </div>
         )}
 
-        <main className="relative flex-1 overflow-y-auto overflow-x-hidden bg-[#0A0A0F]">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:48px_48px]" />
-          <div className="relative z-10 mx-auto max-w-[1600px] p-4 md:p-6">
+        <main className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#07080D]">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.11),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(245,158,11,0.08),transparent_30%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] opacity-45" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/[0.045] to-transparent" />
+          <div className="relative z-10 mx-auto max-w-[1760px] p-4 md:p-5 xl:p-6">
             {children}
           </div>
         </main>
 
-        <div className="flex items-center justify-between border-t border-white/10 bg-white/[0.02] backdrop-blur-sm px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-gray-500">
+        <div className="flex items-center justify-between border-t border-white/10 bg-[#0B0D12]/90 px-4 py-2 text-[11px] text-slate-500 backdrop-blur-xl">
           <div className="flex items-center gap-6">
-            <span className="text-emerald-400">● LIVE</span>
-            <span>AI TERMINAL v1.0.4</span>
+            <span className="flex items-center gap-1.5 text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              Live
+            </span>
+            <span>AgentifyAI v1.0.4</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span>Ctrl+B Side · Ctrl+N Nav</span>
-            {isAdmin && <span className="text-red-400">ADMIN</span>}
+          <div className="hidden items-center gap-4 sm:flex">
+            <span>Ctrl+B sidebar, Ctrl+N top bar</span>
+            {isAdmin && <span className="text-amber-300">Admin</span>}
           </div>
         </div>
       </div>

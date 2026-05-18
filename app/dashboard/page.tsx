@@ -412,7 +412,7 @@ function buildChartData({
 
 // ─── Skeleton components ───────────────────────────────────────────────────
 function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-white/10 ${className || ""}`} />;
+  return <div className={`animate-pulse rounded-md bg-white/[0.08] ${className || ""}`} />;
 }
 
 // ─── Glass components (theme‑aware placeholders) ───────────────────────────
@@ -452,11 +452,11 @@ function GlassCard({
   loading?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm p-5 transition-all hover:border-white/20">
-      <div className="text-[10px] uppercase tracking-[0.22em] text-gray-500 font-mono">{label}</div>
+    <div className="relative overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90">
+      <div className="text-[11px] font-medium text-slate-500">{label.replace(/_/g, " ")}</div>
       <div
         className={cn(
-          "mt-2 text-xl font-bold tracking-tight",
+          "mt-2 text-2xl font-semibold tracking-tight",
           accent === "orange" && "text-orange-400",
           accent === "green" && "text-emerald-400",
           accent === "red" && "text-red-400",
@@ -486,14 +486,14 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "rounded-xl border border-white/10 bg-black/30 backdrop-blur-sm overflow-hidden",
+        "overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
         className,
       )}
     >
-      <div className="flex items-center justify-between border-b border-white/10 bg-black/20 px-5 py-3">
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-5 py-3.5">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 font-mono">
-            {title}
+          <span className="text-sm font-semibold text-slate-200">
+            {title.replace(/_/g, " ")}
           </span>
           {tag ? <TerminalBadge tone="orange">{tag}</TerminalBadge> : null}
         </div>
@@ -749,14 +749,18 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-terminal-950 text-terminal-50 p-5 md:p-8 space-y-8 font-sans">
+    <div className="w-full space-y-6 text-slate-100">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.20)] backdrop-blur-xl md:p-6">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-            {greeting}, <span className="text-terminal-blue">{currentDisplayName}</span>.
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
+            Learning Command Center
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
+            {greeting}, <span className="text-cyan-200">{currentDisplayName}</span>
           </h1>
-          <p className="text-base text-terminal-400 mt-1">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
             {dataLoading ? (
               <Skeleton className="h-5 w-64" />
             ) : weakCount > 0 ? (
@@ -766,14 +770,15 @@ export default function DashboardPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-terminal-400">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          Last updated: {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        <div className="rounded-lg border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-slate-400">
+          <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+          Updated {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </div>
+      </div>
       </div>
 
       {/* Top stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <GlassCard label="System_User" value={currentDisplayName} loading={dataLoading} />
         <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" loading={dataLoading} />
         <GlassCard

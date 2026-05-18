@@ -329,19 +329,19 @@ function useDashboardData() {
 // ─── Glass UI components (same as other pages) ────────────────────────────
 function GlassCard({ label, value, tone = "neutral", active = false }: { label: string; value: string; tone?: Tone; active?: boolean }) {
   return (
-    <div className={cn("rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-4 transition-all hover:border-white/20", active && "border-l-[#00A3FF] bg-[#0F1A24]")}>
-      <div className="text-[9px] uppercase tracking-[0.22em] text-gray-500 font-mono">{label}</div>
-      <div className={cn("mt-2 text-2xl font-bold", toneText(tone))}>{value}</div>
+    <div className={cn("rounded-lg border border-white/10 bg-[#0E1118]/90 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90", active && "border-cyan-300/25 bg-cyan-300/10")}>
+      <div className="text-[11px] font-medium text-slate-500">{label}</div>
+      <div className={cn("mt-2 text-2xl font-semibold", toneText(tone))}>{value}</div>
     </div>
   );
 }
 
 function GlassPanel({ title, tag, right, className, children }: { title: string; tag?: string; right?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
-    <section className={cn("rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm overflow-hidden", className)}>
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-2.5">
+    <section className={cn("overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl", className)}>
+      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 font-mono">{title}</span>
+          <span className="text-sm font-semibold text-slate-200">{title.replace(/_/g, " ")}</span>
           {tag && <span className="rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 uppercase font-mono">{tag}</span>}
         </div>
         {right}
@@ -585,9 +585,27 @@ export default function ProgressPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-slate-200">
+      <div className="rounded-lg border border-white/10 bg-[#0E1118]/90 px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Analytics Intelligence</div>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Mastery, momentum, and weak topics</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              A student-friendly performance view with actionable AI signals.
+            </p>
+          </div>
+          <button
+            onClick={handleExportCSV}
+            className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-cyan-100"
+          >
+            Export CSV
+          </button>
+        </div>
+      </div>
+
       {/* Top stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <GlassCard label="Accuracy" value={`${avgAccuracy}%`} tone={getScoreTone(avgAccuracy)} />
         <GlassCard label="Focus Avg" value={`${Math.round(avgFocus)}`} tone={getScoreTone(Math.round(avgFocus))} />
         <GlassCard label="XP Bank" value={`${totalXp}`} tone="amber" />
@@ -675,12 +693,6 @@ export default function ProgressPage() {
             </GlassPanel>
           )}
 
-          <button
-            onClick={handleExportCSV}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm px-4 py-3 text-xs font-bold uppercase tracking-wider text-gray-400 hover:border-[#00A3FF] hover:text-[#00A3FF] transition-all"
-          >
-            EXPORT SESSION DATA (.CSV)
-          </button>
         </div>
       </div>
 

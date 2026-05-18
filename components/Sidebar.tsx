@@ -10,21 +10,23 @@ const ADMIN_ROUTE = "/dashboard/internal/ops";
 type MenuItem = {
   name: string;
   href: string;
-  icon: string;
+  abbr: string;
+  description: string;
   adminOnly?: boolean;
 };
 
 const BASE_MENU: MenuItem[] = [
-  { name: "DASHBOARD", href: "/dashboard", icon: "📊" },
-  { name: "STUDY LAB", href: "/dashboard/study", icon: "🧪" },
-  { name: "SESSIONS", href: "/dashboard/sessions", icon: "🕒" },
-  { name: "ANALYTICS", href: "/dashboard/progress", icon: "📈" },
+  { name: "Dashboard", href: "/dashboard", abbr: "D", description: "Command center" },
+  { name: "Study Lab", href: "/dashboard/study", abbr: "S", description: "Personal AI tutor" },
+  { name: "Sessions", href: "/dashboard/sessions", abbr: "R", description: "Replay and records" },
+  { name: "Analytics", href: "/dashboard/progress", abbr: "A", description: "Learning intelligence" },
 ];
 
 const ADMIN_MENU: MenuItem = {
-  name: "OPS",
+  name: "Ops",
   href: ADMIN_ROUTE,
-  icon: "⚡",
+  abbr: "O",
+  description: "Agent control plane",
   adminOnly: true,
 };
 
@@ -34,9 +36,11 @@ function useLiveStats(
   getAuthHeaders: () => Promise<HeadersInit>,
 ) {
   const [stats, setStats] = useState({ xp: 0, level: 1, streak: 0, accuracy: 0 });
+
   useEffect(() => {
     if (!userId || !backendURL) return;
     let active = true;
+
     const fetchStats = async () => {
       try {
         const res = await fetch(`${backendURL}/get-progress/${userId}`, {
@@ -46,6 +50,7 @@ function useLiveStats(
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
+
         const xp = data.xp ?? 0;
         const level = Math.floor(xp / 100) + 1;
         const streak = data.streak ?? 0;
@@ -55,11 +60,25 @@ function useLiveStats(
         setStats({ xp, level, streak, accuracy });
       } catch {}
     };
+
     fetchStats();
     const interval = setInterval(fetchStats, 60000);
-    return () => { active = false; clearInterval(interval); };
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [userId, backendURL, getAuthHeaders]);
+
   return stats;
+}
+
+function StatRow({ label, value, tone = "text-slate-200" }: { label: string; value: string | number; tone?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-[11px] text-slate-500">{label}</span>
+      <span className={`text-xs font-semibold ${tone}`}>{value}</span>
+    </div>
+  );
 }
 
 export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
@@ -73,34 +92,39 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
   }, [claimsLoading, isAdmin]);
 
   const stats = useLiveStats(user?.uid, backendURL, getAuthHeaders);
+  const accuracyTone =
+    stats.accuracy >= 75 ? "text-emerald-300" : stats.accuracy >= 50 ? "text-amber-300" : "text-rose-300";
 
   return (
     <aside
-      className={`flex h-full flex-col border-r border-white/10 bg-black/30 backdrop-blur-lg transition-all duration-300 ${
-        collapsed ? "w-[52px]" : "w-[200px]"
+      className={`flex h-full shrink-0 flex-col border-r border-white/10 bg-[#080A0F]/95 shadow-[inset_-1px_0_0_rgba(255,255,255,0.03)] backdrop-blur-xl transition-[width] duration-300 ${
+        collapsed ? "w-[68px]" : "w-[268px]"
       }`}
     >
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/5 p-3">
-        {!collapsed && (
-          <div>
-            <div className="font-mono text-[11px] font-bold tracking-wider text-[#00A3FF]">
-              AI TERMINAL
+      <div className="border-b border-white/10 px-4 py-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-sm font-bold text-cyan-200">
+              A
             </div>
-            <div className="font-mono text-[8px] text-gray-600">v1.0.4-STABLE</div>
+            {!collapsed && (
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-white">AgentifyAI</div>
+                <div className="mt-0.5 text-[11px] text-slate-500">Learning OS</div>
+              </div>
+            )}
           </div>
-        )}
-        <button
-          onClick={onToggle}
-          className={`text-gray-500 hover:text-white transition-colors ${
-            collapsed ? "mx-auto" : ""
-          }`}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <span className="text-xs font-mono">{collapsed ? "»" : "«"}</span>
-        </button>
+          <button
+            onClick={onToggle}
+            className="rounded-md border border-white/10 px-2 py-1 text-[11px] text-slate-500 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-slate-200"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? ">" : "<"}
+          </button>
+        </div>
       </div>
 
-      <nav className="flex-1 space-y-[1px] py-2">
+      <nav className="flex-1 space-y-1 px-3 py-4">
         {menu.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -112,53 +136,56 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               key={item.name}
               href={item.href}
               title={collapsed ? item.name : undefined}
-              className={`flex items-center gap-2.5 border-l-2 px-3 py-2 font-mono text-[11px] transition-all duration-150 ${
+              className={`group flex items-center gap-3 rounded-lg border px-3 py-3 transition ${
                 isActive
                   ? isOps
-                    ? "border-red-500 bg-red-500/10 text-red-400"
-                    : "border-[#00A3FF] bg-[#0F1A24] text-[#00A3FF]"
-                  : isOps
-                    ? "border-transparent text-gray-500 hover:bg-red-500/5 hover:text-red-400"
-                    : "border-transparent text-gray-500 hover:bg-white/5 hover:text-gray-300"
+                    ? "border-amber-400/30 bg-amber-400/10 text-amber-200 shadow-[0_0_24px_rgba(245,158,11,0.08)]"
+                    : "border-cyan-400/25 bg-cyan-400/10 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,0.08)]"
+                  : "border-transparent text-slate-500 hover:border-white/10 hover:bg-white/[0.04] hover:text-slate-200"
               }`}
             >
-              <span className="text-sm">{item.icon}</span>
-              {!collapsed && <span className="font-bold tracking-wider">{item.name}</span>}
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold ${
+                  isActive
+                    ? isOps
+                      ? "border-amber-300/30 bg-amber-300/10 text-amber-200"
+                      : "border-cyan-300/30 bg-cyan-300/10 text-cyan-100"
+                    : "border-white/10 bg-white/[0.03] text-slate-500 group-hover:text-slate-200"
+                }`}
+              >
+                {item.abbr}
+              </span>
+              {!collapsed && (
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{item.name}</span>
+                  <span className="mt-0.5 block truncate text-[11px] text-slate-500">{item.description}</span>
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
 
       {!collapsed && (
-        <div className="border-t border-white/10 p-3 space-y-3 bg-white/5">
-          <div className="font-mono text-[9px] uppercase tracking-[0.2em] text-gray-500">
-            LIVE STATS
+        <div className="m-3 rounded-lg border border-white/10 bg-white/[0.035] p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Live Profile</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-emerald-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              Live
+            </span>
           </div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between">
-              <span className="text-gray-400">XP</span>
-              <span className="text-emerald-400 font-bold">{stats.xp}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">LVL</span>
-              <span className="text-[#00A3FF] font-bold">{stats.level}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">STREAK</span>
-              <span className="text-amber-400 font-bold">{stats.streak}d</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">ACC</span>
-              <span className={`font-bold ${stats.accuracy >= 75 ? "text-emerald-400" : stats.accuracy >= 50 ? "text-amber-400" : "text-red-400"}`}>
-                {stats.accuracy}%
-              </span>
-            </div>
+          <div className="space-y-2.5">
+            <StatRow label="XP" value={stats.xp} tone="text-emerald-300" />
+            <StatRow label="Level" value={stats.level} tone="text-cyan-200" />
+            <StatRow label="Streak" value={`${stats.streak}d`} tone="text-amber-300" />
+            <StatRow label="Accuracy" value={`${stats.accuracy}%`} tone={accuracyTone} />
           </div>
-          <div className="border-t border-white/10 pt-2">
-            <div className="flex items-center justify-between font-mono text-[9px]">
-              <span className="text-gray-600">SYS</span>
-              <span className="flex items-center gap-1 text-emerald-400">● LIVE</span>
-            </div>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-emerald-300 to-amber-300 transition-all duration-700"
+              style={{ width: `${Math.max(4, Math.min(100, stats.accuracy || 4))}%` }}
+            />
           </div>
         </div>
       )}

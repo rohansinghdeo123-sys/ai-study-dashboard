@@ -11,51 +11,36 @@ export default function BetaBanner() {
 
   return (
     <>
-      <div className="w-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 text-black shadow-md z-50">
-
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2 text-sm md:text-base font-medium">
-
-          {/* Left Section */}
-          <div className="flex items-center gap-3">
-
-            <span className="bg-black text-white text-xs px-2 py-1 rounded-md font-bold">
-              BETA
+      <div className="w-full border-b border-white/10 bg-[#0B0D12]/95 text-slate-300 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1760px] items-center justify-between gap-4 px-4 py-2 text-xs">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="rounded-md border border-amber-400/25 bg-amber-400/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+              Beta
             </span>
-
-            <span>
-              AI Study Dashboard is currently in testing. Your feedback helps us improve.
+            <span className="truncate text-slate-400">
+              AgentifyAI is in active testing. Feedback helps improve the learning system.
             </span>
-
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-3">
-
+          <div className="flex shrink-0 items-center gap-2">
             <button
               onClick={() => setOpen(true)}
-              className="bg-black text-white text-xs px-3 py-1 rounded-md hover:bg-gray-800 transition"
+              className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
             >
-              Give Feedback
+              Feedback
             </button>
-
             <button
               onClick={() => setVisible(false)}
-              className="text-black font-bold text-lg hover:opacity-70"
+              className="rounded-md px-2 py-1 text-sm text-slate-500 transition hover:bg-white/[0.06] hover:text-slate-200"
+              aria-label="Dismiss beta banner"
             >
-              ×
+              x
             </button>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* Feedback Modal */}
-      <FeedbackModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-      />
+      <FeedbackModal isOpen={open} onClose={() => setOpen(false)} />
     </>
   );
 }

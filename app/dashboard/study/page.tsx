@@ -1469,14 +1469,14 @@ export default function StudyPage() {
 
   if (authLoading || coachBooting) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0F] text-[#00A3FF] animate-pulse text-sm uppercase tracking-widest">
+      <div className="flex min-h-[70vh] items-center justify-center text-sm text-cyan-200">
         {authLoading ? "VERIFYING..." : "WAKING YOUR COACH..."}
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col bg-[#0A0A0F] text-gray-200">
+    <div className="flex h-[calc(100vh-180px)] min-h-[640px] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
       <style jsx global>{`
         @keyframes float-up {
           0% { opacity: 1; transform: translateY(0); }
@@ -1521,7 +1521,7 @@ export default function StudyPage() {
         onClearAll={clearAllHistory}
       />
 
-      <header className="shrink-0 border-b border-white/10 bg-[#09090D]/95 px-4 py-3">
+      <header className="shrink-0 border-b border-white/10 bg-white/[0.025] px-4 py-3">
         <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} title="Conversation history" className="!px-2.5">
@@ -1564,7 +1564,7 @@ export default function StudyPage() {
         </div>
       </header>
 
-      <section className="shrink-0 border-b border-white/10 bg-[#0C0C11]/95 px-4 py-3">
+      <section className="shrink-0 border-b border-white/10 bg-white/[0.02] px-4 py-3">
         <div className="mx-auto flex max-w-[1480px] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Study Context</p>
@@ -1609,7 +1609,7 @@ export default function StudyPage() {
 
       <main className="min-h-0 flex-1 overflow-hidden px-4 py-4">
         <div className="mx-auto grid h-full max-w-[1480px] grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#101015]/95">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0B0E14]/95">
             <div className="shrink-0 border-b border-white/10 px-3 py-3">
               <div className="flex flex-wrap gap-1">
                 {WORKSPACE_TABS.map((tab) => (
@@ -1736,7 +1736,7 @@ export default function StudyPage() {
                   <div ref={coachEndRef} />
                 </div>
 
-                <div className="shrink-0 border-t border-white/10 bg-[#0C0C11] px-4 py-3">
+                <div className="shrink-0 border-t border-white/10 bg-[#090C12] px-4 py-3">
                   <div className="mb-3 flex flex-wrap gap-2">
                     {quickActions.map((action) => (
                       <button
@@ -1958,7 +1958,7 @@ export default function StudyPage() {
           </section>
 
           <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
-            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <div className="relative">
                 {xpAnimation && <XPFloat amount={xpAnimation.amount} />}
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agent Intelligence</p>
@@ -1990,7 +1990,7 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Next Best Action</p>
               <p className="mt-3 text-sm leading-6 text-gray-200">{nextAction}</p>
               <button
@@ -2001,7 +2001,7 @@ export default function StudyPage() {
               </button>
             </div>
 
-            <div className="rounded-lg border border-emerald-400/15 bg-[#101015]/95 p-4">
+            <div className="rounded-lg border border-emerald-400/15 bg-[#0B0E14]/95 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">Autonomous Mission</p>
@@ -2061,7 +2061,7 @@ export default function StudyPage() {
               </button>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Daily Load</p>
                 <span className="text-xs text-gray-400">{dailyQuestions}/{dailyGoal}</span>
@@ -2076,7 +2076,7 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agent Memory</p>
               <div className="mt-3 space-y-3">
                 {memoryPreview.length ? (
@@ -2092,7 +2092,7 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Recent Sessions</p>
               <div className="mt-3 space-y-2">
                 {recentSessions.length ? (
