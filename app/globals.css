@@ -308,3 +308,78 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-surface-4); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-accent-orange); }
+
+/* ============================================================
+   5. BRIGHT THEME COMPATIBILITY LAYER
+   ============================================================ */
+[data-theme="light"] body {
+  background: #eef3f8;
+  color: #0f172a;
+}
+
+[data-theme="light"] [class*="bg-[#07080D]"],
+[data-theme="light"] [class*="bg-terminal-950"] {
+  background-color: #eef3f8 !important;
+}
+
+[data-theme="light"] [class*="bg-[#080A0F]"],
+[data-theme="light"] [class*="bg-[#0B0D12]"],
+[data-theme="light"] [class*="bg-[#0A0A0F]"],
+[data-theme="light"] [class*="bg-[#050505]"] {
+  background-color: #f8fafc !important;
+}
+
+[data-theme="light"] [class*="bg-[#0E1118]"],
+[data-theme="light"] [class*="bg-[#111520]"],
+[data-theme="light"] [class*="bg-[#101015]"],
+[data-theme="light"] [class*="bg-[#0B0E14]"],
+[data-theme="light"] [class*="bg-[#090C12]"],
+[data-theme="light"] [class*="bg-black"],
+[data-theme="light"] [class*="bg-white/[0.02]"],
+[data-theme="light"] [class*="bg-white/[0.025]"],
+[data-theme="light"] [class*="bg-white/[0.03]"],
+[data-theme="light"] [class*="bg-white/[0.035]"],
+[data-theme="light"] [class*="bg-white/[0.04]"],
+[data-theme="light"] [class*="bg-white/[0.055]"] {
+  background-color: rgba(255, 255, 255, 0.88) !important;
+}
+
+[data-theme="light"] [class*="border-white/10"],
+[data-theme="light"] [class*="border-white/20"],
+[data-theme="light"] [class*="border-[#1A1A1A]"] {
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+[data-theme="light"] [class*="text-white"],
+[data-theme="light"] [class*="text-slate-100"],
+[data-theme="light"] [class*="text-slate-200"],
+[data-theme="light"] [class*="text-gray-200"],
+[data-theme="light"] [class*="text-[#E6E6E6]"] {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] [class*="text-slate-300"],
+[data-theme="light"] [class*="text-slate-400"],
+[data-theme="light"] [class*="text-gray-300"],
+[data-theme="light"] [class*="text-gray-400"],
+[data-theme="light"] [class*="text-[#9A9A9A]"] {
+  color: #475569 !important;
+}
+
+[data-theme="light"] [class*="text-slate-500"],
+[data-theme="light"] [class*="text-gray-500"],
+[data-theme="light"] [class*="text-gray-600"],
+[data-theme="light"] [class*="text-[#6B6B6B]"] {
+  color: #64748b !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  color: #0f172a !important;
+  background-color: rgba(255, 255, 255, 0.92) !important;
+}
+
+[data-theme="light"] ::placeholder {
+  color: #94a3b8 !important;
+}

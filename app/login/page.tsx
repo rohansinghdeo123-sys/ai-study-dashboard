@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Button from "@/components/ui/Button";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // ─── Utility functions (unchanged) ────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
@@ -366,9 +367,12 @@ export default function LoginPage() {
                   </span>
                   <TerminalBadge tone="blue">SECURE</TerminalBadge>
                 </div>
-                <span className="text-[11px] text-cyan-200">
-                  {granted ? "Granted" : "Ready"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <ThemeToggle compact />
+                  <span className="text-[11px] text-cyan-200">
+                    {granted ? "Granted" : "Ready"}
+                  </span>
+                </div>
               </div>
 
               <div className="p-6 md:p-8">

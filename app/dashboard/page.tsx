@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Area,
   AreaChart,
@@ -93,6 +93,16 @@ interface Insight {
 type ChartMode = "xp" | "accuracy" | "attempts";
 type ChartRange = "7D" | "14D" | "30D";
 
+type DashboardData = {
+  progress: Progress;
+  leaderboard: LeaderboardUser[];
+  sessions: SessionRecord[];
+  trends: TrendPoint[];
+  weakAreas: WeakArea[];
+  insights: Insight[];
+  error: string | null;
+};
+
 const EMPTY_PROGRESS: Progress = {
   user_id: "",
   total_tests: 0,
@@ -106,6 +116,26 @@ const RANGE_DAYS: Record<ChartRange, number> = {
   "7D": 7,
   "14D": 14,
   "30D": 30,
+};
+
+const EMPTY_DASHBOARD_DATA: DashboardData = {
+  progress: EMPTY_PROGRESS,
+  leaderboard: [],
+  sessions: [],
+  trends: [],
+  weakAreas: [],
+  insights: [],
+  error: null,
+};
+
+const DASHBOARD_CACHE_VERSION = 1;
+const DASHBOARD_CACHE_TTL_MS = 10 * 60 * 1000;
+
+type DashboardCacheRecord = {
+  version: number;
+  userId: string;
+  savedAt: number;
+  data: DashboardData;
 };
 
 // ─── Utility functions (unchanged) ─────────────────────────────────────────
@@ -204,6 +234,47 @@ async function readJson(url: string, headers?: HeadersInit) {
   const response = await fetch(url, { cache: "no-store", headers });
   if (!response.ok) return null;
   return response.json();
+}
+
+async function safeReadJson(url: string, headers?: HeadersInit) {
+  try {
+    return await readJson(url, headers);
+  } catch {
+    return null;
+  }
+}
+
+function getDashboardCacheKey(userId: string) {
+  return `agentify-dashboard-cache:${DASHBOARD_CACHE_VERSION}:${userId}`;
+}
+
+function readDashboardCache(userId: string) {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = localStorage.getItem(getDashboardCacheKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DashboardCacheRecord;
+    if (parsed.version !== DASHBOARD_CACHE_VERSION || parsed.userId !== userId) return null;
+    if (Date.now() - parsed.savedAt > DASHBOARD_CACHE_TTL_MS) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeDashboardCache(userId: string, data: DashboardData) {
+  if (typeof window === "undefined") return;
+
+  try {
+    const record: DashboardCacheRecord = {
+      version: DASHBOARD_CACHE_VERSION,
+      userId,
+      savedAt: Date.now(),
+      data,
+    };
+    localStorage.setItem(getDashboardCacheKey(userId), JSON.stringify(record));
+  } catch {}
 }
 
 // ─── Data normalizers (unchanged) ──────────────────────────────────────────
@@ -310,6 +381,93 @@ function normalizeInsights(analytics: any): Insight[] {
     }))
     .filter((item: Insight) => item.message)
     .slice(0, 3);
+}
+
+function buildDashboardData({
+  currentUserId,
+  currentDisplayName,
+  userEmail,
+  userPhone,
+  dashboardPayload,
+  progressPayload,
+  leaderboardPayload,
+  sessionsPayload,
+  analyticsPayload,
+}: {
+  currentUserId: string;
+  currentDisplayName: string;
+  userEmail?: string | null;
+  userPhone?: string | null;
+  dashboardPayload?: unknown;
+  progressPayload?: unknown;
+  leaderboardPayload?: unknown;
+  sessionsPayload?: unknown;
+  analyticsPayload?: unknown;
+}): DashboardData {
+  const dashboard = dashboardPayload && typeof dashboardPayload === "object" ? dashboardPayload : {};
+  const dashboardRecord = dashboard as Record<string, unknown>;
+  const analyticsSource =
+    dashboardRecord.analytics ??
+    dashboardRecord.advanced_analytics ??
+    analyticsPayload ??
+    {};
+  const analyticsRecord =
+    analyticsSource && typeof analyticsSource === "object"
+      ? (analyticsSource as Record<string, unknown>)
+      : {};
+
+  const progress = normalizeProgress(
+    dashboardRecord.progress ??
+      dashboardRecord.user_progress ??
+      dashboardRecord.summary ??
+      progressPayload ??
+      analyticsRecord.summary,
+    currentUserId,
+  );
+
+  const rawLeaderboard = dashboardRecord.leaderboard ?? dashboardRecord.rankings ?? leaderboardPayload ?? [];
+  const leaderboard = normalizeLeaderboard(rawLeaderboard).map((entry) =>
+    entry.user_id === currentUserId
+      ? {
+          ...entry,
+          display_name: currentDisplayName,
+          email: userEmail ?? entry.email,
+          phone: userPhone ?? entry.phone,
+        }
+      : entry,
+  );
+
+  if (!leaderboard.some((entry) => entry.user_id === currentUserId)) {
+    leaderboard.push({
+      rank: leaderboard.length + 1,
+      user_id: currentUserId,
+      display_name: currentDisplayName,
+      email: userEmail ?? undefined,
+      phone: userPhone ?? undefined,
+      xp: progress.xp,
+      streak: progress.streak,
+      total_tests: progress.total_tests,
+    });
+  }
+
+  return {
+    progress,
+    leaderboard,
+    sessions: normalizeSessions(
+      dashboardRecord.sessions ??
+        dashboardRecord.session_history ??
+        dashboardRecord.recent_sessions ??
+        sessionsPayload,
+    ),
+    trends: normalizeTrends(
+      dashboardRecord.performance_trends ??
+        dashboardRecord.trends ??
+        analyticsRecord.performance_trends,
+    ),
+    weakAreas: normalizeWeakAreas(analyticsSource),
+    insights: normalizeInsights(analyticsSource),
+    error: null,
+  };
 }
 
 function buildChartData({
@@ -527,26 +685,11 @@ export default function DashboardPage() {
   const [selectedRankId, setSelectedRankId] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [showAgentNotification, setShowAgentNotification] = useState(false);
+  const hydratedCacheUserRef = useRef("");
 
   const [dataLoading, setDataLoading] = useState(true);
 
-  const [data, setData] = useState<{
-    progress: Progress;
-    leaderboard: LeaderboardUser[];
-    sessions: SessionRecord[];
-    trends: TrendPoint[];
-    weakAreas: WeakArea[];
-    insights: Insight[];
-    error: string | null;
-  }>({
-    progress: EMPTY_PROGRESS,
-    leaderboard: [],
-    sessions: [],
-    trends: [],
-    weakAreas: [],
-    insights: [],
-    error: null,
-  });
+  const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
 
   useEffect(() => {
     if (!authLoading && user && !localStorage.getItem("agentify_notification_seen")) {
@@ -557,76 +700,60 @@ export default function DashboardPage() {
   const fetchAllData = useCallback(async () => {
     if (!currentUserId) return;
     try {
-      const headers = await getAuthHeaders();
-      const [dashboardPayload, progressPayload, leaderboardPayload, sessionsPayload, analyticsPayload] =
-        await Promise.all([
-          readJson(`${backendURL}/dashboard/${currentUserId}`, headers),
-          readJson(`${backendURL}/get-progress/${currentUserId}`, headers),
-          readJson(`${backendURL}/leaderboard`, headers),
-          readJson(`${backendURL}/sessions/${currentUserId}`, headers),
-          readJson(`${backendURL}/analytics/${currentUserId}`, headers),
-        ]);
+      if (hydratedCacheUserRef.current !== currentUserId) {
+        hydratedCacheUserRef.current = currentUserId;
+        const cached = readDashboardCache(currentUserId);
 
-      const dashboard = dashboardPayload && typeof dashboardPayload === "object" ? dashboardPayload : {};
-      const analyticsSource =
-        (dashboard as any).analytics ??
-        (dashboard as any).advanced_analytics ??
-        analyticsPayload ??
-        {};
-
-      const progress = normalizeProgress(
-        (dashboard as any).progress ??
-          (dashboard as any).user_progress ??
-          (dashboard as any).summary ??
-          progressPayload ??
-          analyticsSource?.summary,
-        currentUserId,
-      );
-
-      const rawLeaderboard =
-        (dashboard as any).leaderboard ?? (dashboard as any).rankings ?? leaderboardPayload ?? [];
-      let leaderboard = normalizeLeaderboard(rawLeaderboard).map((entry) =>
-        entry.user_id === currentUserId
-          ? {
-              ...entry,
-              display_name: currentDisplayName,
-              email: user?.email ?? entry.email,
-              phone: user?.phoneNumber ?? entry.phone,
-            }
-          : entry,
-      );
-
-      if (!leaderboard.some((entry) => entry.user_id === currentUserId)) {
-        leaderboard.push({
-          rank: leaderboard.length + 1,
-          user_id: currentUserId,
-          display_name: currentDisplayName,
-          email: user?.email ?? undefined,
-          phone: user?.phoneNumber ?? undefined,
-          xp: progress.xp,
-          streak: progress.streak,
-          total_tests: progress.total_tests,
-        });
+        if (cached) {
+          setData(cached.data);
+          setLastRefresh(new Date(cached.savedAt));
+          setDataLoading(false);
+        } else {
+          setData((prev) => ({ ...prev, progress: { ...prev.progress, user_id: currentUserId } }));
+          setDataLoading(true);
+        }
       }
 
-      setData({
-        progress,
-        leaderboard,
-        sessions: normalizeSessions(
-          (dashboard as any).sessions ??
-            (dashboard as any).session_history ??
-            (dashboard as any).recent_sessions ??
-            sessionsPayload,
-        ),
-        trends: normalizeTrends(
-          (dashboard as any).performance_trends ??
-            (dashboard as any).trends ??
-            analyticsSource?.performance_trends,
-        ),
-        weakAreas: normalizeWeakAreas(analyticsSource),
-        insights: normalizeInsights(analyticsSource),
-        error: null,
+      const headers = await getAuthHeaders();
+
+      const dashboardPromise = safeReadJson(`${backendURL}/dashboard/${currentUserId}`, headers);
+      const progressPromise = safeReadJson(`${backendURL}/get-progress/${currentUserId}`, headers);
+      const leaderboardPromise = safeReadJson(`${backendURL}/leaderboard`, headers);
+      const sessionsPromise = safeReadJson(`${backendURL}/sessions/${currentUserId}`, headers);
+      const analyticsPromise = safeReadJson(`${backendURL}/analytics/${currentUserId}`, headers);
+
+      const progressPayload = await progressPromise;
+
+      if (progressPayload) {
+        setData((prev) => {
+          const nextData = {
+            ...prev,
+            progress: normalizeProgress(progressPayload, currentUserId),
+            error: null,
+          };
+          writeDashboardCache(currentUserId, nextData);
+          return nextData;
+        });
+        setDataLoading(false);
+      }
+
+      const [dashboardPayload, leaderboardPayload, sessionsPayload, analyticsPayload] =
+        await Promise.all([dashboardPromise, leaderboardPromise, sessionsPromise, analyticsPromise]);
+
+      const nextData = buildDashboardData({
+        currentUserId,
+        currentDisplayName,
+        userEmail: user?.email,
+        userPhone: user?.phoneNumber,
+        dashboardPayload,
+        progressPayload,
+        leaderboardPayload,
+        sessionsPayload,
+        analyticsPayload,
       });
+
+      setData(nextData);
+      writeDashboardCache(currentUserId, nextData);
       setLastRefresh(new Date());
     } catch (error) {
       console.error("TERMINAL_FETCH_ERROR:", error);
@@ -742,10 +869,6 @@ export default function DashboardPage() {
         </div>
       </div>
     );
-  }
-
-  if (showAgentNotification) {
-    return <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />;
   }
 
   return (
@@ -1122,6 +1245,9 @@ export default function DashboardPage() {
       </div>
 
       <CoachWidget />
+      {showAgentNotification && (
+        <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />
+      )}
     </div>
   );
 }

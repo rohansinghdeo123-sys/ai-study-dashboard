@@ -49,7 +49,7 @@ interface AuthContextType {
   sendPhoneOtp: (phoneNumber: string) => Promise<void>;
   verifyPhoneOtp: (otp: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshClaims: () => Promise<void>;
+  refreshClaims: (forceRefresh?: boolean) => Promise<void>;
   getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
   getAuthHeaders: () => Promise<HeadersInit>;
 }
@@ -167,7 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
 
-  const refreshClaims = useCallback(async () => {
+  const refreshClaims = useCallback(async (forceRefresh = false) => {
     if (!auth.currentUser) {
       setClaims({});
       setClaimsLoading(false);
@@ -177,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setClaimsLoading(true);
 
     try {
-      const tokenResult = await auth.currentUser.getIdTokenResult(true);
+      const tokenResult = await auth.currentUser.getIdTokenResult(forceRefresh);
       setClaims(tokenResult.claims as Record<string, unknown>);
     } finally {
       setClaimsLoading(false);

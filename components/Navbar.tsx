@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const ADMIN_ROUTE = "/dashboard/internal/ops";
 
@@ -77,6 +78,8 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
+          <ThemeToggle compact />
+
           {isAdmin && (
             <Link
               href={ADMIN_ROUTE}
