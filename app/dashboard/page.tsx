@@ -200,8 +200,8 @@ function getLeaderboardDisplayName(entry: LeaderboardUser, currentUserId: string
   return entry.display_name || entry.name || entry.phone || entry.email || shortId(entry.user_id);
 }
 
-async function readJson(url: string) {
-  const response = await fetch(url, { cache: "no-store" });
+async function readJson(url: string, headers?: HeadersInit) {
+  const response = await fetch(url, { cache: "no-store", headers });
   if (!response.ok) return null;
   return response.json();
 }
@@ -516,7 +516,7 @@ function TrendIcon({ trend }: { trend?: number }) {
 export default function DashboardPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, getAuthHeaders } = useAuth();
 
   const currentUserId = user?.uid ?? "";
   const currentDisplayName = getUserDisplayName(user);
@@ -557,13 +557,14 @@ export default function DashboardPage() {
   const fetchAllData = useCallback(async () => {
     if (!currentUserId) return;
     try {
+      const headers = await getAuthHeaders();
       const [dashboardPayload, progressPayload, leaderboardPayload, sessionsPayload, analyticsPayload] =
         await Promise.all([
-          readJson(`${backendURL}/dashboard/${currentUserId}`),
-          readJson(`${backendURL}/get-progress/${currentUserId}`),
-          readJson(`${backendURL}/leaderboard`),
-          readJson(`${backendURL}/sessions/${currentUserId}`),
-          readJson(`${backendURL}/analytics/${currentUserId}`),
+          readJson(`${backendURL}/dashboard/${currentUserId}`, headers),
+          readJson(`${backendURL}/get-progress/${currentUserId}`, headers),
+          readJson(`${backendURL}/leaderboard`, headers),
+          readJson(`${backendURL}/sessions/${currentUserId}`, headers),
+          readJson(`${backendURL}/analytics/${currentUserId}`, headers),
         ]);
 
       const dashboard = dashboardPayload && typeof dashboardPayload === "object" ? dashboardPayload : {};
@@ -637,7 +638,7 @@ export default function DashboardPage() {
     } finally {
       setDataLoading(false);
     }
-  }, [backendURL, currentUserId, currentDisplayName, user?.email, user?.phoneNumber]);
+  }, [backendURL, currentUserId, currentDisplayName, getAuthHeaders, user?.email, user?.phoneNumber]);
 
   useEffect(() => {
     if (!authLoading && !user) {

@@ -790,7 +790,10 @@ export default function StudyPage() {
   // ── Data fetching (unchanged) ────────────────────────────────────────────
   const fetchProgress = async (id: string) => {
     try {
-      const res = await fetch(`${backendURL}/get-progress/${id}`, { cache: "no-store" });
+      const res = await fetch(`${backendURL}/get-progress/${id}`, {
+        cache: "no-store",
+        headers: await authHeaders(),
+      });
       if (!res.ok) return;
       const data = await res.json();
       setProgress({
@@ -890,7 +893,7 @@ export default function StudyPage() {
     try {
       const res = await fetch(`${backendURL}/submit-session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({
           user_id: userId,
           topic: examTopic || topic,
@@ -943,7 +946,7 @@ export default function StudyPage() {
     try {
       const res = await fetch(`${backendURL}/section-ai`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({ question, section_id: t, session_id: `revision-${userId}-${t}`, mode: revMode, difficulty: "medium" }),
       });
       const data = await res.json();
@@ -965,7 +968,7 @@ export default function StudyPage() {
     try {
       const res = await fetch(`${backendURL}/generate-mcqs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({ topic: t, section_id: t, session_id: `exam-${userId}-${t}`, difficulty: "medium", count: 10 }),
       });
       const data = await res.json();
@@ -989,7 +992,7 @@ export default function StudyPage() {
     try {
       const res = await fetch(`${backendURL}/generate-probable-questions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await authHeaders(),
         body: JSON.stringify({ topic: t, section_id: t, session_id: `probable-${userId}-${t}`, difficulty: "medium" }),
       });
       const data = await res.json();

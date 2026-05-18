@@ -225,7 +225,7 @@ function useClock() {
 }
 
 function useSessions() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -246,6 +246,7 @@ function useSessions() {
         setError(null);
         const response = await fetch(`${backendURL}/sessions/${user.uid}`, {
           cache: "no-store",
+          headers: await getAuthHeaders(),
         });
         if (!response.ok) {
           throw new Error(`Failed to load sessions: ${response.status}`);
@@ -270,7 +271,7 @@ function useSessions() {
     return () => {
       active = false;
     };
-  }, [authLoading, backendURL, user?.uid]);
+  }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
 
   return { sessions, loading: loading || authLoading, error };
 }
@@ -607,6 +608,11 @@ function SessionsTable({
 // ------------------------------------------------------------------------------
 function SessionInspector({ session }: { session: Session | null }) {
   const router = useRouter();
+  const selectedTopic = session?.topic ?? "";
+  const handleReviseTopic = useCallback(() => {
+    if (!selectedTopic) return;
+    router.push(`/dashboard/study?chapter=hydrocarbon&topic=${selectedTopic}`);
+  }, [router, selectedTopic]);
 
   if (!session) {
     return (
@@ -625,10 +631,6 @@ function SessionInspector({ session }: { session: Session | null }) {
   const missRate = session.questions ? Math.round((misses / session.questions) * 100) : 0;
   const pace = session.duration > 0 ? (session.xp / (session.duration / 60)).toFixed(1) : "0.0";
   const isWeak = accuracy < 60;
-
-  const handleReviseTopic = useCallback(() => {
-    router.push(`/dashboard/study?chapter=hydrocarbon&topic=${session.topic}`);
-  }, [router, session.topic]);
 
   return (
     <GlassPanel title="SESSION_INSPECTOR" tag="VIEW" className="h-full">

@@ -28,14 +28,21 @@ const ADMIN_MENU: MenuItem = {
   adminOnly: true,
 };
 
-function useLiveStats(userId: string | undefined, backendURL: string | undefined | null) {
+function useLiveStats(
+  userId: string | undefined,
+  backendURL: string | undefined | null,
+  getAuthHeaders: () => Promise<HeadersInit>,
+) {
   const [stats, setStats] = useState({ xp: 0, level: 1, streak: 0, accuracy: 0 });
   useEffect(() => {
     if (!userId || !backendURL) return;
     let active = true;
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${backendURL}/get-progress/${userId}`, { cache: "no-store" });
+        const res = await fetch(`${backendURL}/get-progress/${userId}`, {
+          cache: "no-store",
+          headers: await getAuthHeaders(),
+        });
         if (!res.ok) return;
         const data = await res.json();
         if (!active) return;
@@ -51,13 +58,13 @@ function useLiveStats(userId: string | undefined, backendURL: string | undefined
     fetchStats();
     const interval = setInterval(fetchStats, 60000);
     return () => { active = false; clearInterval(interval); };
-  }, [userId, backendURL]);
+  }, [userId, backendURL, getAuthHeaders]);
   return stats;
 }
 
 export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
   const pathname = usePathname();
-  const { isAdmin, claimsLoading, user } = useAuth();
+  const { isAdmin, claimsLoading, user, getAuthHeaders } = useAuth();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   const menu = useMemo(() => {
@@ -65,7 +72,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
     return [...BASE_MENU, ADMIN_MENU];
   }, [claimsLoading, isAdmin]);
 
-  const stats = useLiveStats(user?.uid, backendURL);
+  const stats = useLiveStats(user?.uid, backendURL, getAuthHeaders);
 
   return (
     <aside

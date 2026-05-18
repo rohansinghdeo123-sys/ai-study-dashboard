@@ -275,7 +275,7 @@ function buildHeatmap(sessions: Session[], days = 35) {
 
 // ─── Data hook (unchanged) ────────────────────────────────────────────────
 function useDashboardData() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [progress, setProgress] = useState<ProgressSummary>(emptyProgress);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -298,7 +298,10 @@ function useDashboardData() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${backendURL}/dashboard/${user.uid}`, { cache: "no-store" });
+        const response = await fetch(`${backendURL}/dashboard/${user.uid}`, {
+          cache: "no-store",
+          headers: await getAuthHeaders(),
+        });
         if (!response.ok) throw new Error(`Failed to load dashboard: ${response.status}`);
         const payload = await response.json();
         if (!active) return;
@@ -318,7 +321,7 @@ function useDashboardData() {
     }
     load();
     return () => { active = false; };
-  }, [authLoading, backendURL, user?.uid]);
+  }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
 
   return { userId: user?.uid ?? "", sessions, progress, leaderboard, loading: loading || authLoading, error };
 }

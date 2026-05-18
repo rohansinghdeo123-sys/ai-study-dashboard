@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { useAuth } from "@/context/AuthContext";
 
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as any;
@@ -444,6 +445,7 @@ function formatTextLines(text: any): string[] {
    MAIN COMPONENT
    ================================================================ */
 export default function AnalyticsPage() {
+  const { user, loading: authLoading, getAuthHeaders } = useAuth();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   const [analytics, setAnalytics] = useState<any>(null);
@@ -454,11 +456,27 @@ export default function AnalyticsPage() {
   const [currentMode, setCurrentMode] = useState<string | null>(null);
 
   useEffect(() => {
-    const userId = localStorage.getItem("userId") || "user1";
-    fetch(`${backendURL}/analytics/${userId}`)
-      .then((res) => res.json())
-      .then((data) => setAnalytics(data));
-  }, []);
+    let active = true;
+
+    async function loadAnalytics() {
+      if (authLoading) return;
+      if (!user?.uid) {
+        setAnalytics(null);
+        return;
+      }
+
+      const res = await fetch(`${backendURL}/analytics/${user.uid}`, {
+        cache: "no-store",
+        headers: await getAuthHeaders(),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (active) setAnalytics(data);
+    }
+
+    loadAnalytics();
+    return () => { active = false; };
+  }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
 
   if (!analytics) {
     return (
@@ -480,11 +498,11 @@ export default function AnalyticsPage() {
 
       const res = await fetch(`${backendURL}/agent`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await getAuthHeaders(),
         body: JSON.stringify({
           question: `${mode} ${selectedTopic}`,
           section_id: selectedTopic,
-          session_id: "user1",
+          session_id: `analytics-${user?.uid ?? "user"}`,
           mode: mode,
           difficulty: mode === "test" ? "hard" : "medium",
         }),
