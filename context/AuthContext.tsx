@@ -15,9 +15,11 @@ import {
   type User,
   GoogleAuthProvider,
   RecaptchaVerifier,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPhoneNumber,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -131,6 +133,31 @@ function isAdminUser(user: User | null, claims: Record<string, unknown>) {
   );
 }
 
+function createGoogleProvider() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
+}
+
+function getFirebaseErrorCode(error: unknown) {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}
+
+function shouldUseRedirectFallback(error: unknown) {
+  const code = getFirebaseErrorCode(error);
+
+  return [
+    "auth/popup-blocked",
+    "auth/cancelled-popup-request",
+    "auth/operation-not-supported-in-this-environment",
+  ].some((fallbackCode) => code.includes(fallbackCode));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -158,9 +185,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, createGoogleProvider());
+    } catch (error) {
+      if (shouldUseRedirectFallback(error)) {
+        await signInWithRedirect(auth, createGoogleProvider());
+        return;
+      }
+
+      throw error;
+    }
   }, []);
 
   const getRecaptchaVerifier = useCallback(async () => {
@@ -231,6 +265,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [getIdToken]);
 
   useEffect(() => {
+    getRedirectResult(auth).catch(() => undefined);
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       setLoading(false);

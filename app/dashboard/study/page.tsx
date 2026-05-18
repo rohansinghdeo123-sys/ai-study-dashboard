@@ -90,6 +90,36 @@ interface CoachDashboard {
   latest_signal?: CoachDailySignal | null;
 }
 
+interface AutonomousMissionResultData {
+  questions?: unknown[];
+  text?: string;
+}
+
+interface AutonomousMissionResult {
+  answer?: string;
+  data?: AutonomousMissionResultData | null;
+  metadata?: Record<string, unknown>;
+}
+
+interface AutonomousMission {
+  mission_id: string;
+  status: string;
+  subject: string;
+  chapter?: string;
+  target_topic: string;
+  target_source: string;
+  primary_agent: string;
+  mode: string;
+  difficulty: string;
+  objective: string;
+  why: string;
+  steps: string[];
+  next_actions: string[];
+  result?: AutonomousMissionResult;
+  analytics_summary?: Record<string, unknown>;
+  latency_ms?: number;
+}
+
 type AgentStageId = "drafting" | "reviewing" | "delivering";
 type AgentStageStatus = "pending" | "active" | "done";
 type WorkspaceTab = "chat" | "revise" | "practice" | "history";
@@ -653,6 +683,8 @@ export default function StudyPage() {
   const [achievements, setAchievements] = useState<{ title: string; subtitle: string; key: number }[]>([]);
   const [dailyGoal] = useState(30);
   const [dailyQuestions, setDailyQuestions] = useState(0);
+  const [autonomousMission, setAutonomousMission] = useState<AutonomousMission | null>(null);
+  const [autonomousLoading, setAutonomousLoading] = useState(false);
 
   // History sidebar
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -844,6 +876,70 @@ export default function StudyPage() {
       });
       if (res.ok) setCoachSignal(await res.json());
     } catch { console.log("Coach daily learning failed"); }
+  };
+
+  const isMissionMcq = (value: unknown): value is MCQ => {
+    if (!value || typeof value !== "object") return false;
+    const item = value as Partial<MCQ>;
+    return typeof item.question === "string" && Array.isArray(item.options) && typeof item.correct === "string";
+  };
+
+  const runAutonomousMission = async () => {
+    if (!userId || authLoading || autonomousLoading) return;
+    setAutonomousLoading(true);
+    setToast("Autonomous agents are selecting your next mission...");
+
+    try {
+      const res = await fetch(`${backendURL}/coach/autonomous-study/${userId}`, {
+        method: "POST",
+        headers: await authHeaders(),
+        body: JSON.stringify({
+          current_topic: topic,
+          current_chapter: chapter,
+          subject: "Chemistry",
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Mission failed: ${res.status}`);
+
+      const mission: AutonomousMission = await res.json();
+      const answer = mission.result?.answer || mission.result?.data?.text || "";
+      const missionQuestions = (mission.result?.data?.questions || []).filter(isMissionMcq);
+
+      setAutonomousMission(mission);
+      setExamTopic(mission.target_topic);
+
+      if (mission.primary_agent === "revision" && answer) {
+        setRevisionOutput(answer);
+        setActiveWorkspace("revise");
+      } else if (mission.primary_agent === "exam" && missionQuestions.length) {
+        setMcqs(missionQuestions);
+        setProbableOutput(mission.mode === "probable" ? answer : "");
+        setExamStatus("");
+        setSelectedAnswers({});
+        setScore(0);
+        setActiveWorkspace("practice");
+        sessionStartTime.current = Date.now();
+      } else {
+        setCoachMessages((prev) => [
+          ...prev,
+          {
+            role: "coach",
+            content: `Autonomous Mission:\n${mission.objective}\n\nWhy:\n${mission.why}\n\nNext:\n${mission.next_actions.join("\n")}${answer ? `\n\n${answer}` : ""}`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        setActiveWorkspace("chat");
+      }
+
+      await loadCoachDashboard(userId);
+      setToast("Autonomous mission ready");
+    } catch (error) {
+      console.error("Autonomous mission failed", error);
+      setToast("Autonomous mission failed. Try again.");
+    } finally {
+      setAutonomousLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -1459,6 +1555,9 @@ export default function StudyPage() {
                 Stop voice
               </button>
             )}
+            <Button variant="secondary" size="sm" onClick={runAutonomousMission} disabled={autonomousLoading || !userId}>
+              {autonomousLoading ? "Planning..." : "Auto Mission"}
+            </Button>
             <Button variant="secondary" size="sm" onClick={startNewChat}>New Chat</Button>
             <Button variant="danger" size="sm" onClick={clearChat}>Clear</Button>
           </div>
@@ -1546,6 +1645,13 @@ export default function StudyPage() {
                           </p>
                         </div>
                         <div className="flex flex-wrap justify-center gap-2">
+                          <button
+                            onClick={runAutonomousMission}
+                            disabled={autonomousLoading || !userId}
+                            className="rounded-md border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {autonomousLoading ? "Agents planning..." : "Start autonomous mission"}
+                          </button>
                           {quickActions.slice(0, 3).map((action) => (
                             <button
                               key={action.prompt}
@@ -1892,6 +1998,66 @@ export default function StudyPage() {
                 className="mt-4 w-full rounded-md border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-400/15"
               >
                 Ask Aria to guide this
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-emerald-400/15 bg-[#101015]/95 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">Autonomous Mission</p>
+                  <h3 className="mt-1 text-sm font-semibold text-white">
+                    {autonomousMission ? autonomousMission.objective : "Let the agents pick your next move"}
+                  </h3>
+                </div>
+                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] uppercase text-emerald-200">
+                  {autonomousMission?.primary_agent || "auto"}
+                </span>
+              </div>
+
+              {autonomousMission ? (
+                <div className="mt-4 space-y-4">
+                  <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex justify-between gap-3 text-[10px] uppercase tracking-wider text-gray-500">
+                      <span>Target</span>
+                      <span>{autonomousMission.mode}</span>
+                    </div>
+                    <p className="mt-1 text-sm font-semibold text-gray-100">
+                      {autonomousMission.target_topic.replace(/_/g, " ")}
+                    </p>
+                    <p className="mt-2 text-xs leading-5 text-gray-500">{autonomousMission.why}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Execution Steps</p>
+                    <div className="mt-2 space-y-2">
+                      {autonomousMission.steps.slice(0, 3).map((step, index) => (
+                        <div key={`${step}-${index}`} className="flex gap-2 text-xs leading-5 text-gray-400">
+                          <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-400/10 text-[10px] text-emerald-200">
+                            {index + 1}
+                          </span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Next Action</p>
+                    <p className="mt-2 text-xs leading-5 text-gray-300">{autonomousMission.next_actions[0]}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-3 text-xs leading-5 text-gray-500">
+                  The supervisor will inspect your weak areas, choose a specialist agent, and prepare the next study task.
+                </p>
+              )}
+
+              <button
+                onClick={runAutonomousMission}
+                disabled={autonomousLoading || !userId}
+                className="mt-4 w-full rounded-md border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-200 hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {autonomousLoading ? "Agents planning..." : autonomousMission ? "Refresh Mission" : "Start Mission"}
               </button>
             </div>
 

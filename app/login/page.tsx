@@ -19,8 +19,28 @@ function normalizePhoneNumber(value: string) {
   return trimmed;
 }
 
+function getErrorSignature(error: unknown) {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    const code = (error as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}
+
 function getErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = getErrorSignature(error);
+  if (message.includes("auth/unauthorized-domain")) {
+    return "FIREBASE_AUTH_DOMAIN_NOT_ALLOWED";
+  }
+  if (message.includes("auth/popup-blocked")) return "GOOGLE_POPUP_BLOCKED";
+  if (message.includes("auth/popup-closed-by-user")) return "GOOGLE_LOGIN_CANCELLED";
+  if (message.includes("auth/cancelled-popup-request")) return "GOOGLE_LOGIN_RETRY_REQUIRED";
+  if (message.includes("auth/operation-not-supported-in-this-environment")) {
+    return "GOOGLE_REDIRECT_REQUIRED";
+  }
+  if (message.includes("auth/network-request-failed")) return "NETWORK_REQUEST_FAILED";
+  if (message.includes("auth/configuration-not-found")) return "FIREBASE_AUTH_NOT_CONFIGURED";
   if (message.includes("auth/invalid-phone-number")) return "INVALID_PHONE_NUMBER";
   if (message.includes("auth/too-many-requests")) return "TOO_MANY_REQUESTS";
   if (message.includes("auth/invalid-verification-code")) return "INVALID_OTP_CODE";
@@ -162,28 +182,6 @@ function ParticleCanvas() {
       style={{ pointerEvents: "none" }}
     />
   );
-}
-
-// ─── Typing animation hook (unchanged) ────────────────────────────────────
-function useTypingEffect(text: string, speed = 70) {
-  const [displayed, setDisplayed] = useState("");
-  const indexRef = useRef(0);
-
-  useEffect(() => {
-    indexRef.current = 0;
-    setDisplayed("");
-    const interval = setInterval(() => {
-      if (indexRef.current < text.length) {
-        setDisplayed(text.slice(0, indexRef.current + 1));
-        indexRef.current++;
-      } else {
-        clearInterval(interval);
-      }
-    }, speed);
-    return () => clearInterval(interval);
-  }, [text, speed]);
-
-  return displayed;
 }
 
 // ─── Main Login Page Component ──────────────────────────────────────────────
