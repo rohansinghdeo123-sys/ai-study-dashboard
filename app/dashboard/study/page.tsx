@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
-  type ReactNode,
   useCallback,
 } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -93,6 +92,7 @@ interface CoachDashboard {
 
 type AgentStageId = "drafting" | "reviewing" | "delivering";
 type AgentStageStatus = "pending" | "active" | "done";
+type WorkspaceTab = "chat" | "revise" | "practice" | "history";
 
 interface AgentStageState {
   id: AgentStageId;
@@ -110,6 +110,13 @@ interface AgentStagePayload {
   title?: string;
   detail?: string;
 }
+
+const WORKSPACE_TABS: { id: WorkspaceTab; label: string; description: string }[] = [
+  { id: "chat", label: "Coach", description: "Ask, learn, and clarify" },
+  { id: "revise", label: "Revise", description: "Structured notes and recall" },
+  { id: "practice", label: "Practice", description: "MCQs and probable questions" },
+  { id: "history", label: "History", description: "Past study conversations" },
+];
 
 interface SpeechRecognitionResultEventLike {
   results: {
@@ -505,31 +512,6 @@ function CoachTyping() {
   );
 }
 
-function CollapsiblePanel({
-  title,
-  isOpen,
-  onToggle,
-  children,
-}: {
-  title: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="border-b border-white/10">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
-      >
-        <span>{title}</span>
-        <span className="text-base">{isOpen ? "−" : "+"}</span>
-      </button>
-      {isOpen && <div className="px-4 pb-4">{children}</div>}
-    </div>
-  );
-}
-
 // ------------------------------------------------------------------------------
 // History Sidebar Component (unchanged)
 // ------------------------------------------------------------------------------
@@ -631,8 +613,7 @@ export default function StudyPage() {
   // Thinking state
   const [thinkingMessage, setThinkingMessage] = useState<string | null>(null);
 
-  // Revision panel (collapsible)
-  const [revisionOpen, setRevisionOpen] = useState(false);
+  // Revision workspace
   const [chapter, setChapter] = useState(searchParams.get("chapter") || "hydrocarbon");
   const [topic, setTopic] = useState(searchParams.get("topic") || "alkanes");
   const [revMode, setRevMode] = useState<"summary" | "explain" | "key">("summary");
@@ -658,8 +639,7 @@ export default function StudyPage() {
     ],
   };
 
-  // Exam panel (collapsible)
-  const [examOpen, setExamOpen] = useState(false);
+  // Practice workspace
   const [examTopic, setExamTopic] = useState("");
   const [examType, setExamType] = useState<"mcq" | "probable">("mcq");
   const [mcqs, setMcqs] = useState<MCQ[]>([]);
@@ -678,6 +658,7 @@ export default function StudyPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>(() => "session_" + Date.now());
+  const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceTab>("chat");
 
   const [progress, setProgress] = useState<ProgressState>({
     totalTests: 0,
@@ -699,6 +680,10 @@ export default function StudyPage() {
   const answeredCount = Object.keys(selectedAnswers).length;
   const coachName = coachProfile?.coach_name || "AI Coach";
   const studentName = user?.displayName || user?.email?.split("@")[0] || "Student";
+  const currentChapterLabel = chapter.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  const currentTopicLabel = topicsByChapter[chapter]?.find((item) => item.value === topic)?.label || topic.replace(/_/g, " ");
+  const memoryPreview = useMemo(() => coachMemories.slice(0, 3), [coachMemories]);
+  const recentSessions = useMemo(() => sessions.slice(0, 5), [sessions]);
   const nextAction = coachProfile?.next_best_action ||
     coachSignal?.recommended_action ||
     "Complete one focused question set, then review only incorrect answers.";
@@ -947,6 +932,7 @@ export default function StudyPage() {
   const handleRevision = async (revTopicOverride?: string) => {
     const t = revTopicOverride || topic;
     if (!t || !userId || authLoading) return;
+    setActiveWorkspace("revise");
     setLoadingRevision(true);
     const question =
       revMode === "summary"
@@ -969,6 +955,7 @@ export default function StudyPage() {
   const generateMCQs = async () => {
     const t = examTopic || topic;
     if (!t || !userId || authLoading) return;
+    setActiveWorkspace("practice");
     setLoadingExam(true);
     setExamStatus("");
     setProbableOutput("");
@@ -993,6 +980,7 @@ export default function StudyPage() {
   const generateProbable = async () => {
     const t = examTopic || topic;
     if (!t || !userId || authLoading) return;
+    setActiveWorkspace("practice");
     setLoadingExam(true);
     setExamStatus("");
     setMcqs([]);
@@ -1108,6 +1096,7 @@ export default function StudyPage() {
     const input = coachInput.trim();
     if (!input || !userId || authLoading || coachLoading) return;
 
+    setActiveWorkspace("chat");
     streamControllerRef.current?.abort();
     const controller = new AbortController();
     streamControllerRef.current = controller;
@@ -1433,324 +1422,529 @@ export default function StudyPage() {
         onClearAll={clearAllHistory}
       />
 
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-white/10 bg-black/20 px-4 py-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} title="Conversation history">
-            ☰
-          </Button>
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-base font-bold text-white">{coachName}</span>
-          <span className="text-xs text-gray-500">{coachStatus}</span>
-          {isSpeaking && (
-            <button onClick={stopSpeaking} className="ml-2 text-xs text-red-400 hover:text-red-300">🔇 Stop</button>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-gray-500">XP {progress.xp}</span>
-          <span className="text-xs text-gray-500">LVL {level}</span>
-          <span className="text-xs text-gray-500">STREAK {progress.streak}d</span>
-          <Button variant="secondary" size="sm" onClick={startNewChat}>New Chat</Button>
-          <Button variant="danger" size="sm" onClick={clearChat}>Clear Chat</Button>
+      <header className="shrink-0 border-b border-white/10 bg-[#09090D]/95 px-4 py-3">
+        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} title="Conversation history" className="!px-2.5">
+              ☰
+            </Button>
+            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-orange-400/20 bg-orange-400/10 text-sm font-bold text-orange-300">
+              {coachName[0]}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-sm font-semibold text-white">{coachName}</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] uppercase tracking-wider text-emerald-300">{coachStatus || "Online"}</span>
+              </div>
+              <p className="truncate text-xs text-gray-500">Personal study intelligence for {studentName}</p>
+            </div>
+          </div>
+
+          <div className="hidden items-center gap-2 md:flex">
+            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
+              XP <span className="ml-1 font-semibold text-cyan-300">{progress.xp}</span>
+            </div>
+            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
+              LVL <span className="ml-1 font-semibold text-white">{level}</span>
+            </div>
+            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
+              STREAK <span className="ml-1 font-semibold text-yellow-300">{progress.streak}d</span>
+            </div>
+            {isSpeaking && (
+              <button onClick={stopSpeaking} className="rounded-md border border-red-400/20 px-3 py-2 text-xs text-red-300 hover:bg-red-400/10">
+                Stop voice
+              </button>
+            )}
+            <Button variant="secondary" size="sm" onClick={startNewChat}>New Chat</Button>
+            <Button variant="danger" size="sm" onClick={clearChat}>Clear</Button>
+          </div>
         </div>
       </header>
 
-      {/* Collapsible Tool Panels */}
-      <div className="shrink-0 bg-black/10">
-        {/* Revision Panel */}
-        <CollapsiblePanel title="Revision Tools" isOpen={revisionOpen} onToggle={() => setRevisionOpen(!revisionOpen)}>
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-[10px] uppercase text-gray-600 mb-1">Chapter</label>
-                <select
-                  value={chapter}
-                  onChange={(e) => {
-                    const c = e.target.value;
-                    setChapter(c);
-                    const t = topicsByChapter[c]?.[0]?.value || "alkanes";
-                    setTopic(t);
-                    updateURL(c, t);
-                  }}
-                  className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
-                >
-                  {chapters.map((c) => (
-                    <option key={c} value={c}>{c.toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-[10px] uppercase text-gray-600 mb-1">Topic</label>
-                <select
-                  value={topic}
-                  onChange={(e) => { setTopic(e.target.value); updateURL(chapter, e.target.value); }}
-                  className="w-full rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
-                >
-                  {topicsByChapter[chapter]?.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label.toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase text-gray-600 mb-1">Mode</label>
-                <select
-                  value={revMode}
-                  onChange={(e) => setRevMode(e.target.value as "summary" | "explain" | "key")}
-                  className="rounded-md border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-blue-400"
-                >
-                  <option value="summary">Summary</option>
-                  <option value="explain">Explain</option>
-                  <option value="key">Key Points</option>
-                </select>
-              </div>
-              <Button variant="primary" size="sm" onClick={() => handleRevision()} disabled={loadingRevision}>
-                {loadingRevision ? "Loading..." : "Generate"}
-              </Button>
-              {revisionOutput && (
-                <>
-                  <Button variant="ghost" size="sm" onClick={handleCopyRevision}>Copy</Button>
-                  <Button variant="ghost" size="sm" onClick={clearRevision}>Clear</Button>
-                </>
-              )}
+      <section className="shrink-0 border-b border-white/10 bg-[#0C0C11]/95 px-4 py-3">
+        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Study Context</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold text-white">{currentChapterLabel}</span>
+              <span className="text-gray-700">/</span>
+              <span className="text-gray-300">{currentTopicLabel}</span>
+              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-cyan-300">
+                Chemistry
+              </span>
             </div>
-            {revisionOutput && (
-              <div className="bg-black/20 border border-white/10 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap">
-                <ChemistryBlock value={revisionOutput} />
-              </div>
-            )}
-            {loadingRevision && (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-            )}
           </div>
-        </CollapsiblePanel>
 
-        {/* Exam Panel */}
-        <CollapsiblePanel title="Exam Lab" isOpen={examOpen} onToggle={() => setExamOpen(!examOpen)}>
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <Input
-                placeholder="Topic (e.g., matter_definition)"
-                value={examTopic}
-                onChange={(e) => setExamTopic(e.target.value)}
-                className="flex-1 min-w-[200px]"
-              />
-              <Button variant={examType === "mcq" ? "primary" : "secondary"} size="sm" onClick={() => setExamType("mcq")}>
-                MCQs
-              </Button>
-              <Button variant={examType === "probable" ? "primary" : "secondary"} size="sm" onClick={() => setExamType("probable")}>
-                Probable
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={examType === "mcq" ? generateMCQs : generateProbable}
-                disabled={loadingExam}
-              >
-                {loadingExam ? "Generating..." : "Generate"}
-              </Button>
-              {(mcqs.length > 0 || probableOutput) && (
-                <Button variant="danger" size="sm" onClick={clearExam}>Clear</Button>
-              )}
+          <div className="grid gap-2 sm:grid-cols-2 lg:w-[560px]">
+            <select
+              value={chapter}
+              onChange={(e) => {
+                const c = e.target.value;
+                setChapter(c);
+                const t = topicsByChapter[c]?.[0]?.value || "alkanes";
+                setTopic(t);
+                updateURL(c, t);
+              }}
+              className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+            >
+              {chapters.map((c) => (
+                <option key={c} value={c}>{c.replace(/-/g, " ").toUpperCase()}</option>
+              ))}
+            </select>
+            <select
+              value={topic}
+              onChange={(e) => { setTopic(e.target.value); updateURL(chapter, e.target.value); }}
+              className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+            >
+              {topicsByChapter[chapter]?.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <main className="min-h-0 flex-1 overflow-hidden px-4 py-4">
+        <div className="mx-auto grid h-full max-w-[1480px] grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#101015]/95">
+            <div className="shrink-0 border-b border-white/10 px-3 py-3">
+              <div className="flex flex-wrap gap-1">
+                {WORKSPACE_TABS.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveWorkspace(tab.id)}
+                    className={`rounded-md px-3 py-2 text-left transition-colors ${
+                      activeWorkspace === tab.id
+                        ? "bg-white/10 text-white"
+                        : "text-gray-500 hover:bg-white/[0.04] hover:text-gray-300"
+                    }`}
+                  >
+                    <span className="block text-xs font-semibold">{tab.label}</span>
+                    <span className="hidden text-[10px] text-gray-500 sm:block">{tab.description}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            {loadingExam && <p className="text-sm text-gray-500">Generating exam content...</p>}
-            {examStatus && <p className="text-sm text-gray-500">{examStatus}</p>}
 
-            {mcqs.length > 0 && (
-              <div className="max-h-80 overflow-y-auto space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400">SCORE: {score}/{mcqs.length} ({answeredCount}/{mcqs.length} answered)</span>
-                  <Button variant="secondary" size="sm" onClick={restartGeneratedMcqs}>Restart</Button>
-                </div>
-                {mcqs.map((q, index) => (
-                  <div key={q.id ?? index} className="bg-black/20 border border-white/10 rounded-lg p-4">
-                    <p className="text-sm text-white font-semibold mb-3">
-                      <span className="text-orange-400 mr-2">Q{index + 1}.</span>
-                      {renderChemistryText(q.question)}
-                    </p>
-                    <div className="space-y-2">
-                      {q.options.map((opt, i) => {
-                        const letter = opt.charAt(0).toUpperCase();
-                        const selected = selectedAnswers[index];
-                        const isCorrect = letter === q.correct;
+            {activeWorkspace === "chat" && (
+              <div className="flex min-h-0 flex-1 flex-col">
+                <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+                  {coachMessages.length === 0 && !thinkingMessage ? (
+                    <div className="flex h-full items-center justify-center text-center">
+                      <div className="max-w-xl space-y-5">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border border-orange-400/20 bg-orange-400/10 text-lg font-bold text-orange-300">
+                          {coachName[0]}
+                        </div>
+                        <div>
+                          <p className="text-2xl font-semibold text-white">{coachName} is ready</p>
+                          <p className="mt-2 text-sm leading-6 text-gray-400">
+                            Ask for a concept explanation, exam answer, revision notes, or a practice set.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {quickActions.slice(0, 3).map((action) => (
+                            <button
+                              key={action.prompt}
+                              onClick={() => { setCoachInput(action.prompt); coachInputRef.current?.focus(); }}
+                              className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300 hover:border-cyan-400/30 hover:text-white"
+                            >
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {thinkingMessage && (
+                        <div className="flex justify-start">
+                          <div className="flex max-w-[85%] gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-xs font-bold text-orange-300">
+                              {coachName[0]}
+                            </div>
+                            <div className="rounded-xl px-4 py-3 rounded-bl-md bg-white/[0.055] text-gray-400 flex items-center gap-2">
+                              <span className="animate-pulse">{thinkingMessage}</span>
+                              <CoachTyping />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {showAgentPipeline && (
+                        <div className="flex justify-start">
+                          <div className="flex max-w-[85%] gap-3">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-xs font-bold text-orange-300">
+                              {coachName[0]}
+                            </div>
+                            <div>
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="text-xs font-semibold text-orange-300">{coachName}</span>
+                                <span className="text-[10px] uppercase tracking-wider text-gray-600">multi-agent</span>
+                              </div>
+                              <AgentPipeline stages={agentStages} coachName={coachName} />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {coachMessages.map((msg, idx) => {
+                        const hidePendingCoachBubble = msg.role === "coach" && !msg.content && showAgentPipeline && coachLoading;
+                        if (hidePendingCoachBubble) return null;
+
                         return (
-                          <button
-                            key={i}
-                            onClick={() => handleAnswerSelect(index, letter, q.correct)}
-                            disabled={!!selected}
-                            className={`w-full text-left rounded-md border px-4 py-2.5 text-sm transition-all ${
-                              selected
-                                ? isCorrect
-                                  ? "border-green-500/50 bg-green-500/10 text-green-400"
-                                  : selected === letter
-                                  ? "border-red-500/50 bg-red-500/10 text-red-400"
-                                  : "border-white/10 bg-black/30 text-gray-500"
-                                : "border-white/10 bg-black/30 text-gray-300 hover:border-white/30"
-                            }`}
-                          >
-                            {renderChemistryText(opt)}
-                          </button>
+                          <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                            <div className={`flex max-w-[86%] gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                                msg.role === "user" ? "bg-cyan-500/15 text-cyan-300" : "bg-orange-500/15 text-orange-300"
+                              }`}>
+                                {msg.role === "user" ? "U" : coachName[0]}
+                              </div>
+                              <div className={msg.role === "user" ? "text-right" : ""}>
+                                <div className={`mb-1 flex items-center gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
+                                  <span className={`text-xs font-semibold ${msg.role === "user" ? "text-cyan-300" : "text-orange-300"}`}>
+                                    {msg.role === "user" ? "You" : coachName}
+                                  </span>
+                                  {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
+                                </div>
+                                <div className={`max-w-full rounded-xl px-5 py-4 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
+                                  msg.role === "user"
+                                    ? "bg-cyan-500/15 text-cyan-50 rounded-br-md"
+                                    : "bg-white/[0.055] text-gray-200 rounded-bl-md"
+                                }`}>
+                                  {msg.role === "coach" ? (
+                                    <CoachAnswerBlock value={msg.content} />
+                                  ) : (
+                                    <ChemistryBlock value={msg.content} />
+                                  )}
+                                  {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
-                    {selectedAnswers[index] && (
-                      <p className="mt-2 text-xs text-gray-400">
-                        {selectedAnswers[index] === q.correct ? "✅ Correct" : `❌ Incorrect — Answer: ${q.correct}`}
-                        {q.explanation && ` — ${q.explanation}`}
-                      </p>
-                    )}
+                  )}
+                  <div ref={coachEndRef} />
+                </div>
+
+                <div className="shrink-0 border-t border-white/10 bg-[#0C0C11] px-4 py-3">
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.prompt}
+                        className="rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-cyan-400/30 hover:text-white"
+                        onClick={() => { setActiveWorkspace("chat"); setCoachInput(action.prompt); coachInputRef.current?.focus(); }}
+                      >
+                        {action.label}
+                      </button>
+                    ))}
                   </div>
-                ))}
+                  <div className="flex gap-3 items-end">
+                    <textarea
+                      ref={coachInputRef}
+                      value={coachInput}
+                      onChange={(e) => setCoachInput(e.target.value)}
+                      onKeyDown={handleCoachKeyDown}
+                      placeholder={`Message ${coachName}...`}
+                      rows={1}
+                      className="flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-400"
+                    />
+                    <Button
+                      variant={isListening ? "danger" : "secondary"}
+                      size="sm"
+                      onClick={toggleListening}
+                      disabled={!recognitionRef.current}
+                      className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-cyan-400/20 !bg-cyan-400/10 !text-cyan-300"}
+                    >
+                      Voice
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      className="!bg-cyan-400 !text-black hover:!bg-cyan-300"
+                      onClick={handleAskCoach}
+                      disabled={coachLoading || !coachInput.trim()}
+                    >
+                      Send
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
 
-            {probableOutput && (
-              <div className="bg-black/20 border border-white/10 rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap">
-                <ChemistryBlock value={probableOutput} />
+            {activeWorkspace === "revise" && (
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+                <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Revision Desk</p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">{currentTopicLabel}</h2>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <select
+                      value={revMode}
+                      onChange={(e) => setRevMode(e.target.value as "summary" | "explain" | "key")}
+                      className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+                    >
+                      <option value="summary">Summary</option>
+                      <option value="explain">Explain</option>
+                      <option value="key">Key Points</option>
+                    </select>
+                    <Button variant="primary" size="sm" className="!bg-cyan-400 !text-black hover:!bg-cyan-300" onClick={() => handleRevision()} disabled={loadingRevision}>
+                      {loadingRevision ? "Generating..." : "Generate Notes"}
+                    </Button>
+                    {revisionOutput && <Button variant="ghost" size="sm" onClick={handleCopyRevision}>Copy</Button>}
+                    {revisionOutput && <Button variant="ghost" size="sm" onClick={clearRevision}>Clear</Button>}
+                  </div>
+                </div>
+
+                {loadingRevision && (
+                  <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-4 w-5/6" />
+                  </div>
+                )}
+
+                {revisionOutput ? (
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm leading-7 text-gray-200 whitespace-pre-wrap">
+                    <ChemistryBlock value={revisionOutput} />
+                  </div>
+                ) : !loadingRevision && (
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-6">
+                    <p className="text-sm font-semibold text-white">Create a revision asset</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+                      Generate concise notes, a full explanation, or key recall points for the selected topic.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        </CollapsiblePanel>
-      </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-          {coachMessages.length === 0 && !thinkingMessage ? (
-            <div className="flex h-full items-center justify-center text-center">
-              <div className="max-w-md space-y-3">
-                <p className="text-2xl font-bold text-white">{coachName}</p>
-                <p className="text-sm text-gray-400">Your personal AI coach is ready. Ask me anything.</p>
+            {activeWorkspace === "practice" && (
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+                <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Practice Lab</p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">Exam training for {currentTopicLabel}</h2>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      placeholder="Topic override"
+                      value={examTopic}
+                      onChange={(e) => setExamTopic(e.target.value)}
+                      className="min-w-[220px] !bg-black/40"
+                    />
+                    <Button variant={examType === "mcq" ? "primary" : "secondary"} size="sm" className={examType === "mcq" ? "!bg-cyan-400 !text-black" : ""} onClick={() => setExamType("mcq")}>
+                      MCQs
+                    </Button>
+                    <Button variant={examType === "probable" ? "primary" : "secondary"} size="sm" className={examType === "probable" ? "!bg-cyan-400 !text-black" : ""} onClick={() => setExamType("probable")}>
+                      Probable
+                    </Button>
+                    <Button variant="primary" size="sm" className="!bg-cyan-400 !text-black hover:!bg-cyan-300" onClick={examType === "mcq" ? generateMCQs : generateProbable} disabled={loadingExam}>
+                      {loadingExam ? "Generating..." : "Generate"}
+                    </Button>
+                    {(mcqs.length > 0 || probableOutput) && <Button variant="danger" size="sm" onClick={clearExam}>Clear</Button>}
+                  </div>
+                </div>
+
+                {loadingExam && <p className="text-sm text-gray-500">Generating exam content...</p>}
+                {examStatus && <p className="text-sm text-gray-500">{examStatus}</p>}
+
+                {mcqs.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.03] px-4 py-3">
+                      <span className="text-xs font-bold text-gray-300">SCORE: {score}/{mcqs.length} ({answeredCount}/{mcqs.length} answered)</span>
+                      <Button variant="secondary" size="sm" onClick={restartGeneratedMcqs}>Restart</Button>
+                    </div>
+                    {mcqs.map((q, index) => (
+                      <div key={q.id ?? index} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                        <p className="mb-3 text-sm font-semibold text-white">
+                          <span className="mr-2 text-cyan-300">Q{index + 1}.</span>
+                          {renderChemistryText(q.question)}
+                        </p>
+                        <div className="space-y-2">
+                          {q.options.map((opt, i) => {
+                            const letter = opt.charAt(0).toUpperCase();
+                            const selected = selectedAnswers[index];
+                            const isCorrect = letter === q.correct;
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => handleAnswerSelect(index, letter, q.correct)}
+                                disabled={!!selected}
+                                className={`w-full rounded-md border px-4 py-2.5 text-left text-sm transition-all ${
+                                  selected
+                                    ? isCorrect
+                                      ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                                      : selected === letter
+                                      ? "border-red-500/50 bg-red-500/10 text-red-300"
+                                      : "border-white/10 bg-black/30 text-gray-500"
+                                    : "border-white/10 bg-black/30 text-gray-300 hover:border-cyan-400/30"
+                                }`}
+                              >
+                                {renderChemistryText(opt)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {selectedAnswers[index] && (
+                          <p className="mt-3 text-xs leading-5 text-gray-400">
+                            {selectedAnswers[index] === q.correct ? "Correct" : `Incorrect. Answer: ${q.correct}`}
+                            {q.explanation && ` - ${q.explanation}`}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {probableOutput && (
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm leading-7 text-gray-200 whitespace-pre-wrap">
+                    <ChemistryBlock value={probableOutput} />
+                  </div>
+                )}
+
+                {!loadingExam && mcqs.length === 0 && !probableOutput && (
+                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-6">
+                    <p className="text-sm font-semibold text-white">Generate exam practice</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
+                      Build MCQs or probable questions from your selected topic. Results are saved into your learning profile when completed.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeWorkspace === "history" && (
+              <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+                <div className="mb-5 flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Conversation Ledger</p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">Study history</h2>
+                  </div>
+                  <Button variant="secondary" size="sm" onClick={startNewChat}>New Chat</Button>
+                </div>
+                <div className="space-y-2">
+                  {sessions.length === 0 ? (
+                    <p className="rounded-lg border border-white/10 bg-white/[0.03] p-5 text-sm text-gray-500">No conversations yet.</p>
+                  ) : (
+                    sessions.map((session) => (
+                      <button
+                        key={session.id}
+                        onClick={() => { loadSession(session.id); setActiveWorkspace("chat"); }}
+                        className={`w-full rounded-lg border p-4 text-left transition-colors ${
+                          session.id === currentSessionId
+                            ? "border-cyan-400/30 bg-cyan-400/10"
+                            : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                        }`}
+                      >
+                        <div className="truncate text-sm font-medium text-white">{session.title}</div>
+                        <div className="mt-1 text-[11px] text-gray-500">{new Date(session.lastUpdated).toLocaleString()}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+
+          <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
+            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+              <div className="relative">
+                {xpAnimation && <XPFloat amount={xpAnimation.amount} />}
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agent Intelligence</p>
+                <h2 className="mt-1 text-lg font-semibold text-white">{coachName}</h2>
+                <p className="mt-1 text-xs leading-5 text-gray-500">{coachProfile?.coach_style || "exam_oriented"} / {coachProfile?.coach_tone || "focused_supportive"}</p>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[10px] uppercase text-gray-500">Accuracy</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{accuracy}%</p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[10px] uppercase text-gray-500">Level</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{level}</p>
+                </div>
+                <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+                  <p className="text-[10px] uppercase text-gray-500">Streak</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{progress.streak}d</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <div className="mb-1 flex justify-between text-[10px] uppercase text-gray-500">
+                  <span>Level progress</span>
+                  <span>{xpProgressPercent}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-cyan-300" style={{ width: `${xpProgressPercent}%` }} />
+                </div>
               </div>
             </div>
-          ) : (
-            <>
-              {thinkingMessage && (
-                <div className="flex justify-start">
-                  <div className="flex max-w-[85%] gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
-                      {coachName[0]}
-                    </div>
-                    <div className="rounded-2xl px-5 py-3 rounded-bl-md bg-white/5 text-gray-400 flex items-center gap-2">
-                      <span className="animate-pulse">{thinkingMessage}</span>
-                      <CoachTyping />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {showAgentPipeline && (
-                <div className="flex justify-start">
-                  <div className="flex max-w-[85%] gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
-                      {coachName[0]}
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className="text-xs font-semibold text-orange-400">{coachName}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-gray-600">multi-agent</span>
-                      </div>
-                      <AgentPipeline stages={agentStages} coachName={coachName} />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {coachMessages.map((msg, idx) => {
-                const hidePendingCoachBubble = msg.role === "coach" && !msg.content && showAgentPipeline && coachLoading;
-                if (hidePendingCoachBubble) return null;
 
-                return (
-                  <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                    <div className="flex max-w-[85%] gap-3">
-                      {msg.role === "coach" && (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-xs font-bold text-orange-400">
-                          {coachName[0]}
-                        </div>
-                      )}
-                      <div>
-                        <div className="mb-1 flex items-center gap-2">
-                          <span className={`text-xs font-semibold ${msg.role === "user" ? "text-blue-400 ml-auto" : "text-orange-400"}`}>
-                            {msg.role === "user" ? "You" : coachName}
-                          </span>
-                          {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
-                        </div>
-                        <div className={`max-w-full rounded-2xl px-5 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
-                          msg.role === "user"
-                            ? "bg-blue-500/20 text-blue-100 rounded-br-md"
-                            : "bg-white/5 text-gray-200 rounded-bl-md"
-                        }`}>
-                          {msg.role === "coach" ? (
-                            <CoachAnswerBlock value={msg.content} />
-                          ) : (
-                            <ChemistryBlock value={msg.content} />
-                          )}
-                          {coachLoading && idx === coachMessages.length - 1 && msg.role === "coach" && !msg.content && <CoachTyping />}
-                        </div>
-                      </div>
-                      {msg.role === "user" && (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-xs font-bold text-blue-400">
-                          U
-                        </div>
-                      )}
+            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Next Best Action</p>
+              <p className="mt-3 text-sm leading-6 text-gray-200">{nextAction}</p>
+              <button
+                onClick={() => { setActiveWorkspace("chat"); setCoachInput(nextAction); coachInputRef.current?.focus(); }}
+                className="mt-4 w-full rounded-md border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-400/15"
+              >
+                Ask Aria to guide this
+              </button>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Daily Load</p>
+                <span className="text-xs text-gray-400">{dailyQuestions}/{dailyGoal}</span>
+              </div>
+              <div className="mt-3 h-1.5 rounded-full bg-white/10">
+                <div className="h-full rounded-full bg-emerald-300" style={{ width: `${Math.min(100, Math.round((dailyQuestions / dailyGoal) * 100))}%` }} />
+              </div>
+              <div className="mt-4 space-y-2 text-xs text-gray-400">
+                <div className="flex justify-between"><span>Chapter</span><span className="text-gray-200">{currentChapterLabel}</span></div>
+                <div className="flex justify-between"><span>Topic</span><span className="text-gray-200">{currentTopicLabel}</span></div>
+                <div className="flex justify-between"><span>Mode</span><span className="text-gray-200">{activeWorkspace}</span></div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agent Memory</p>
+              <div className="mt-3 space-y-3">
+                {memoryPreview.length ? (
+                  memoryPreview.map((memory, index) => (
+                    <div key={memory.id ?? index} className="border-l border-white/10 pl-3">
+                      <p className="text-xs font-semibold text-gray-200">{memory.title || memory.memory_type || "Memory"}</p>
+                      <p className="mt-1 line-clamp-3 text-xs leading-5 text-gray-500">{memory.summary}</p>
                     </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-          <div ref={coachEndRef} />
-        </div>
+                  ))
+                ) : (
+                  <p className="text-xs leading-5 text-gray-500">Aria will build memory as you ask questions and complete practice.</p>
+                )}
+              </div>
+            </div>
 
-        {/* Dynamic Quick-Action Buttons */}
-        <div className="px-4 pb-1 flex flex-wrap gap-2 justify-center">
-          {quickActions.map((action) => (
-            <Button
-              key={action.prompt}
-              variant="ghost"
-              size="sm"
-              className="text-xs !text-gray-400 hover:!text-white !border !border-white/10 hover:!border-white/30"
-              onClick={() => { setCoachInput(action.prompt); coachInputRef.current?.focus(); }}
-            >
-              {action.label}
-            </Button>
-          ))}
+            <div className="rounded-lg border border-white/10 bg-[#101015]/95 p-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Recent Sessions</p>
+              <div className="mt-3 space-y-2">
+                {recentSessions.length ? (
+                  recentSessions.map((session) => (
+                    <button
+                      key={session.id}
+                      onClick={() => { loadSession(session.id); setActiveWorkspace("chat"); }}
+                      className="w-full rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-left hover:border-white/20"
+                    >
+                      <p className="truncate text-xs font-medium text-gray-200">{session.title}</p>
+                      <p className="mt-1 text-[10px] text-gray-600">{new Date(session.lastUpdated).toLocaleDateString()}</p>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-xs text-gray-500">No saved sessions yet.</p>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
-
-        {/* Input with Voice */}
-        <div className="border-t border-white/10 px-4 py-3">
-          <div className="flex gap-3 items-end">
-            <textarea
-              ref={coachInputRef}
-              value={coachInput}
-              onChange={(e) => setCoachInput(e.target.value)}
-              onKeyDown={handleCoachKeyDown}
-              placeholder={`Message ${coachName}...`}
-              rows={1}
-              className="flex-1 resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-orange-400"
-            />
-            <Button
-              variant={isListening ? "danger" : "secondary"}
-              size="sm"
-              onClick={toggleListening}
-              disabled={!recognitionRef.current}
-              className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-blue-400/20 !bg-blue-400/10 !text-blue-400"}
-            >
-              🎤
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              className="!bg-orange-500 !text-black hover:!bg-orange-400"
-              onClick={handleAskCoach}
-              disabled={coachLoading || !coachInput.trim()}
-            >
-              Send
-            </Button>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
