@@ -152,6 +152,12 @@ function clamp(value: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
 
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
 function getLocalDayKey(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -220,8 +226,9 @@ function shortId(value: string) {
   return `${value.slice(0, 8)}...${value.slice(-6)}`;
 }
 
-function getUserDisplayName(user: any) {
-  return user?.displayName || user?.phoneNumber || user?.email || user?.uid || "UNKNOWN_USER";
+function getUserDisplayName(user: unknown) {
+  if (!isRecord(user)) return "UNKNOWN_USER";
+  return String(user.displayName || user.phoneNumber || user.email || user.uid || "UNKNOWN_USER");
 }
 
 // ── IMPROVED: uses shortId for missing names ──────────────────────────────
@@ -278,11 +285,11 @@ function writeDashboardCache(userId: string, data: DashboardData) {
 }
 
 // ─── Data normalizers (unchanged) ──────────────────────────────────────────
-function normalizeProgress(source: any, userId: string): Progress {
-  if (!source || typeof source !== "object") {
+function normalizeProgress(source: unknown, userId: string): Progress {
+  if (!isRecord(source)) {
     return { ...EMPTY_PROGRESS, user_id: userId };
   }
-  const summary = source.summary && typeof source.summary === "object" ? source.summary : source;
+  const summary = isRecord(source.summary) ? source.summary : source;
   return {
     user_id: String(summary.user_id ?? source.user_id ?? userId),
     total_tests: toNumber(
@@ -335,8 +342,8 @@ function normalizeLeaderboard(source: unknown): LeaderboardUser[] {
 
 function normalizeSessions(source: unknown): SessionRecord[] {
   if (Array.isArray(source)) return source.filter(Boolean) as SessionRecord[];
-  if (source && typeof source === "object" && Array.isArray((source as any).sessions)) {
-    return (source as any).sessions.filter(Boolean) as SessionRecord[];
+  if (isRecord(source) && Array.isArray(source.sessions)) {
+    return source.sessions.filter(Boolean) as SessionRecord[];
   }
   return [];
 }
@@ -346,39 +353,50 @@ function normalizeTrends(source: unknown): TrendPoint[] {
   return source.filter(Boolean) as TrendPoint[];
 }
 
-function normalizeWeakAreas(analytics: any): WeakArea[] {
-  const weakAreas = Array.isArray(analytics?.weak_areas) ? analytics.weak_areas : [];
-  const heatmap = Array.isArray(analytics?.topic_heatmap) ? analytics.topic_heatmap : [];
+function normalizeWeakAreas(analytics: unknown): WeakArea[] {
+  const analyticsRecord = isRecord(analytics) ? analytics : {};
+  const weakAreas = Array.isArray(analyticsRecord.weak_areas) ? analyticsRecord.weak_areas : [];
+  const heatmap = Array.isArray(analyticsRecord.topic_heatmap) ? analyticsRecord.topic_heatmap : [];
 
-  const directWeak = weakAreas.map((item: any) => ({
-    topic: String(item.topic ?? "UNKNOWN_TOPIC"),
-    accuracy: toNumber(item.accuracy ?? item.value),
-    attempts: item.attempts !== undefined ? toNumber(item.attempts) : undefined,
-    avg_time: item.avg_time !== undefined ? toNumber(item.avg_time) : undefined,
-    trend: item.trend !== undefined ? toNumber(item.trend) : undefined,
-  }));
+  const directWeak = weakAreas.map((item) => {
+    const row = isRecord(item) ? item : {};
+    return {
+      topic: String(row.topic ?? "UNKNOWN_TOPIC"),
+      accuracy: toNumber(row.accuracy ?? row.value),
+      attempts: row.attempts !== undefined ? toNumber(row.attempts) : undefined,
+      avg_time: row.avg_time !== undefined ? toNumber(row.avg_time) : undefined,
+      trend: row.trend !== undefined ? toNumber(row.trend) : undefined,
+    };
+  });
 
   if (directWeak.length) return directWeak.slice(0, 5);
 
   return heatmap
-    .map((item: any) => ({
-      topic: String(item.topic ?? "UNKNOWN_TOPIC"),
-      accuracy: toNumber(item.accuracy ?? item.value),
-      attempts: item.attempts !== undefined ? toNumber(item.attempts) : undefined,
-      trend: item.trend !== undefined ? toNumber(item.trend) : undefined,
-    }))
+    .map((item) => {
+      const row = isRecord(item) ? item : {};
+      return {
+        topic: String(row.topic ?? "UNKNOWN_TOPIC"),
+        accuracy: toNumber(row.accuracy ?? row.value),
+        attempts: row.attempts !== undefined ? toNumber(row.attempts) : undefined,
+        trend: row.trend !== undefined ? toNumber(row.trend) : undefined,
+      };
+    })
     .filter((item: WeakArea) => item.accuracy < 60)
     .slice(0, 5);
 }
 
-function normalizeInsights(analytics: any): Insight[] {
-  const insights = Array.isArray(analytics?.insights) ? analytics.insights : [];
+function normalizeInsights(analytics: unknown): Insight[] {
+  const analyticsRecord = isRecord(analytics) ? analytics : {};
+  const insights = Array.isArray(analyticsRecord.insights) ? analyticsRecord.insights : [];
   return insights
-    .map((item: any) => ({
-      type: item.type ? String(item.type) : "signal",
-      message: String(item.message ?? ""),
-      severity: item.severity ? String(item.severity) : "info",
-    }))
+    .map((item) => {
+      const row = isRecord(item) ? item : {};
+      return {
+        type: row.type ? String(row.type) : "signal",
+        message: String(row.message ?? ""),
+        severity: row.severity ? String(row.severity) : "info",
+      };
+    })
     .filter((item: Insight) => item.message)
     .slice(0, 3);
 }
@@ -610,7 +628,10 @@ function GlassCard({
   loading?: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90">
+    <div
+      data-accent={accent}
+      className="dashboard-stat-card relative overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90"
+    >
       <div className="text-[11px] font-medium text-slate-500">{label.replace(/_/g, " ")}</div>
       <div
         className={cn(
@@ -644,7 +665,7 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
+        "dashboard-panel overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
         className,
       )}
     >
@@ -874,7 +895,7 @@ export default function DashboardPage() {
   return (
     <div className="w-full space-y-6 text-slate-100">
       {/* Header */}
-      <div className="rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.20)] backdrop-blur-xl md:p-6">
+      <div className="dashboard-hero-card rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.20)] backdrop-blur-xl md:p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
