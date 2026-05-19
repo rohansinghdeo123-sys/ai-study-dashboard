@@ -683,9 +683,12 @@ body {
 .study-topic-card,
 .study-workspace-card,
 .study-side-card,
-.study-empty-state,
 .study-content-card {
   box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+}
+
+.study-empty-state {
+  box-shadow: none !important;
 }
 
 .study-mission-card {
@@ -746,7 +749,6 @@ body {
 
 [data-theme="light"] .study-top-stat,
 [data-theme="light"] .study-topic-card,
-[data-theme="light"] .study-empty-state,
 [data-theme="light"] .study-content-card,
 [data-theme="light"] .study-side-card {
   border-color: rgba(255,255,255,0.68) !important;
