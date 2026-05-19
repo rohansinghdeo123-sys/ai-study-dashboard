@@ -594,6 +594,63 @@ body {
   background: rgba(249, 250, 254, 0.82) !important;
 }
 
+.dashboard-mission-card,
+.dashboard-readiness-card {
+  box-shadow: 0 16px 42px rgba(0,0,0,0.14);
+}
+
+.dashboard-mission-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-mission-card::before {
+  content: "";
+  position: absolute;
+  inset: -36px -42px auto auto;
+  height: 110px;
+  width: 110px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(34,211,238,0.16), transparent 68%);
+  pointer-events: none;
+}
+
+.dashboard-mission-card[data-tone="green"]::before {
+  background: radial-gradient(circle, rgba(16,185,129,0.16), transparent 68%);
+}
+
+.dashboard-mission-card[data-tone="orange"]::before {
+  background: radial-gradient(circle, rgba(245,158,11,0.18), transparent 68%);
+}
+
+.dashboard-mission-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+[data-theme="light"] .dashboard-mission-card,
+[data-theme="light"] .dashboard-readiness-card {
+  border-color: rgba(255, 255, 255, 0.70) !important;
+  background: rgba(255, 255, 255, 0.76) !important;
+  box-shadow: 0 18px 48px rgba(82, 91, 120, 0.10), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+}
+
+[data-theme="light"] .dashboard-mission-card[data-tone="blue"] {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F3F1FF 100%) !important;
+}
+
+[data-theme="light"] .dashboard-mission-card[data-tone="green"] {
+  background: linear-gradient(135deg, #F0FFF9 0%, #FFFFFF 100%) !important;
+}
+
+[data-theme="light"] .dashboard-mission-card[data-tone="orange"] {
+  background: linear-gradient(135deg, #FFF7EC 0%, #FFFFFF 100%) !important;
+}
+
+[data-theme="light"] .dashboard-readiness-card {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F4F7FF 54%, #F0FFF9 100%) !important;
+}
+
 /* ============================================================
    6. STUDY LAB PREMIUM LEARNING COCKPIT
    ============================================================ */

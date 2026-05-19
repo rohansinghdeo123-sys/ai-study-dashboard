@@ -683,6 +683,29 @@ function GlassPanel({
   );
 }
 
+function MissionCard({
+  label,
+  title,
+  detail,
+  action,
+  tone = "blue",
+}: {
+  label: string;
+  title: string;
+  detail: string;
+  action: React.ReactNode;
+  tone?: "blue" | "green" | "orange";
+}) {
+  return (
+    <div data-tone={tone} className="dashboard-mission-card rounded-lg border border-white/10 bg-white/[0.035] p-4">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{label}</div>
+      <h3 className="mt-2 text-base font-semibold text-white">{title}</h3>
+      <p className="mt-2 min-h-[42px] text-sm leading-6 text-slate-400">{detail}</p>
+      <div className="mt-4">{action}</div>
+    </div>
+  );
+}
+
 function TrendIcon({ trend }: { trend?: number }) {
   if (trend === undefined || trend === 0)
     return <span className="text-gray-500 text-xs">→</span>;
@@ -874,6 +897,25 @@ export default function DashboardPage() {
   }, []);
 
   const weakCount = data.weakAreas.length;
+  const primaryWeakTopic = data.weakAreas[0]?.topic;
+  const latestSession = recentSessions[0];
+  const missionTopic = primaryWeakTopic ?? latestSession?.topic ?? latestSession?.subject ?? "alkanes";
+  const missionTitle = primaryWeakTopic
+    ? `Repair ${primaryWeakTopic}`
+    : data.progress.total_questions > 0
+      ? "Keep your learning streak warm"
+      : "Start your first focused sprint";
+  const missionDetail = primaryWeakTopic
+    ? `Your AI coach detected ${primaryWeakTopic} as the most useful topic to revise next.`
+    : data.progress.total_questions > 0
+      ? "Continue with a short explanation, then test yourself with a few focused MCQs."
+      : "Begin with one clear concept explanation and let your coach build your learning profile.";
+  const readinessLabel =
+    analytics.accuracy >= 75
+      ? "Exam ready"
+      : analytics.accuracy >= 45
+        ? "Building confidence"
+        : "Needs guided practice";
 
   const goToTopic = useCallback(
     (topic: string) => {
@@ -893,48 +935,112 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full space-y-6 text-slate-100">
-      {/* Header */}
+    <div className="dashboard-command-center w-full space-y-6 text-slate-100">
       <div className="dashboard-hero-card rounded-lg border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.20)] backdrop-blur-xl md:p-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
-            Learning Command Center
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-stretch">
+          <div className="min-w-0">
+            <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">
+              Student Command Center
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              {greeting}, <span className="text-cyan-200">{currentDisplayName}</span>
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+              {dataLoading ? (
+                <Skeleton className="h-5 w-64" />
+              ) : (
+                missionDetail
+              )}
+            </p>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              <MissionCard
+                label="Daily mission"
+                title={missionTitle}
+                detail={weakCount > 0 ? `${weakCount} topic${weakCount > 1 ? "s" : ""} need attention today.` : "Build momentum with one complete learning loop."}
+                tone="blue"
+                action={
+                  <Button size="sm" onClick={() => goToTopic(missionTopic)}>
+                    Start in Study Lab
+                  </Button>
+                }
+              />
+              <MissionCard
+                label="Practice target"
+                title={`${Math.max(5, 10 - Math.min(5, data.progress.total_questions))} smart questions`}
+                detail="A short MCQ sprint is enough to give your AI coach a stronger signal."
+                tone="green"
+                action={
+                  <Button variant="secondary" size="sm" onClick={() => router.push("/dashboard/study")}>
+                    Generate Practice
+                  </Button>
+                }
+              />
+              <MissionCard
+                label="Coach insight"
+                title={readinessLabel}
+                detail={analytics.accuracy > 0 ? `Your current accuracy signal is ${analytics.accuracy}%.` : "Your accuracy signal will unlock after practice."}
+                tone="orange"
+                action={
+                  <Button variant="secondary" size="sm" onClick={() => router.push("/dashboard/progress")}>
+                    View Analytics
+                  </Button>
+                }
+              />
+            </div>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
-            {greeting}, <span className="text-cyan-200">{currentDisplayName}</span>
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            {dataLoading ? (
-              <Skeleton className="h-5 w-64" />
-            ) : weakCount > 0 ? (
-              `Your AI coach found ${weakCount} weak topic${weakCount > 1 ? "s" : ""} today.`
-            ) : (
-              "Your AI coach is analysing your latest sessions."
-            )}
-          </p>
+
+          <div className="dashboard-readiness-card rounded-lg border border-white/10 bg-white/[0.035] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Learning readiness</p>
+                <p className="mt-2 text-3xl font-semibold text-white">{analytics.accuracy}%</p>
+              </div>
+              <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
+                {data.error ? "Sync warning" : "Live"}
+              </span>
+            </div>
+            <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-300 via-emerald-300 to-amber-300 transition-all duration-1000"
+                style={{ width: `${clamp(analytics.accuracy)}%` }}
+              />
+            </div>
+            <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+                <p className="text-[10px] uppercase text-slate-500">Level</p>
+                <p className="mt-1 text-lg font-semibold text-white">{analytics.level}</p>
+              </div>
+              <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+                <p className="text-[10px] uppercase text-slate-500">Streak</p>
+                <p className="mt-1 text-lg font-semibold text-white">{data.progress.streak}d</p>
+              </div>
+              <div className="rounded-md border border-white/10 bg-white/[0.035] p-3">
+                <p className="text-[10px] uppercase text-slate-500">Rank</p>
+                <p className="mt-1 text-lg font-semibold text-white">#{currentRank?.rank ?? "-"}</p>
+              </div>
+            </div>
+            <div className="mt-5 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-slate-400">
+              <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+              Updated {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </div>
+          </div>
         </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.035] px-4 py-3 text-sm text-slate-400">
-          <span className="mr-2 inline-flex h-2 w-2 rounded-full bg-emerald-300" />
-          Updated {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-        </div>
-      </div>
       </div>
 
-      {/* Top stat cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <GlassCard label="System_User" value={currentDisplayName} loading={dataLoading} />
-        <GlassCard label="MCQ_Attempts" value={data.progress.total_questions} accent="orange" loading={dataLoading} />
+        <GlassCard label="Student" value={currentDisplayName} loading={dataLoading} />
+        <GlassCard label="Questions" value={data.progress.total_questions} accent="orange" loading={dataLoading} />
         <GlassCard
-          label="Accuracy_Index"
+          label="Accuracy"
           value={`${analytics.accuracy}%`}
           accent={analytics.accuracy >= 75 ? "green" : analytics.accuracy >= 45 ? "orange" : "red"}
           loading={dataLoading}
         />
-        <GlassCard label="Current_Streak" value={`${data.progress.streak} Days`} accent="orange" loading={dataLoading} />
-        <GlassCard label="Terminal_Level" value={`LVL ${analytics.level}`} accent="orange" loading={dataLoading} />
+        <GlassCard label="Streak" value={`${data.progress.streak} Days`} accent="orange" loading={dataLoading} />
+        <GlassCard label="Level" value={`LVL ${analytics.level}`} accent="blue" loading={dataLoading} />
         <GlassCard
-          label="Backend_Status"
+          label="Coach Status"
           value={data.error ? "SYNC_WARN" : "LIVE"}
           accent={data.error ? "red" : "green"}
           loading={dataLoading}
