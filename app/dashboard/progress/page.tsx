@@ -40,6 +40,10 @@ type ProgressSummary = {
 type LeaderboardEntry = {
   rank: number;
   user_id: string;
+  name?: string;
+  display_name?: string;
+  email?: string;
+  phone?: string;
   xp: number;
   streak: number;
   total_tests: number;
@@ -74,6 +78,45 @@ function sum<T>(items: T[], getValue: (item: T) => number) {
 function average<T>(items: T[], getValue: (item: T) => number) {
   if (!items.length) return 0;
   return Math.round(sum(items, getValue) / items.length);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function toNumber(value: unknown, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function shortId(value: string) {
+  if (!value) return "UNKNOWN";
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
+function getUserDisplayName(user: unknown) {
+  if (!isRecord(user)) return "Student";
+  return String(user.displayName || user.phoneNumber || user.email || user.uid || "Student");
+}
+
+function getLeaderboardDisplayName(entry: LeaderboardEntry, currentUserId: string, currentDisplayName: string) {
+  if (entry.user_id === currentUserId) return currentDisplayName;
+  return entry.display_name || entry.name || entry.phone || entry.email || `Learner ${shortId(entry.user_id)}`;
+}
+
+function getLeaderboardMeta(entry: LeaderboardEntry, currentUserId: string) {
+  if (entry.user_id === currentUserId) return "Your profile";
+  return entry.email || entry.phone || `ID ${shortId(entry.user_id)}`;
+}
+
+function getInitials(value: string) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "AI";
 }
 
 function getAccuracy(session: Session) {
@@ -274,6 +317,98 @@ function buildHeatmap(sessions: Session[], days = 35) {
 }
 
 // ─── Data hook (unchanged) ────────────────────────────────────────────────
+function getLeaderboardRows(source: unknown) {
+  if (Array.isArray(source)) return source;
+  if (!isRecord(source)) return [];
+  if (Array.isArray(source.leaderboard)) return source.leaderboard;
+  if (Array.isArray(source.rankings)) return source.rankings;
+  if (Array.isArray(source.users)) return source.users;
+  return [];
+}
+
+function normalizeLeaderboardRows(source: unknown): LeaderboardEntry[] {
+  return getLeaderboardRows(source)
+    .map((item, index): LeaderboardEntry | null => {
+      if (!isRecord(item)) return null;
+      const userId = String(item.user_id ?? item.uid ?? item.id ?? item.terminal_id ?? "");
+      if (!userId) return null;
+      return {
+        rank: toNumber(item.rank, index + 1),
+        user_id: userId,
+        name: item.name ? String(item.name) : undefined,
+        display_name: item.display_name ? String(item.display_name) : undefined,
+        email: item.email ? String(item.email) : undefined,
+        phone: item.phone ? String(item.phone) : undefined,
+        xp: toNumber(item.xp ?? item.total_xp),
+        streak: toNumber(item.streak),
+        total_tests: toNumber(item.total_tests),
+      };
+    })
+    .filter((entry): entry is LeaderboardEntry => entry !== null);
+}
+
+function buildLeaderboard({
+  sources,
+  currentUserId,
+  currentDisplayName,
+  userEmail,
+  userPhone,
+  progress,
+}: {
+  sources: unknown[];
+  currentUserId: string;
+  currentDisplayName: string;
+  userEmail?: string | null;
+  userPhone?: string | null;
+  progress: ProgressSummary;
+}) {
+  const merged = new Map<string, LeaderboardEntry>();
+
+  for (const source of sources) {
+    for (const entry of normalizeLeaderboardRows(source)) {
+      const existing = merged.get(entry.user_id);
+      merged.set(entry.user_id, {
+        rank: entry.rank || existing?.rank || merged.size + 1,
+        user_id: entry.user_id,
+        name: entry.name ?? existing?.name,
+        display_name: entry.display_name ?? existing?.display_name,
+        email: entry.email ?? existing?.email,
+        phone: entry.phone ?? existing?.phone,
+        xp: entry.xp || existing?.xp || 0,
+        streak: entry.streak || existing?.streak || 0,
+        total_tests: entry.total_tests || existing?.total_tests || 0,
+      });
+    }
+  }
+
+  const current = merged.get(currentUserId);
+  merged.set(currentUserId, {
+    rank: current?.rank || merged.size + 1,
+    user_id: currentUserId,
+    name: current?.name,
+    display_name: currentDisplayName,
+    email: userEmail ?? current?.email,
+    phone: userPhone ?? current?.phone,
+    xp: current?.xp ?? progress.xp,
+    streak: current?.streak ?? progress.streak,
+    total_tests: current?.total_tests ?? progress.total_tests,
+  });
+
+  return [...merged.values()]
+    .sort((a, b) => b.xp - a.xp)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+async function safeReadJson(url: string, headers?: HeadersInit) {
+  try {
+    const response = await fetch(url, { cache: "no-store", headers });
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
+
 function useDashboardData() {
   const { user, loading: authLoading, getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -298,16 +433,24 @@ function useDashboardData() {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${backendURL}/dashboard/${user.uid}`, {
-          cache: "no-store",
-          headers: await getAuthHeaders(),
-        });
-        if (!response.ok) throw new Error(`Failed to load dashboard: ${response.status}`);
-        const payload = await response.json();
+        const headers = await getAuthHeaders();
+        const [payload, leaderboardPayload] = await Promise.all([
+          safeReadJson(`${backendURL}/dashboard/${user.uid}`, headers),
+          safeReadJson(`${backendURL}/leaderboard`, headers),
+        ]);
+        if (!isRecord(payload)) throw new Error("Failed to load dashboard");
+        const progressSummary = { ...emptyProgress, ...(isRecord(payload.progress) ? payload.progress : {}) } as ProgressSummary;
         if (!active) return;
         setSessions(Array.isArray(payload.sessions) ? payload.sessions : []);
-        setProgress({ ...emptyProgress, ...(payload.progress ?? {}) });
-        setLeaderboard(Array.isArray(payload.leaderboard) ? payload.leaderboard : []);
+        setProgress(progressSummary);
+        setLeaderboard(buildLeaderboard({
+          sources: [payload.leaderboard, leaderboardPayload],
+          currentUserId: user.uid,
+          currentDisplayName: getUserDisplayName(user),
+          userEmail: user.email,
+          userPhone: user.phoneNumber,
+          progress: progressSummary,
+        }));
       } catch {
         if (active) {
           setSessions([]);
@@ -321,9 +464,17 @@ function useDashboardData() {
     }
     load();
     return () => { active = false; };
-  }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
+  }, [authLoading, backendURL, getAuthHeaders, user]);
 
-  return { userId: user?.uid ?? "", sessions, progress, leaderboard, loading: loading || authLoading, error };
+  return {
+    userId: user?.uid ?? "",
+    currentDisplayName: getUserDisplayName(user),
+    sessions,
+    progress,
+    leaderboard,
+    loading: loading || authLoading,
+    error,
+  };
 }
 
 // ─── Glass UI components (same as other pages) ────────────────────────────
@@ -484,7 +635,7 @@ function downloadCSV(sessions: Session[]) {
 
 // ─── Main Analytics Page Component ─────────────────────────────────────────
 export default function ProgressPage() {
-  const { userId, sessions, progress, leaderboard, loading, error } = useDashboardData();
+  const { userId, currentDisplayName, sessions, progress, leaderboard, loading, error } = useDashboardData();
   const [range, setRange] = useState<TrendRange>("14d");
   const router = useRouter();
 
@@ -494,7 +645,6 @@ export default function ProgressPage() {
   const totalCorrect = progress.total_correct || sum(sessions, (s) => s.correct);
   const avgAccuracy = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
   const totalXp = progress.xp || sum(sessions, (s) => s.xp);
-  const avgFocus = progress.focus_score || average(sessions, (s) => s.focusScore);
   const levelProgress = Math.max(2, Math.min(100, totalXp % 100));
   const xpToNext = Math.max(0, 100 - (totalXp % 100));
 
@@ -556,7 +706,35 @@ export default function ProgressPage() {
     return list;
   }, [daily, worstTopic, progress, xpToNext]);
 
-  const currentRank = leaderboard.find((e) => e.user_id === userId) ?? (leaderboard[0] ?? { rank: 1, user_id: userId, xp: totalXp, streak: progress.streak, total_tests: progress.total_tests });
+  const rankedLeaderboard = useMemo(() => {
+    return [...leaderboard]
+      .sort((a, b) => b.xp - a.xp)
+      .map((entry, index) => ({
+        ...entry,
+        rank: index + 1,
+        displayLabel: getLeaderboardDisplayName(entry, userId, currentDisplayName),
+        metaLabel: getLeaderboardMeta(entry, userId),
+      }));
+  }, [leaderboard, userId, currentDisplayName]);
+
+  const currentRank = useMemo(() => (
+    rankedLeaderboard.find((e) => e.user_id === userId) ?? {
+      rank: 1,
+      user_id: userId,
+      display_name: currentDisplayName,
+      xp: totalXp,
+      streak: progress.streak,
+      total_tests: progress.total_tests,
+      displayLabel: currentDisplayName,
+      metaLabel: "Your profile",
+    }
+  ), [rankedLeaderboard, userId, currentDisplayName, totalXp, progress.streak, progress.total_tests]);
+
+  const visibleLeaderboard = useMemo(
+    () => (rankedLeaderboard.length ? rankedLeaderboard : [currentRank]).slice(0, 6),
+    [rankedLeaderboard, currentRank],
+  );
+  const maxLeaderboardXp = Math.max(1, ...visibleLeaderboard.map((entry) => entry.xp));
 
   const handleExportCSV = useCallback(() => downloadCSV(sessions), [sessions]);
 
@@ -594,6 +772,11 @@ export default function ProgressPage() {
             <p className="mt-1 text-sm text-slate-500">
               A student-friendly performance view with actionable AI signals.
             </p>
+            {error && (
+              <p className="mt-2 text-xs font-medium text-amber-300">
+                {error}
+              </p>
+            )}
           </div>
           <button
             onClick={handleExportCSV}
@@ -607,7 +790,7 @@ export default function ProgressPage() {
       {/* Top stat cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <GlassCard label="Accuracy" value={`${avgAccuracy}%`} tone={getScoreTone(avgAccuracy)} />
-        <GlassCard label="Focus Avg" value={`${Math.round(avgFocus)}`} tone={getScoreTone(Math.round(avgFocus))} />
+        <GlassCard label="Study Time" value={formatHours(totalDuration)} tone="blue" />
         <GlassCard label="XP Bank" value={`${totalXp}`} tone="amber" />
         <GlassCard label="Streak" value={`${progress.streak} DAYS`} tone="amber" />
         <GlassCard label="Level" value={`LVL ${progress.level || 1}`} tone="blue" active />
@@ -667,7 +850,7 @@ export default function ProgressPage() {
                 <span className="text-gray-200">{leaderboardAvg.xp}</span>
               </div>
               <Rail value={leaderboardAvg.xp > 0 ? Math.round((totalXp / leaderboardAvg.xp) * 100) : 0} tone="blue" />
-              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Rank #{currentRank.rank} of {leaderboard.length}</div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-wider">Rank #{currentRank.rank} of {Math.max(1, rankedLeaderboard.length)}</div>
             </div>
           </GlassPanel>
 
@@ -715,15 +898,49 @@ export default function ProgressPage() {
           </div>
         </GlassPanel>
 
-        <GlassPanel title="GLOBAL_RANKINGS" right={<TonePill tone="amber">TOP {Math.min(6, leaderboard.length)}</TonePill>}>
-          <div className="space-y-2">
-            { (leaderboard.length ? leaderboard : [currentRank]).slice(0, 6).map((entry) => (
-              <div key={entry.user_id} className={cn("flex justify-between items-center border-b border-white/5 py-2 px-2 text-xs", entry.user_id === userId && "bg-[#0F1A24] rounded-md")}>
-                <span className="text-gray-500 w-8">#{entry.rank}</span>
-                <span className="flex-1 truncate font-mono text-white">{entry.user_id === userId ? "YOU" : entry.user_id.slice(0, 12)}</span>
-                <span className="text-amber-400 font-bold">{entry.xp}</span>
-              </div>
-            ))}
+        <GlassPanel
+          title="GLOBAL_RANKINGS"
+          right={<TonePill tone="amber">TOP {Math.min(6, Math.max(visibleLeaderboard.length, rankedLeaderboard.length))}</TonePill>}
+        >
+          <div className="space-y-3">
+            {visibleLeaderboard.map((entry) => {
+              const isCurrent = entry.user_id === userId;
+              return (
+                <div
+                  key={entry.user_id}
+                  className={cn(
+                    "rounded-lg border px-3 py-3 text-xs transition-colors",
+                    isCurrent
+                      ? "border-cyan-300/25 bg-cyan-300/10"
+                      : "border-white/5 bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.045]",
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-9 shrink-0 font-mono text-[11px] text-gray-500">#{entry.rank}</span>
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-[11px] font-semibold text-cyan-200">
+                      {getInitials(entry.displayLabel)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-semibold text-white">{entry.displayLabel}</span>
+                        {isCurrent && <span className="rounded border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">YOU</span>}
+                      </div>
+                      <div className="mt-0.5 truncate text-[10px] text-gray-500">{entry.metaLabel}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-amber-400">{entry.xp}</div>
+                      <div className="mt-0.5 text-[10px] text-gray-500">XP</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
+                    <div
+                      className={cn("h-full rounded-full", isCurrent ? "bg-cyan-300" : "bg-amber-400")}
+                      style={{ width: `${Math.max(3, Math.round((entry.xp / maxLeaderboardXp) * 100))}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </GlassPanel>
       </div>
