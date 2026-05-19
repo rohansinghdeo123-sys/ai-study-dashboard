@@ -434,7 +434,7 @@ function AgentPipeline({
   const activeStage = stages.find((stage) => stage.status === "active") ?? stages[stages.length - 1];
 
   return (
-    <div className="w-full max-w-xl rounded-xl rounded-bl-md border border-white/10 bg-[#111116]/95 px-4 py-3 text-sm shadow-[0_16px_45px_rgba(0,0,0,0.35)]">
+    <div className="study-agent-pipeline w-full max-w-xl rounded-xl rounded-bl-md border border-white/10 bg-[#111116]/95 px-4 py-3 text-sm shadow-[0_16px_45px_rgba(0,0,0,0.35)]">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -1476,7 +1476,7 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-180px)] min-h-[640px] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+    <div className="study-lab-shell flex h-[calc(100vh-180px)] min-h-[640px] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
       <style jsx global>{`
         @keyframes float-up {
           0% { opacity: 1; transform: translateY(0); }
@@ -1521,13 +1521,13 @@ export default function StudyPage() {
         onClearAll={clearAllHistory}
       />
 
-      <header className="shrink-0 border-b border-white/10 bg-white/[0.025] px-4 py-3">
+      <header className="study-lab-header shrink-0 border-b border-white/10 bg-white/[0.025] px-4 py-3">
         <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => setHistoryOpen(true)} title="Conversation history" className="!px-2.5">
               ☰
             </Button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-md border border-orange-400/20 bg-orange-400/10 text-sm font-bold text-orange-300">
+            <div className="study-coach-avatar flex h-10 w-10 items-center justify-center rounded-md border border-orange-400/20 bg-orange-400/10 text-sm font-bold text-orange-300">
               {coachName[0]}
             </div>
             <div className="min-w-0">
@@ -1536,18 +1536,18 @@ export default function StudyPage() {
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <span className="text-[10px] uppercase tracking-wider text-emerald-300">{coachStatus || "Online"}</span>
               </div>
-              <p className="truncate text-xs text-gray-500">Personal study intelligence for {studentName}</p>
+              <p className="truncate text-xs text-gray-500">Private AI tutor for {studentName}</p>
             </div>
           </div>
 
           <div className="hidden items-center gap-2 md:flex">
-            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
+            <div className="study-top-stat rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
               XP <span className="ml-1 font-semibold text-cyan-300">{progress.xp}</span>
             </div>
-            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
+            <div className="study-top-stat rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
               LVL <span className="ml-1 font-semibold text-white">{level}</span>
             </div>
-            <div className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
+            <div className="study-top-stat rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-400">
               STREAK <span className="ml-1 font-semibold text-yellow-300">{progress.streak}d</span>
             </div>
             {isSpeaking && (
@@ -1564,61 +1564,76 @@ export default function StudyPage() {
         </div>
       </header>
 
-      <section className="shrink-0 border-b border-white/10 bg-white/[0.02] px-4 py-3">
-        <div className="mx-auto flex max-w-[1480px] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Study Context</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-semibold text-white">{currentChapterLabel}</span>
-              <span className="text-gray-700">/</span>
-              <span className="text-gray-300">{currentTopicLabel}</span>
-              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-0.5 text-[10px] uppercase tracking-wider text-cyan-300">
+      <section className="study-mission-strip shrink-0 border-b border-white/10 bg-white/[0.02] px-4 py-4">
+        <div className="mx-auto grid max-w-[1480px] gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,520px)] lg:items-center">
+          <div className="study-mission-card min-w-0 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
                 Chemistry
               </span>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Today&apos;s learning mission</span>
             </div>
+            <h1 className="mt-3 text-xl font-semibold tracking-tight text-white md:text-2xl">
+              Master {currentTopicLabel}
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-400">
+              {nextAction}
+            </p>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2 lg:w-[560px]">
-            <select
-              value={chapter}
-              onChange={(e) => {
-                const c = e.target.value;
-                setChapter(c);
-                const t = topicsByChapter[c]?.[0]?.value || "alkanes";
-                setTopic(t);
-                updateURL(c, t);
-              }}
-              className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-            >
-              {chapters.map((c) => (
-                <option key={c} value={c}>{c.replace(/-/g, " ").toUpperCase()}</option>
-              ))}
-            </select>
-            <select
-              value={topic}
-              onChange={(e) => { setTopic(e.target.value); updateURL(chapter, e.target.value); }}
-              className="rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
-            >
-              {topicsByChapter[chapter]?.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
+          <div className="study-topic-card rounded-lg border border-white/10 bg-white/[0.03] p-3">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Selected syllabus</p>
+                <p className="mt-0.5 truncate text-xs text-gray-400">{currentChapterLabel}</p>
+              </div>
+              <Button variant="secondary" size="sm" onClick={runAutonomousMission} disabled={autonomousLoading || !userId}>
+                {autonomousLoading ? "Planning..." : "Auto Mission"}
+              </Button>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              <select
+                value={chapter}
+                onChange={(e) => {
+                  const c = e.target.value;
+                  setChapter(c);
+                  const t = topicsByChapter[c]?.[0]?.value || "alkanes";
+                  setTopic(t);
+                  updateURL(c, t);
+                }}
+                className="study-select rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+              >
+                {chapters.map((c) => (
+                  <option key={c} value={c}>{c.replace(/-/g, " ").toUpperCase()}</option>
+                ))}
+              </select>
+              <select
+                value={topic}
+                onChange={(e) => { setTopic(e.target.value); updateURL(chapter, e.target.value); }}
+                className="study-select rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-400"
+              >
+                {topicsByChapter[chapter]?.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </section>
 
-      <main className="min-h-0 flex-1 overflow-hidden px-4 py-4">
+      <main className="study-lab-main min-h-0 flex-1 overflow-hidden px-4 py-4">
         <div className="mx-auto grid h-full max-w-[1480px] grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_330px]">
-          <section className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0B0E14]/95">
-            <div className="shrink-0 border-b border-white/10 px-3 py-3">
+          <section className="study-workspace-card flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0B0E14]/95">
+            <div className="study-tabbar shrink-0 border-b border-white/10 px-3 py-3">
               <div className="flex flex-wrap gap-1">
                 {WORKSPACE_TABS.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveWorkspace(tab.id)}
-                    className={`rounded-md px-3 py-2 text-left transition-colors ${
+                    className={`study-tab-button rounded-md px-3 py-2 text-left transition-colors ${
                       activeWorkspace === tab.id
-                        ? "bg-white/10 text-white"
+                        ? "is-active bg-white/10 text-white"
                         : "text-gray-500 hover:bg-white/[0.04] hover:text-gray-300"
                     }`}
                   >
@@ -1631,17 +1646,17 @@ export default function StudyPage() {
 
             {activeWorkspace === "chat" && (
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="flex-1 overflow-y-auto px-4 py-6 lg:px-8">
+                <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-6 lg:px-8">
                   {coachMessages.length === 0 && !thinkingMessage ? (
                     <div className="flex h-full items-center justify-center text-center">
-                      <div className="max-w-xl space-y-5">
+                      <div className="study-empty-state max-w-2xl space-y-5 rounded-lg border border-white/10 bg-white/[0.03] px-6 py-8">
                         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-lg border border-orange-400/20 bg-orange-400/10 text-lg font-bold text-orange-300">
                           {coachName[0]}
                         </div>
                         <div>
-                          <p className="text-2xl font-semibold text-white">{coachName} is ready</p>
+                          <p className="text-2xl font-semibold text-white">Start a focused study session</p>
                           <p className="mt-2 text-sm leading-6 text-gray-400">
-                            Ask for a concept explanation, exam answer, revision notes, or a practice set.
+                            Ask {coachName} for a clear explanation, exam-ready answer, revision sheet, or practice test.
                           </p>
                         </div>
                         <div className="flex flex-wrap justify-center gap-2">
@@ -1656,7 +1671,7 @@ export default function StudyPage() {
                             <button
                               key={action.prompt}
                               onClick={() => { setCoachInput(action.prompt); coachInputRef.current?.focus(); }}
-                              className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300 hover:border-cyan-400/30 hover:text-white"
+                              className="study-action-chip rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-gray-300 hover:border-cyan-400/30 hover:text-white"
                             >
                               {action.label}
                             </button>
@@ -1669,10 +1684,10 @@ export default function StudyPage() {
                       {thinkingMessage && (
                         <div className="flex justify-start">
                           <div className="flex max-w-[85%] gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-xs font-bold text-orange-300">
+                            <div className="study-message-avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-xs font-bold text-orange-300">
                               {coachName[0]}
                             </div>
-                            <div className="rounded-xl px-4 py-3 rounded-bl-md bg-white/[0.055] text-gray-400 flex items-center gap-2">
+                            <div className="study-thinking-bubble rounded-xl px-4 py-3 rounded-bl-md bg-white/[0.055] text-gray-400 flex items-center gap-2">
                               <span className="animate-pulse">{thinkingMessage}</span>
                               <CoachTyping />
                             </div>
@@ -1682,7 +1697,7 @@ export default function StudyPage() {
                       {showAgentPipeline && (
                         <div className="flex justify-start">
                           <div className="flex max-w-[85%] gap-3">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-xs font-bold text-orange-300">
+                            <div className="study-message-avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-orange-500/15 text-xs font-bold text-orange-300">
                               {coachName[0]}
                             </div>
                             <div>
@@ -1702,7 +1717,7 @@ export default function StudyPage() {
                         return (
                           <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                             <div className={`flex max-w-[86%] gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
+                              <div className={`study-message-avatar flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-bold ${
                                 msg.role === "user" ? "bg-cyan-500/15 text-cyan-300" : "bg-orange-500/15 text-orange-300"
                               }`}>
                                 {msg.role === "user" ? "U" : coachName[0]}
@@ -1714,10 +1729,10 @@ export default function StudyPage() {
                                   </span>
                                   {msg.timestamp && <span className="text-[10px] text-gray-600">{msg.timestamp}</span>}
                                 </div>
-                                <div className={`max-w-full rounded-xl px-5 py-4 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
+                                <div className={`study-message-bubble max-w-full rounded-xl px-5 py-4 text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
                                   msg.role === "user"
-                                    ? "bg-cyan-500/15 text-cyan-50 rounded-br-md"
-                                    : "bg-white/[0.055] text-gray-200 rounded-bl-md"
+                                    ? "is-user bg-cyan-500/15 text-cyan-50 rounded-br-md"
+                                    : "is-coach bg-white/[0.055] text-gray-200 rounded-bl-md"
                                 }`}>
                                   {msg.role === "coach" ? (
                                     <CoachAnswerBlock value={msg.content} />
@@ -1736,12 +1751,12 @@ export default function StudyPage() {
                   <div ref={coachEndRef} />
                 </div>
 
-                <div className="shrink-0 border-t border-white/10 bg-[#090C12] px-4 py-3">
+                <div className="study-composer shrink-0 border-t border-white/10 bg-[#090C12] px-4 py-3">
                   <div className="mb-3 flex flex-wrap gap-2">
                     {quickActions.map((action) => (
                       <button
                         key={action.prompt}
-                        className="rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-cyan-400/30 hover:text-white"
+                        className="study-action-chip rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-cyan-400/30 hover:text-white"
                         onClick={() => { setActiveWorkspace("chat"); setCoachInput(action.prompt); coachInputRef.current?.focus(); }}
                       >
                         {action.label}
@@ -1756,7 +1771,7 @@ export default function StudyPage() {
                       onKeyDown={handleCoachKeyDown}
                       placeholder={`Message ${coachName}...`}
                       rows={1}
-                      className="flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-400"
+                      className="study-textarea flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-400"
                     />
                     <Button
                       variant={isListening ? "danger" : "secondary"}
@@ -1782,7 +1797,7 @@ export default function StudyPage() {
             )}
 
             {activeWorkspace === "revise" && (
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+              <div className="study-workspace-pane min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
                 <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Revision Desk</p>
@@ -1815,11 +1830,11 @@ export default function StudyPage() {
                 )}
 
                 {revisionOutput ? (
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm leading-7 text-gray-200 whitespace-pre-wrap">
+                  <div className="study-content-card rounded-lg border border-white/10 bg-black/20 p-5 text-sm leading-7 text-gray-200 whitespace-pre-wrap">
                     <ChemistryBlock value={revisionOutput} />
                   </div>
                 ) : !loadingRevision && (
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-6">
+                  <div className="study-content-card rounded-lg border border-white/10 bg-white/[0.03] p-6">
                     <p className="text-sm font-semibold text-white">Create a revision asset</p>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
                       Generate concise notes, a full explanation, or key recall points for the selected topic.
@@ -1830,7 +1845,7 @@ export default function StudyPage() {
             )}
 
             {activeWorkspace === "practice" && (
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+              <div className="study-workspace-pane min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
                 <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Practice Lab</p>
@@ -1866,7 +1881,7 @@ export default function StudyPage() {
                       <Button variant="secondary" size="sm" onClick={restartGeneratedMcqs}>Restart</Button>
                     </div>
                     {mcqs.map((q, index) => (
-                      <div key={q.id ?? index} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                      <div key={q.id ?? index} className="study-content-card rounded-lg border border-white/10 bg-black/20 p-4">
                         <p className="mb-3 text-sm font-semibold text-white">
                           <span className="mr-2 text-cyan-300">Q{index + 1}.</span>
                           {renderChemistryText(q.question)}
@@ -1908,13 +1923,13 @@ export default function StudyPage() {
                 )}
 
                 {probableOutput && (
-                  <div className="rounded-lg border border-white/10 bg-black/20 p-5 text-sm leading-7 text-gray-200 whitespace-pre-wrap">
+                  <div className="study-content-card rounded-lg border border-white/10 bg-black/20 p-5 text-sm leading-7 text-gray-200 whitespace-pre-wrap">
                     <ChemistryBlock value={probableOutput} />
                   </div>
                 )}
 
                 {!loadingExam && mcqs.length === 0 && !probableOutput && (
-                  <div className="rounded-lg border border-white/10 bg-white/[0.03] p-6">
+                  <div className="study-content-card rounded-lg border border-white/10 bg-white/[0.03] p-6">
                     <p className="text-sm font-semibold text-white">Generate exam practice</p>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-400">
                       Build MCQs or probable questions from your selected topic. Results are saved into your learning profile when completed.
@@ -1925,7 +1940,7 @@ export default function StudyPage() {
             )}
 
             {activeWorkspace === "history" && (
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
+              <div className="study-workspace-pane min-h-0 flex-1 overflow-y-auto p-5 lg:p-6">
                 <div className="mb-5 flex items-center justify-between">
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Conversation Ledger</p>
@@ -1957,8 +1972,8 @@ export default function StudyPage() {
             )}
           </section>
 
-          <aside className="hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
-            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
+          <aside className="study-mentor-rail hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
+            <div className="study-side-card rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <div className="relative">
                 {xpAnimation && <XPFloat amount={xpAnimation.amount} />}
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agent Intelligence</p>
@@ -1990,18 +2005,18 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
+            <div className="study-side-card rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Next Best Action</p>
               <p className="mt-3 text-sm leading-6 text-gray-200">{nextAction}</p>
               <button
                 onClick={() => { setActiveWorkspace("chat"); setCoachInput(nextAction); coachInputRef.current?.focus(); }}
                 className="mt-4 w-full rounded-md border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-400/15"
               >
-                Ask Aria to guide this
+                Ask {coachName} to guide this
               </button>
             </div>
 
-            <div className="rounded-lg border border-emerald-400/15 bg-[#0B0E14]/95 p-4">
+            <div className="study-side-card study-mission-side-card rounded-lg border border-emerald-400/15 bg-[#0B0E14]/95 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-300/80">Autonomous Mission</p>
@@ -2061,7 +2076,7 @@ export default function StudyPage() {
               </button>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
+            <div className="study-side-card rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Daily Load</p>
                 <span className="text-xs text-gray-400">{dailyQuestions}/{dailyGoal}</span>
@@ -2076,7 +2091,7 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
+            <div className="study-side-card rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Agent Memory</p>
               <div className="mt-3 space-y-3">
                 {memoryPreview.length ? (
@@ -2092,7 +2107,7 @@ export default function StudyPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
+            <div className="study-side-card rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Recent Sessions</p>
               <div className="mt-3 space-y-2">
                 {recentSessions.length ? (

@@ -593,3 +593,171 @@ body {
 [data-theme="light"] .dashboard-panel > div:first-child {
   background: rgba(249, 250, 254, 0.82) !important;
 }
+
+/* ============================================================
+   6. STUDY LAB PREMIUM LEARNING COCKPIT
+   ============================================================ */
+.study-lab-shell {
+  position: relative;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(34,211,238,0.10), transparent 30%),
+    radial-gradient(circle at 88% 8%, rgba(245,158,11,0.10), transparent 28%),
+    linear-gradient(180deg, rgba(17,21,32,0.98) 0%, rgba(8,12,18,0.98) 100%) !important;
+}
+
+.study-lab-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.45;
+}
+
+.study-lab-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.study-mission-card,
+.study-topic-card,
+.study-workspace-card,
+.study-side-card,
+.study-empty-state,
+.study-content-card {
+  box-shadow: 0 18px 48px rgba(0,0,0,0.16);
+}
+
+.study-mission-card {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(34,211,238,0.035) 48%, rgba(245,158,11,0.05) 100%) !important;
+}
+
+.study-tab-button.is-active {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.study-message-bubble.is-coach {
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 16px 42px rgba(0,0,0,0.18);
+}
+
+.study-message-bubble.is-user {
+  border: 1px solid rgba(34,211,238,0.14);
+  box-shadow: 0 14px 34px rgba(34,211,238,0.08);
+}
+
+.study-agent-pipeline {
+  border-color: rgba(245,158,11,0.14) !important;
+  background:
+    linear-gradient(135deg, rgba(17,17,22,0.98) 0%, rgba(18,22,31,0.98) 100%) !important;
+}
+
+[data-theme="light"] .study-lab-shell {
+  border-color: rgba(255,255,255,0.72) !important;
+  background:
+    radial-gradient(circle at 12% -8%, rgba(99,91,255,0.12), transparent 30%),
+    radial-gradient(circle at 88% 0%, rgba(15,143,130,0.10), transparent 28%),
+    linear-gradient(135deg, #EEF1F8 0%, #FBFCFF 48%, #EDF2FA 100%) !important;
+  box-shadow: 0 28px 80px rgba(82,91,120,0.16), inset 0 1px 0 rgba(255,255,255,0.92) !important;
+}
+
+[data-theme="light"] .study-lab-shell::before {
+  background:
+    linear-gradient(to right, rgba(92,101,123,0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(92,101,123,0.035) 1px, transparent 1px);
+  opacity: 0.38;
+}
+
+[data-theme="light"] .study-lab-header,
+[data-theme="light"] .study-mission-strip,
+[data-theme="light"] .study-tabbar,
+[data-theme="light"] .study-composer {
+  background: rgba(255,255,255,0.58) !important;
+  border-color: rgba(92,101,123,0.12) !important;
+}
+
+[data-theme="light"] .study-coach-avatar,
+[data-theme="light"] .study-message-avatar {
+  border-color: rgba(99,91,255,0.18) !important;
+  background: rgba(99,91,255,0.10) !important;
+  color: #5B5BD6 !important;
+}
+
+[data-theme="light"] .study-top-stat,
+[data-theme="light"] .study-topic-card,
+[data-theme="light"] .study-empty-state,
+[data-theme="light"] .study-content-card,
+[data-theme="light"] .study-side-card {
+  border-color: rgba(255,255,255,0.68) !important;
+  background: rgba(255,255,255,0.88) !important;
+  box-shadow: 0 18px 48px rgba(82,91,120,0.10), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+}
+
+[data-theme="light"] .study-mission-card {
+  border-color: rgba(255,255,255,0.72) !important;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F4F1FF 52%, #EBFFF9 100%) !important;
+  box-shadow: 0 22px 58px rgba(82,91,120,0.12), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+}
+
+[data-theme="light"] .study-workspace-card {
+  border-color: rgba(255,255,255,0.70) !important;
+  background: rgba(255,255,255,0.84) !important;
+  box-shadow: 0 24px 68px rgba(82,91,120,0.13), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+}
+
+[data-theme="light"] .study-mission-side-card {
+  background: linear-gradient(135deg, #ECFFF8 0%, #F4F1FF 100%) !important;
+}
+
+[data-theme="light"] .study-tab-button {
+  color: #778197 !important;
+}
+
+[data-theme="light"] .study-tab-button.is-active {
+  background: #FFFFFF !important;
+  color: #141827 !important;
+  box-shadow: 0 12px 28px rgba(82,91,120,0.08), inset 0 0 0 1px rgba(99,91,255,0.12);
+}
+
+[data-theme="light"] .study-action-chip {
+  border-color: rgba(92,101,123,0.14) !important;
+  background: rgba(255,255,255,0.72) !important;
+  color: #526075 !important;
+}
+
+[data-theme="light"] .study-action-chip:hover {
+  border-color: rgba(99,91,255,0.22) !important;
+  color: #4238B9 !important;
+}
+
+[data-theme="light"] .study-textarea,
+[data-theme="light"] .study-select {
+  background: rgba(255,255,255,0.92) !important;
+  border-color: rgba(92,101,123,0.16) !important;
+  color: #141827 !important;
+}
+
+[data-theme="light"] .study-message-bubble.is-coach,
+[data-theme="light"] .study-thinking-bubble {
+  border: 1px solid rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.92) !important;
+  color: #283244 !important;
+  box-shadow: 0 18px 46px rgba(82,91,120,0.10);
+}
+
+[data-theme="light"] .study-message-bubble.is-user {
+  border: 1px solid rgba(99,91,255,0.16);
+  background: linear-gradient(135deg, #EEF1FF 0%, #F6F3FF 100%) !important;
+  color: #252A5F !important;
+  box-shadow: 0 16px 38px rgba(99,91,255,0.10);
+}
+
+[data-theme="light"] .study-agent-pipeline {
+  border-color: rgba(99,91,255,0.16) !important;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F7F4FF 100%) !important;
+  box-shadow: 0 18px 46px rgba(82,91,120,0.10) !important;
+}
