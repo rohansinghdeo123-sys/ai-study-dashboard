@@ -820,3 +820,216 @@ body {
   background: linear-gradient(135deg, #FFFFFF 0%, #F7F4FF 100%) !important;
   box-shadow: 0 18px 46px rgba(82,91,120,0.10) !important;
 }
+
+/* ============================================================
+   7. LOGIN, SESSIONS, AND AGENTIFIED ENTRANCE
+   ============================================================ */
+.login-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(34,211,238,0.10), transparent 28%),
+    radial-gradient(circle at 82% 20%, rgba(245,158,11,0.09), transparent 30%),
+    linear-gradient(135deg, rgba(255,255,255,0.02), transparent 42%);
+}
+
+.login-passport-card,
+.login-auth-card,
+.sessions-hero-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-passport-card::before,
+.login-auth-card::before,
+.sessions-hero-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.10), transparent 28%),
+    radial-gradient(circle at 80% 10%, rgba(34,211,238,0.12), transparent 34%),
+    radial-gradient(circle at 10% 100%, rgba(245,158,11,0.10), transparent 34%);
+  opacity: 0.72;
+}
+
+.login-passport-card > *,
+.login-auth-card > *,
+.sessions-hero-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.sessions-hero-card {
+  background:
+    radial-gradient(circle at 12% 4%, rgba(34,211,238,0.12), transparent 30%),
+    radial-gradient(circle at 90% 0%, rgba(245,158,11,0.12), transparent 30%),
+    linear-gradient(135deg, rgba(14,17,24,0.96), rgba(9,11,16,0.98)) !important;
+}
+
+[data-theme="light"] .login-shell {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(121,215,255,0.24), transparent 30%),
+    radial-gradient(circle at 86% 18%, rgba(255,214,165,0.26), transparent 32%),
+    linear-gradient(135deg, #EEF3FA 0%, #FAFCFF 48%, #EFF4FA 100%) !important;
+  color: #111827 !important;
+}
+
+[data-theme="light"] .login-passport-card,
+[data-theme="light"] .login-auth-card,
+[data-theme="light"] .sessions-hero-card {
+  border-color: rgba(255,255,255,0.74) !important;
+  background: rgba(255,255,255,0.82) !important;
+  box-shadow: 0 28px 78px rgba(82,91,120,0.14), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+}
+
+[data-theme="light"] .sessions-hero-card {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(99,91,255,0.10), transparent 28%),
+    radial-gradient(circle at 88% 0%, rgba(15,143,130,0.10), transparent 30%),
+    linear-gradient(135deg, rgba(255,255,255,0.92), rgba(246,249,254,0.92)) !important;
+}
+
+[data-theme="light"] .login-passport-card::before,
+[data-theme="light"] .login-auth-card::before,
+[data-theme="light"] .sessions-hero-card::before {
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.84), transparent 30%),
+    radial-gradient(circle at 80% 8%, rgba(99,91,255,0.10), transparent 34%),
+    radial-gradient(circle at 8% 100%, rgba(15,143,130,0.10), transparent 34%);
+}
+
+.agentified-overlay {
+  animation: agentified-fade-in 360ms ease-out both;
+}
+
+.agentified-card {
+  animation: agentified-card-in 720ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.agentified-orbit {
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(0.2px);
+}
+
+.agentified-orbit-one {
+  left: -160px;
+  top: -140px;
+  width: 430px;
+  height: 430px;
+  background: radial-gradient(circle, rgba(34,211,238,0.20), transparent 66%);
+  animation: agentified-drift 7s ease-in-out infinite;
+}
+
+.agentified-orbit-two {
+  right: -140px;
+  bottom: -150px;
+  width: 380px;
+  height: 380px;
+  background: radial-gradient(circle, rgba(245,158,11,0.18), transparent 66%);
+  animation: agentified-drift 8s ease-in-out infinite reverse;
+}
+
+.agentified-scanline {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(34,211,238,0.16), transparent);
+  transform: translateX(-100%);
+  animation: agentified-scan 2.4s ease-in-out 0.25s both;
+}
+
+.agentified-core-panel {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(34,211,238,0.14), transparent 48%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+}
+
+.agentified-ring {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(34,211,238,0.22);
+  border-radius: 999px;
+}
+
+.agentified-ring-a {
+  border-top-color: rgba(34,211,238,0.70);
+  animation: agentified-spin 9s linear infinite;
+}
+
+.agentified-ring-b {
+  inset: 34px;
+  border-color: rgba(245,158,11,0.20);
+  border-right-color: rgba(245,158,11,0.66);
+  animation: agentified-spin 6s linear infinite reverse;
+}
+
+.agentified-pulse {
+  position: absolute;
+  inset: 58px;
+  border-radius: 999px;
+  background: rgba(34,211,238,0.14);
+  animation: agentified-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes agentified-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes agentified-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes agentified-drift {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); }
+  50% { transform: translate3d(18px,14px,0) scale(1.04); }
+}
+
+@keyframes agentified-scan {
+  0% { transform: translateX(-100%); opacity: 0; }
+  18% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes agentified-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes agentified-pulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(34,211,238,0.28);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+    box-shadow: 0 0 0 22px rgba(34,211,238,0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agentified-overlay,
+  .agentified-card,
+  .agentified-orbit-one,
+  .agentified-orbit-two,
+  .agentified-scanline,
+  .agentified-ring-a,
+  .agentified-ring-b,
+  .agentified-pulse {
+    animation: none !important;
+  }
+}

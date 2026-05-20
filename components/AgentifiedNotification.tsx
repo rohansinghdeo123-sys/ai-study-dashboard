@@ -1,35 +1,31 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
-// ── Typing animation hook ─────────────────────────────────────────────────
-function useTypingEffect(text: string, speed = 50) {
+function useTypingEffect(text: string, speed = 48) {
   const [displayed, setDisplayed] = useState("");
   const indexRef = useRef(0);
 
   useEffect(() => {
     indexRef.current = 0;
-    setDisplayed("");
-    const interval = setInterval(() => {
+    const interval = window.setInterval(() => {
       if (indexRef.current < text.length) {
         setDisplayed(text.slice(0, indexRef.current + 1));
-        indexRef.current++;
+        indexRef.current += 1;
       } else {
-        clearInterval(interval);
+        window.clearInterval(interval);
       }
     }, speed);
-    return () => clearInterval(interval);
+    return () => window.clearInterval(interval);
   }, [text, speed]);
 
   return displayed;
 }
 
-// ── Fallback agent descriptions (used only if backend hasn't assigned one) ─
 const FALLBACK_DESCRIPTION =
-  "Your personal AI coach – ready to guide you through every subject and every challenge.";
+  "Your personal AI coach is ready to guide you through every subject and every challenge.";
 
-// ── Notification Component ────────────────────────────────────────────────
 interface AgentNotificationProps {
   onDismiss: () => void;
 }
@@ -41,16 +37,24 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
   const [agent, setAgent] = useState<{ name: string; description: string } | null>(null);
   const [loadingCoach, setLoadingCoach] = useState(true);
   const [show, setShow] = useState(true);
-  const typedHeadline = useTypingEffect("You have been Agentified.", 60);
+  const [phase, setPhase] = useState(0);
+  const typedHeadline = useTypingEffect("You have been Agentified", 48);
 
-  // Fetch the real coach data from the backend
+  useEffect(() => {
+    const timers = [
+      window.setTimeout(() => setPhase(1), 420),
+      window.setTimeout(() => setPhase(2), 980),
+      window.setTimeout(() => setPhase(3), 1480),
+    ];
+    return () => timers.forEach(window.clearTimeout);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
 
     const fetchCoach = async () => {
       try {
         const headers = await getAuthHeaders();
-        // Try the coach dashboard endpoint (which returns profile + memories)
         const response = await fetch(`${backendURL}/coach/${user.uid}`, {
           headers,
           cache: "no-store",
@@ -59,7 +63,7 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
         if (response.ok) {
           const data = await response.json();
           const profile = data.profile;
-          if (profile && profile.coach_name) {
+          if (profile?.coach_name) {
             setAgent({
               name: profile.coach_name,
               description:
@@ -72,7 +76,6 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
           }
         }
 
-        // Fallback: call the bootstrap endpoint to ensure a coach exists
         const bootstrapRes = await fetch(`${backendURL}/coach/bootstrap`, {
           method: "POST",
           headers,
@@ -84,20 +87,12 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
 
         if (bootstrapRes.ok) {
           const bootstrapData = await bootstrapRes.json();
-          if (bootstrapData.coach_name) {
-            setAgent({
-              name: bootstrapData.coach_name,
-              description: bootstrapData.coach_tone
-                ? `A coach with a ${bootstrapData.coach_tone} approach, dedicated to your growth.`
-                : FALLBACK_DESCRIPTION,
-            });
-          } else {
-            // Absolute fallback – use a generic name
-            setAgent({
-              name: "Ari",
-              description: FALLBACK_DESCRIPTION,
-            });
-          }
+          setAgent({
+            name: bootstrapData.coach_name || "Ari",
+            description: bootstrapData.coach_tone
+              ? `A coach with a ${bootstrapData.coach_tone} approach, dedicated to your growth.`
+              : FALLBACK_DESCRIPTION,
+          });
         } else {
           setAgent({ name: "Ari", description: FALLBACK_DESCRIPTION });
         }
@@ -120,62 +115,108 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-xl border border-[#00A3FF]/20 bg-[#0A0A0F]/90 backdrop-blur-md shadow-[0_0_80px_rgba(0,163,255,0.15)]">
-        {/* Top bar */}
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-black/30">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-400 font-mono">
-            SYSTEM NOTIFICATION
-          </span>
-          <span className="text-[9px] text-[#00A3FF] font-mono">TERMINAL · AGENTIFY.AI</span>
-        </div>
+    <div className="agentified-overlay fixed inset-0 z-50 flex items-center justify-center bg-[#03050A]/82 p-4 backdrop-blur-xl">
+      <div className="agentified-card relative w-full max-w-3xl overflow-hidden rounded-3xl border border-white/10 bg-[#090D14]/92 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+        <div className="agentified-orbit agentified-orbit-one" />
+        <div className="agentified-orbit agentified-orbit-two" />
+        <div className="agentified-scanline" />
 
-        {/* Body */}
-        <div className="p-6 space-y-5">
-          {/* Headline with typing animation */}
-          <h2 className="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#00A3FF] to-amber-400">
-            {typedHeadline}
-            <span className="ml-1 animate-pulse text-[#00A3FF]">|</span>
-          </h2>
+        <div className="relative z-10 grid lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="agentified-core-panel flex min-h-[420px] flex-col items-center justify-center border-b border-white/10 p-8 text-center lg:border-b-0 lg:border-r">
+            <div className="agentified-core relative flex h-44 w-44 items-center justify-center rounded-full border border-cyan-300/20 bg-cyan-300/5">
+              <div className="agentified-ring agentified-ring-a" />
+              <div className="agentified-ring agentified-ring-b" />
+              <div className="agentified-pulse" />
+              <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-4xl font-black text-cyan-200 shadow-[0_0_50px_rgba(34,211,238,0.16)]">
+                A
+              </div>
+            </div>
 
-          {/* Agent details */}
-          <div className="rounded-lg border border-white/10 bg-black/20 p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-mono">
-                Personal AI Agent Assigned
+            <div className="mt-8 flex flex-wrap justify-center gap-2">
+              {["Identity linked", "Coach assigned", "Memory online"].map((item, index) => (
+                <span
+                  key={item}
+                  className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition-all duration-700 ${
+                    phase >= index + 1
+                      ? "border-emerald-300/30 bg-emerald-300/10 text-emerald-200 opacity-100"
+                      : "border-white/10 bg-white/[0.03] text-slate-600 opacity-50"
+                  }`}
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative z-10 p-6 md:p-8">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
+                  AgentifyAI Onboarding
+                </div>
+                <div className="mt-1 text-xs text-slate-500">Personal coach activation</div>
+              </div>
+              <span className="rounded-full border border-emerald-300/25 bg-emerald-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-200">
+                Live
               </span>
             </div>
-            {loadingCoach ? (
-              <div className="text-sm text-gray-400 animate-pulse">Establishing neural link…</div>
-            ) : agent ? (
-              <>
-                <div className="text-2xl font-bold text-white">{agent.name}</div>
-                <p className="text-sm text-gray-400 leading-relaxed">{agent.description}</p>
-              </>
-            ) : (
-              <p className="text-sm text-gray-400">Your personal AI coach is synchronised.</p>
-            )}
-          </div>
 
-          {/* Status badges */}
-          <div className="flex gap-2">
-            <span className="inline-flex items-center gap-1 rounded border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
-              ONLINE
-            </span>
-            <span className="inline-flex items-center gap-1 rounded border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-2 py-1 text-[10px] font-bold text-[#00A3FF] uppercase tracking-wider">
-              ADAPTIVE COACH
-            </span>
-          </div>
+            <div className="py-8">
+              <h2 className="min-h-[92px] text-4xl font-black tracking-tight text-white md:text-5xl">
+                <span className="bg-gradient-to-r from-cyan-100 via-white to-amber-200 bg-clip-text text-transparent">
+                  {typedHeadline}
+                </span>
+                <span className="ml-1 animate-pulse text-cyan-300">|</span>
+              </h2>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-400">
+                Your learning workspace is now connected to a private AI coach that can explain, revise, test, and guide your next best study action.
+              </p>
+            </div>
 
-          {/* CTA */}
-          <button
-            onClick={handleClose}
-            disabled={loadingCoach}
-            className="w-full rounded-lg border border-[#00A3FF]/40 bg-[#00A3FF]/10 px-4 py-3 text-sm font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all uppercase tracking-wider font-mono disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {loadingCoach ? "SYNCHRONISING…" : "MEET YOUR AGENT"}
-          </button>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+              <div className="flex items-center gap-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_20px_rgba(110,231,183,0.8)]" />
+                <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-500">
+                  Personal AI Agent Assigned
+                </span>
+              </div>
+              {loadingCoach ? (
+                <div className="mt-5 space-y-3">
+                  <div className="h-6 w-40 animate-pulse rounded bg-white/10" />
+                  <div className="h-3 w-full animate-pulse rounded bg-white/10" />
+                  <div className="h-3 w-4/5 animate-pulse rounded bg-white/10" />
+                </div>
+              ) : agent ? (
+                <>
+                  <div className="mt-4 text-3xl font-semibold text-white">{agent.name}</div>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{agent.description}</p>
+                </>
+              ) : (
+                <p className="mt-4 text-sm text-slate-400">Your personal AI coach is synchronised.</p>
+              )}
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                ["Explain", "Clear answers"],
+                ["Revise", "Weak topics"],
+                ["Test", "Smart MCQs"],
+              ].map(([label, detail]) => (
+                <div key={label} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <div className="text-sm font-semibold text-white">{label}</div>
+                  <div className="mt-1 text-[11px] text-slate-500">{detail}</div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={handleClose}
+              disabled={loadingCoach}
+              className="mt-6 w-full rounded-xl border border-cyan-300/30 bg-cyan-300/12 px-4 py-3 text-sm font-bold uppercase tracking-[0.18em] text-cyan-100 transition-all hover:border-cyan-200/50 hover:bg-cyan-300/18 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {loadingCoach ? "Synchronising" : "Enter Dashboard"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

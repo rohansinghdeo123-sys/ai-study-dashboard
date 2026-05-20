@@ -270,7 +270,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#07080D] text-slate-100 antialiased">
+    <div className="login-shell relative min-h-screen overflow-hidden bg-[#07080D] text-slate-100 antialiased">
       <ParticleCanvas />
 
       {/* Background overlays */}
@@ -294,7 +294,7 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10">
-        <main className="mx-auto grid min-h-screen max-w-[1480px] grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1.05fr)_500px] lg:px-10 xl:px-12">
+        <main className="mx-auto grid min-h-screen max-w-[1540px] grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1.08fr)_520px] lg:px-10 xl:px-12">
           {/* Left panel – Clean and bold */}
           <section className="flex flex-col justify-center">
             <div className="mb-8 flex flex-wrap items-center gap-3">
@@ -308,11 +308,11 @@ export default function LoginPage() {
                 Learning Intelligence Console
               </div>
 
-              <h1 className="text-5xl font-semibold tracking-tight text-white md:text-6xl">
+              <h1 className="text-5xl font-semibold tracking-tight text-white md:text-7xl">
                 AgentifyAI
               </h1>
 
-              <p className="mt-5 text-2xl font-semibold text-cyan-100">
+              <p className="mt-5 text-2xl font-semibold text-cyan-100 md:text-3xl">
                 Your personal study command center
               </p>
               <p className="mt-3 max-w-2xl text-base leading-8 text-slate-400">
@@ -335,7 +335,7 @@ export default function LoginPage() {
                 ],
                 [
                   "SMART_REVISION",
-                  "Weak‑topic detection and intelligent revision sessions that maximise retention.",
+                  "Weak-topic detection and intelligent revision sessions that maximise retention.",
                 ],
               ].map(([label, detail]) => (
                 <div
@@ -349,13 +349,39 @@ export default function LoginPage() {
                 </div>
               ))}
             </div>
+
+            <div className="login-passport-card mt-6 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
+                    Learning Passport
+                  </div>
+                  <h2 className="mt-2 text-xl font-semibold text-white">One sign-in. One private AI coach.</h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                    Your dashboard, sessions, analytics, and Study Lab all connect into one student profile.
+                  </p>
+                </div>
+                <div className="grid min-w-[230px] grid-cols-3 gap-2 text-center">
+                  {[
+                    ["Coach", "Ready"],
+                    ["Memory", "Sync"],
+                    ["Security", "On"],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                      <div className="text-[10px] text-slate-500">{label}</div>
+                      <div className="mt-1 text-xs font-semibold text-cyan-100">{value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </section>
 
           {/* Right panel – authentication card (unchanged structure, upgraded buttons) */}
           <section className="flex items-center justify-center">
             <div
               className={cn(
-                "w-full rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
+                "login-auth-card w-full rounded-2xl border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
                 shake && "animate-shake",
                 granted && "border-cyan-300/30 shadow-[0_0_40px_rgba(34,211,238,0.16)]",
               )}
@@ -393,6 +419,13 @@ export default function LoginPage() {
                       <p className="mt-2 text-sm leading-6 text-slate-400">
                         Continue with Google or verify your mobile number.
                       </p>
+                      <div className="mt-4 grid grid-cols-3 gap-2">
+                        {["Private", "Adaptive", "Secure"].map((item) => (
+                          <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
                     </div>
 
                     {/* GOOGLE LOGIN BUTTON (primary variant) */}

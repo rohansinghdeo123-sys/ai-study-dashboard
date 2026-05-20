@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -335,7 +335,7 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
+        "overflow-hidden rounded-xl border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
         className,
       )}
     >
@@ -371,7 +371,7 @@ function GlassCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-white/10 bg-[#0E1118]/90 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90",
+        "rounded-xl border border-white/10 bg-[#0E1118]/86 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90",
         active && "border-cyan-300/25 bg-cyan-300/10",
       )}
     >
@@ -477,7 +477,7 @@ function SessionFilters({
         id="session-search"
       />
       <div className="flex items-center gap-1 text-xs text-gray-400">
-        <span>ACC ≥</span>
+        <span>ACC &gt;=</span>
         <input
           type="number"
           min={0}
@@ -554,12 +554,13 @@ function SessionsTable({
         {sessions.map((session) => {
           const accuracy = getAccuracy(session);
           const focusTone = getScoreTone(session.focusScore);
-          const status = session.status?.trim() || "—";
+          const status = session.status?.trim() || "--";
           const isSelected = selectedId === session.id;
 
           return (
             <button
               key={session.id}
+              data-session-id={session.id}
               type="button"
               onClick={() => onSelect(session)}
               className={cn(
@@ -589,8 +590,8 @@ function SessionsTable({
                 {session.xp}
               </div>
               <div>
-                {status === "—" ? (
-                  <span className="text-gray-500">—</span>
+                {status === "--" ? (
+                  <span className="text-gray-500">--</span>
                 ) : (
                   <TonePill tone={getStatusTone(status)}>{status}</TonePill>
                 )}
@@ -626,7 +627,6 @@ function SessionInspector({ session }: { session: Session | null }) {
   }
 
   const accuracy = getAccuracy(session);
-  const performance = getPerformance(session);
   const misses = Math.max(0, session.questions - session.correct);
   const missRate = session.questions ? Math.round((misses / session.questions) * 100) : 0;
   const pace = session.duration > 0 ? (session.xp / (session.duration / 60)).toFixed(1) : "0.0";
@@ -770,9 +770,6 @@ export default function SessionsPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const router = useRouter();
-  const selectedRef = useRef<HTMLDivElement | null>(null);
-
   // Filter sessions
   const filteredSessions = useMemo(() => {
     let result = [...sessions];
@@ -829,10 +826,17 @@ export default function SessionsPage() {
     [sessions],
   );
 
-  const globalAccuracy =
-    sessions.length
-      ? Math.round((sum(sessions, (s) => s.correct) / sum(sessions, (s) => s.questions)) * 100)
-      : 0;
+  const totalQuestions = sum(sessions, (s) => s.questions);
+  const globalAccuracy = totalQuestions
+    ? Math.round((sum(sessions, (s) => s.correct) / totalQuestions) * 100)
+    : 0;
+  const subjectGroups = useMemo(() => groupBySubject(sessions), [sessions]);
+  const primeSubject = subjectGroups[0]?.subject ?? "None yet";
+  const weakSessionCount = useMemo(
+    () => sessions.filter((session) => getAccuracy(session) < 60).length,
+    [sessions],
+  );
+  const latestSession = sortedSessions[0] ?? null;
 
   const clearFilters = useCallback(() => {
     setSearch("");
@@ -889,18 +893,69 @@ export default function SessionsPage() {
       <style jsx global>{`
         [data-session-id] { scroll-margin-top: 80px; }
       `}</style>
-      {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#0E1118]/90 px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Session Console</div>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Study records and replay</h1>
-          <p className="mt-1 text-sm text-slate-500">{filteredSessions.length} records, {globalAccuracy}% average accuracy</p>
+      <section className="sessions-hero-card rounded-2xl border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl md:p-6">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-stretch">
+          <div className="relative z-10">
+            <div className="flex flex-wrap items-center gap-2">
+              <TonePill tone="blue">Session Intelligence</TonePill>
+              <TonePill tone={weakSessionCount ? "amber" : "green"}>
+                {weakSessionCount ? `${weakSessionCount} revise` : "stable"}
+              </TonePill>
+            </div>
+            <h1 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-4xl">
+              Every study session, replayable and actionable.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+              Review the exact topics you worked on, inspect weak moments, and jump back into Study Lab with a cleaner revision path.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Records</div>
+                <div className="mt-2 text-2xl font-semibold text-white">{filteredSessions.length}</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Prime Subject</div>
+                <div className="mt-2 truncate text-2xl font-semibold text-emerald-300">{primeSubject}</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Latest</div>
+                <div className="mt-2 text-2xl font-semibold text-amber-300">
+                  {latestSession ? formatMinutes(latestSession.duration) : "--"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative z-10 flex flex-col justify-between rounded-2xl border border-white/10 bg-black/20 p-5">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Live Console
+                </span>
+                <span className="flex items-center gap-2 text-xs text-emerald-300">
+                  <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.8)]" />
+                  LIVE
+                </span>
+              </div>
+              <div className="mt-4 text-sm text-slate-400">Updated {clock}</div>
+            </div>
+            <div className="mt-8 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Accuracy</div>
+                <div className={cn("mt-2 text-2xl font-semibold", toneText(getScoreTone(globalAccuracy)))}>
+                  {globalAccuracy}%
+                </div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Study Time</div>
+                <div className="mt-2 text-2xl font-semibold text-amber-300">
+                  {formatHours(summary.totalDuration)}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="rounded-md border border-white/10 bg-white/[0.035] px-3 py-2 text-xs text-slate-400">
-          <span className="text-emerald-400">● LIVE</span>
-          <span>{clock}</span>
-        </div>
-      </div>
+      </section>
 
       {/* Loading state */}
       {loading ? (
@@ -918,7 +973,7 @@ export default function SessionsPage() {
             <GlassCard label="Avg Accuracy" value={`${globalAccuracy}%`} tone={getScoreTone(globalAccuracy)} />
             <GlassCard label="Avg Focus" value={`${summary.avgFocus}`} tone={getScoreTone(summary.avgFocus)} />
             <GlassCard label="Total XP" value={`${summary.totalXp}`} tone="amber" />
-            <GlassCard label="Prime Subject" value={groupBySubject(sessions)[0]?.subject ?? "—"} tone="green" active />
+            <GlassCard label="Prime Subject" value={primeSubject} tone="green" active />
           </div>
 
           {/* Main grid */}
@@ -935,11 +990,11 @@ export default function SessionsPage() {
               </GlassPanel>
 
               <GlassPanel title="SUBJECT_MATRIX" tag="SYS">
-                {groupBySubject(sessions).length === 0 ? (
+                {subjectGroups.length === 0 ? (
                   <div className="p-4 text-xs text-gray-500 uppercase tracking-wider">No data</div>
                 ) : (
                   <div className="p-2 space-y-3">
-                    {groupBySubject(sessions).slice(0, 5).map((sub) => (
+                    {subjectGroups.slice(0, 5).map((sub) => (
                       <div key={sub.subject} className="px-2">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-xs font-bold text-white uppercase">{sub.subject}</span>
@@ -948,7 +1003,7 @@ export default function SessionsPage() {
                           </span>
                         </div>
                         <Rail value={sub.accuracy} tone={getScoreTone(sub.accuracy)} />
-                        <div className="text-[10px] text-gray-500 mt-1">{sub.sessions} sessions · {formatHours(sub.duration)}</div>
+                        <div className="text-[10px] text-gray-500 mt-1">{sub.sessions} sessions - {formatHours(sub.duration)}</div>
                       </div>
                     ))}
                   </div>
