@@ -1,13 +1,26 @@
 import { AuthProvider } from "@/context/AuthContext";
-import "./globals.css";
 import BetaBanner from "@/components/BetaBanner";
+import "./globals.css";
 
 export const metadata = {
   title: "AgentifyAI",
-  description: "Personal AI Agent – your own AI coach, trained on your progress.",
+  description: "Personal AI Agent - your own AI coach, trained on your progress.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "AgentifyAI",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: "/favicon.ico",
   },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#07080D",
 };
 
 export default function RootLayout({

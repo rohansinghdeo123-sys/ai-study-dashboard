@@ -1476,7 +1476,7 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="study-lab-shell flex h-[calc(100vh-180px)] min-h-[640px] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+    <div className="study-lab-shell flex min-h-[calc(100svh-150px)] flex-col overflow-visible rounded-lg border border-white/10 bg-[#0E1118]/90 text-slate-200 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl md:h-[calc(100vh-180px)] md:min-h-[640px] md:overflow-hidden">
       <style jsx global>{`
         @keyframes float-up {
           0% { opacity: 1; transform: translateY(0); }
@@ -1622,9 +1622,9 @@ export default function StudyPage() {
         </div>
       </section>
 
-      <main className="study-lab-main min-h-0 flex-1 overflow-hidden px-4 py-3">
-        <div className="mx-auto grid h-full max-w-[1680px] grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="study-workspace-card flex min-h-0 flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0B0E14]/95">
+      <main className="study-lab-main min-h-0 flex-1 overflow-visible px-3 py-3 md:overflow-hidden md:px-4">
+        <div className="mx-auto grid h-auto max-w-[1680px] grid-cols-1 gap-4 md:h-full xl:grid-cols-[minmax(0,1fr)_300px] 2xl:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="study-workspace-card flex min-h-[70svh] flex-col overflow-hidden rounded-lg border border-white/10 bg-[#0B0E14]/95 md:min-h-0">
             <div className="study-tabbar shrink-0 border-b border-white/10 px-3 py-2.5">
               <div className="flex flex-wrap gap-1">
                 {WORKSPACE_TABS.map((tab) => (
@@ -1742,7 +1742,7 @@ export default function StudyPage() {
                   <div ref={coachEndRef} />
                 </div>
 
-                <div className="study-composer shrink-0 border-t border-white/10 bg-[#090C12] px-4 py-3">
+                <div className="study-composer shrink-0 border-t border-white/10 bg-[#090C12] px-3 py-3 md:px-4">
                   <div className="mb-3 flex flex-wrap gap-2">
                     {quickActions.map((action) => (
                       <button
@@ -1754,7 +1754,7 @@ export default function StudyPage() {
                       </button>
                     ))}
                   </div>
-                  <div className="flex gap-3 items-end">
+                  <div className="flex flex-wrap items-end gap-3">
                     <textarea
                       ref={coachInputRef}
                       value={coachInput}
@@ -1762,7 +1762,7 @@ export default function StudyPage() {
                       onKeyDown={handleCoachKeyDown}
                       placeholder={`Message ${coachName}...`}
                       rows={1}
-                      className="study-textarea flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-400"
+                      className="study-textarea min-w-[220px] flex-1 resize-none rounded-lg border border-white/10 bg-black/35 px-4 py-3 text-sm text-white placeholder-gray-600 outline-none focus:border-cyan-400"
                     />
                     <Button
                       variant={isListening ? "danger" : "secondary"}
@@ -1963,7 +1963,7 @@ export default function StudyPage() {
             )}
           </section>
 
-          <aside className="study-mentor-rail hidden min-h-0 flex-col gap-4 overflow-y-auto xl:flex">
+          <aside className="study-mentor-rail flex min-h-0 flex-col gap-4 overflow-visible xl:overflow-y-auto">
             <div className="study-side-card rounded-lg border border-white/10 bg-[#0B0E14]/95 p-4">
               <div className="relative">
                 {xpAnimation && <XPFloat amount={xpAnimation.amount} />}

@@ -818,7 +818,7 @@ export default function InternalOpsPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="flex h-full flex-col space-y-5 text-slate-200">
+    <div className="flex min-h-0 flex-col space-y-5 text-slate-200 md:h-full">
       <div className="hidden rounded-lg border border-white/10 bg-[#0E1118]/90 px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -899,9 +899,9 @@ export default function InternalOpsPage() {
       </div>
 
       {/* Main grid */}
-      <div className="grid flex-1 grid-cols-1 gap-5 overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
+      <div className="grid flex-1 grid-cols-1 gap-5 overflow-visible md:overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
         {/* Left: Agent Registry + Hierarchy */}
-        <div className="flex flex-col gap-4 overflow-hidden">
+        <div className="flex flex-col gap-4 overflow-visible md:overflow-hidden">
           <GlassPanel title="Agent Fleet" tag="LIVE" right={<StatusBadge value={`${agents.length} agents`} tone="blue" />}>
             <div className="space-y-2 h-full overflow-y-auto pr-1">
               {agents.length === 0 ? (
@@ -999,7 +999,7 @@ export default function InternalOpsPage() {
           }
           className="min-h-0"
         >
-          <div className="flex flex-col h-full overflow-hidden">
+          <div className="flex min-h-[520px] flex-col overflow-hidden md:h-full">
             <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
               <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
                 <div className="flex items-start justify-between gap-3">

@@ -1119,3 +1119,121 @@ body {
     animation: none !important;
   }
 }
+
+/* ============================================================
+   8. MOBILE APP SHELL AND RESPONSIVE SAFETY
+   ============================================================ */
+@media (max-width: 767px) {
+  html,
+  body {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .dashboard-command-center,
+  .study-lab-shell,
+  .sessions-hero-card,
+  .login-shell {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .dashboard-command-center {
+    --mobile-card-radius: 16px;
+  }
+
+  .dashboard-hero-card,
+  .dashboard-stat-card,
+  .dashboard-panel,
+  .dashboard-mission-card,
+  .dashboard-readiness-card,
+  .study-mission-card,
+  .study-topic-card,
+  .study-workspace-card,
+  .study-side-card,
+  .sessions-hero-card,
+  .login-auth-card,
+  .login-mission-card,
+  .login-passport-card {
+    border-radius: var(--mobile-card-radius, 16px) !important;
+  }
+
+  .dashboard-panel,
+  .study-side-card,
+  .study-workspace-card {
+    box-shadow: 0 16px 42px rgba(0,0,0,0.18) !important;
+  }
+
+  .study-lab-shell {
+    height: auto !important;
+    min-height: calc(100svh - 128px) !important;
+    overflow: visible !important;
+  }
+
+  .study-lab-main {
+    overflow: visible !important;
+  }
+
+  .study-chat-scroll {
+    min-height: 360px;
+    max-height: 62svh;
+  }
+
+  .study-tabbar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .study-tabbar > div {
+    flex-wrap: nowrap;
+    min-width: max-content;
+  }
+
+  .study-tab-button {
+    min-width: 98px;
+  }
+
+  .study-composer textarea {
+    min-height: 48px;
+  }
+
+  .study-composer button {
+    min-height: 40px;
+  }
+
+  .study-mentor-rail {
+    display: flex !important;
+  }
+
+  .agentified-card {
+    max-height: calc(100svh - 24px);
+    overflow-y: auto;
+    border-radius: 22px !important;
+  }
+
+  .agentified-core-panel {
+    min-height: 280px !important;
+  }
+
+  .agentified-core {
+    width: 128px !important;
+    height: 128px !important;
+  }
+
+  .login-shell main {
+    min-height: 100svh;
+  }
+
+  .login-shell h1 {
+    font-size: clamp(2.4rem, 13vw, 4.2rem) !important;
+    line-height: 1.02 !important;
+  }
+
+  .login-mission-step {
+    min-height: 112px;
+  }
+}

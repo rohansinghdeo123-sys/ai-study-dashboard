@@ -538,7 +538,59 @@ function SessionsTable({
   }
 
   return (
-    <div className="overflow-auto">
+    <div>
+      <div className="space-y-3 p-3 md:hidden">
+        {sessions.map((session) => {
+          const accuracy = getAccuracy(session);
+          const status = session.status?.trim() || "--";
+          const isSelected = selectedId === session.id;
+
+          return (
+            <button
+              key={session.id}
+              data-session-id={session.id}
+              type="button"
+              onClick={() => onSelect(session)}
+              className={cn(
+                "w-full rounded-xl border p-4 text-left transition-colors",
+                isSelected ? "border-cyan-300/30 bg-cyan-300/10" : "border-white/10 bg-white/[0.03]",
+              )}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold uppercase tracking-[0.08em] text-white">
+                    {session.topic}
+                  </div>
+                  <div className="mt-1 text-xs text-amber-300">{session.subject}</div>
+                </div>
+                <TonePill tone={getScoreTone(accuracy)}>{accuracy}%</TonePill>
+              </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <div className="text-[10px] text-slate-500">Time</div>
+                  <div className="mt-1 text-xs font-semibold text-white">{formatMinutes(session.duration)}</div>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <div className="text-[10px] text-slate-500">Focus</div>
+                  <div className={cn("mt-1 text-xs font-semibold", toneText(getScoreTone(session.focusScore)))}>
+                    {session.focusScore}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
+                  <div className="text-[10px] text-slate-500">XP</div>
+                  <div className="mt-1 text-xs font-semibold text-amber-300">{session.xp}</div>
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-slate-500">
+                <span>{formatDateTime(getSessionDate(session))}</span>
+                <span>{status}</span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-auto md:block">
       <div className="min-w-[1080px]">
         <div className="grid grid-cols-[1fr_1.35fr_1.15fr_0.7fr_0.7fr_0.7fr_0.65fr_0.9fr] border-b border-white/10 bg-white/[0.02] px-4 py-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
           <div>Subject</div>
@@ -599,6 +651,7 @@ function SessionsTable({
             </button>
           );
         })}
+      </div>
       </div>
     </div>
   );
