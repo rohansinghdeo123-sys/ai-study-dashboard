@@ -835,14 +835,18 @@ body {
     linear-gradient(135deg, rgba(255,255,255,0.02), transparent 42%);
 }
 
+.login-topbar,
 .login-passport-card,
+.login-mission-card,
 .login-auth-card,
 .sessions-hero-card {
   position: relative;
   overflow: hidden;
 }
 
+.login-topbar::before,
 .login-passport-card::before,
+.login-mission-card::before,
 .login-auth-card::before,
 .sessions-hero-card::before {
   content: "";
@@ -856,11 +860,45 @@ body {
   opacity: 0.72;
 }
 
+.login-topbar > *,
 .login-passport-card > *,
+.login-mission-card > *,
 .login-auth-card > *,
 .sessions-hero-card > * {
   position: relative;
   z-index: 1;
+}
+
+.login-particles {
+  opacity: 0.34;
+}
+
+.login-mission-card {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(34,211,238,0.12), transparent 32%),
+    radial-gradient(circle at 92% 8%, rgba(245,158,11,0.12), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)) !important;
+}
+
+.login-mission-step {
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.login-mission-step:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34,211,238,0.24) !important;
+  background: rgba(255,255,255,0.055) !important;
+}
+
+.login-google-button,
+.login-input,
+.login-provider-card {
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.login-google-button:hover,
+.login-input:focus {
+  box-shadow: 0 0 0 4px rgba(34,211,238,0.08);
 }
 
 .sessions-hero-card {
@@ -878,12 +916,58 @@ body {
   color: #111827 !important;
 }
 
+[data-theme="light"] .login-particles {
+  opacity: 0.16;
+}
+
+[data-theme="light"] .login-topbar,
 [data-theme="light"] .login-passport-card,
+[data-theme="light"] .login-mission-card,
 [data-theme="light"] .login-auth-card,
 [data-theme="light"] .sessions-hero-card {
   border-color: rgba(255,255,255,0.74) !important;
   background: rgba(255,255,255,0.82) !important;
   box-shadow: 0 28px 78px rgba(82,91,120,0.14), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+}
+
+[data-theme="light"] .login-shell .text-white {
+  color: #111827 !important;
+}
+
+[data-theme="light"] .login-shell .text-slate-400,
+[data-theme="light"] .login-shell .text-slate-500 {
+  color: #667085 !important;
+}
+
+[data-theme="light"] .login-shell [class*="text-cyan"] {
+  color: #2563EB !important;
+}
+
+[data-theme="light"] .login-shell [class*="text-emerald"] {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .login-shell [class*="text-amber"] {
+  color: #B45309 !important;
+}
+
+[data-theme="light"] .login-shell .bg-black\/20,
+[data-theme="light"] .login-shell .bg-black\/30 {
+  background: rgba(255,255,255,0.72) !important;
+}
+
+[data-theme="light"] .login-mission-step,
+[data-theme="light"] .login-provider-card,
+[data-theme="light"] .login-input {
+  border-color: rgba(92,101,123,0.14) !important;
+  background: rgba(255,255,255,0.78) !important;
+}
+
+[data-theme="light"] .login-mission-card {
+  background:
+    radial-gradient(circle at 10% 0%, rgba(99,91,255,0.10), transparent 30%),
+    radial-gradient(circle at 92% 4%, rgba(15,143,130,0.10), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,0.90), rgba(247,249,253,0.90)) !important;
 }
 
 [data-theme="light"] .sessions-hero-card {
@@ -893,7 +977,9 @@ body {
     linear-gradient(135deg, rgba(255,255,255,0.92), rgba(246,249,254,0.92)) !important;
 }
 
+[data-theme="light"] .login-topbar::before,
 [data-theme="light"] .login-passport-card::before,
+[data-theme="light"] .login-mission-card::before,
 [data-theme="light"] .login-auth-card::before,
 [data-theme="light"] .sessions-hero-card::before {
   background:

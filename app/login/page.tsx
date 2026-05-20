@@ -104,6 +104,19 @@ function MetricTile({
   );
 }
 
+const missionSteps = [
+  ["01", "Plan", "Build the study path"],
+  ["02", "Teach", "Explain the concept"],
+  ["03", "Test", "Generate practice"],
+  ["04", "Revise", "Fix weak points"],
+];
+
+const platformSignals = [
+  ["6", "agents online"],
+  ["24/7", "study memory"],
+  ["1", "private learner profile"],
+];
+
 // ─── Particle background (unchanged) ───────────────────────────────────────
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -179,7 +192,7 @@ function ParticleCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 h-full w-full"
+      className="login-particles absolute inset-0 h-full w-full"
       style={{ pointerEvents: "none" }}
     />
   );
@@ -294,83 +307,92 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10">
-        <main className="mx-auto grid min-h-screen max-w-[1540px] grid-cols-1 gap-8 px-5 py-8 lg:grid-cols-[minmax(0,1.08fr)_520px] lg:px-10 xl:px-12">
+        <main className="mx-auto flex min-h-screen max-w-[1480px] flex-col px-5 py-5 lg:px-10 xl:px-12">
+          <header className="login-topbar flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-black text-white">
+                A
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">AgentifyAI</div>
+                <div className="text-xs text-slate-500">Autonomous study workspace</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle compact />
+              <TerminalBadge tone="green">Ready</TerminalBadge>
+            </div>
+          </header>
+
+          <div className="grid flex-1 grid-cols-1 items-center gap-8 py-10 lg:grid-cols-[minmax(0,1.08fr)_500px] lg:py-12 xl:gap-12">
           {/* Left panel – Clean and bold */}
           <section className="flex flex-col justify-center">
-            <div className="mb-8 flex flex-wrap items-center gap-3">
-              <TerminalBadge tone="blue">AI TERMINAL</TerminalBadge>
-              <TerminalBadge tone="green">AUTH ONLINE</TerminalBadge>
-              <TerminalBadge tone="neutral">v1.0.4-STABLE</TerminalBadge>
-            </div>
-
             <div className="max-w-3xl">
-              <div className="mb-5 text-[10px] uppercase tracking-[0.38em] text-[#6B6B6B] font-mono">
-                Learning Intelligence Console
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs font-medium text-slate-400 shadow-[0_14px_34px_rgba(0,0,0,0.12)] backdrop-blur-xl">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.8)]" />
+                AI tutoring, revision, testing, and progress in one place
               </div>
 
-              <h1 className="text-5xl font-semibold tracking-tight text-white md:text-7xl">
-                AgentifyAI
+              <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-white md:text-7xl">
+                Your autonomous AI study command center.
               </h1>
 
-              <p className="mt-5 text-2xl font-semibold text-cyan-100 md:text-3xl">
-                Your personal study command center
-              </p>
-              <p className="mt-3 max-w-2xl text-base leading-8 text-slate-400">
-                A private AI coach that explains concepts clearly, tracks progress, and guides the next best study action.
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-400 md:text-lg">
+                AgentifyAI gives every learner a private AI coach that can plan a mission, explain a topic, test understanding, and guide the next best study action.
               </p>
             </div>
 
-            <div className="mt-10 grid max-w-4xl grid-cols-2 gap-3 md:grid-cols-4">
-              <MetricTile label="Daily XP" value="LIVE" active />
-              <MetricTile label="MCQ Engine" value="READY" />
-              <MetricTile label="Analytics" value="SYNC" />
-              <MetricTile label="Personal AI" value="ACTIVE" />
-            </div>
-
-            <div className="mt-8 grid max-w-4xl gap-3 md:grid-cols-2">
-              {[
-                [
-                  "PERSONAL_AI_COACH",
-                  "Every student gets a dedicated AI agent that adapts to your performance and creates a personalised study path.",
-                ],
-                [
-                  "SMART_REVISION",
-                  "Weak-topic detection and intelligent revision sessions that maximise retention.",
-                ],
-              ].map(([label, detail]) => (
-                <div
-                  key={label}
-                  className="rounded-lg border border-white/10 bg-white/[0.04] p-4 transition-colors duration-200 hover:border-cyan-300/30"
-                >
-                  <div className="text-[11px] font-semibold text-amber-200">
-                    {label}
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-slate-400">{detail}</div>
-                </div>
+            <div className="mt-8 grid max-w-3xl grid-cols-3 gap-3">
+              {platformSignals.map(([value, label]) => (
+                <MetricTile key={label} label={label} value={value} active={value === "6"} />
               ))}
             </div>
 
-            <div className="login-passport-card mt-6 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+            <div className="login-mission-card mt-8 max-w-4xl rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl md:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
-                    Learning Passport
+                    Autonomous Mission
                   </div>
-                  <h2 className="mt-2 text-xl font-semibold text-white">One sign-in. One private AI coach.</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-                    Your dashboard, sessions, analytics, and Study Lab all connect into one student profile.
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
+                    One goal becomes a guided study workflow.
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+                    The coach turns a student request into a plan, explanation, quiz, revision loop, and progress signal.
                   </p>
                 </div>
-                <div className="grid min-w-[230px] grid-cols-3 gap-2 text-center">
-                  {[
-                    ["Coach", "Ready"],
-                    ["Memory", "Sync"],
-                    ["Security", "On"],
-                  ].map(([label, value]) => (
-                    <div key={label} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                      <div className="text-[10px] text-slate-500">{label}</div>
-                      <div className="mt-1 text-xs font-semibold text-cyan-100">{value}</div>
+                <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+                  Live preview
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-3 md:grid-cols-4">
+                {missionSteps.map(([step, title, detail], index) => (
+                  <div key={title} className="login-mission-step rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-slate-500">{step}</span>
+                      <span className={cn("h-2 w-2 rounded-full", index === 0 ? "bg-cyan-300" : index === 3 ? "bg-amber-300" : "bg-emerald-300")} />
                     </div>
+                    <div className="mt-4 text-sm font-semibold text-white">{title}</div>
+                    <div className="mt-1 text-xs leading-5 text-slate-500">{detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="login-passport-card mt-4 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.16)] backdrop-blur-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-white">Learning Passport</div>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Dashboard, sessions, analytics, and Study Lab sync into one private profile.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Coach ready", "Memory sync", "Secure auth"].map((item) => (
+                    <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-400">
+                      {item}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -381,26 +403,11 @@ export default function LoginPage() {
           <section className="flex items-center justify-center">
             <div
               className={cn(
-                "login-auth-card w-full rounded-2xl border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
+                "login-auth-card w-full rounded-3xl border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
                 shake && "animate-shake",
                 granted && "border-cyan-300/30 shadow-[0_0_40px_rgba(34,211,238,0.16)]",
               )}
             >
-              <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-semibold text-slate-500">
-                    Secure sign in
-                  </span>
-                  <TerminalBadge tone="blue">SECURE</TerminalBadge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ThemeToggle compact />
-                  <span className="text-[11px] text-cyan-200">
-                    {granted ? "Granted" : "Ready"}
-                  </span>
-                </div>
-              </div>
-
               <div className="p-6 md:p-8">
                 {granted ? (
                   <div className="flex flex-col items-center justify-center py-12">
@@ -410,17 +417,22 @@ export default function LoginPage() {
                 ) : (
                   <>
                     <div className="mb-8">
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
-                        Account access
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+                          Account access
+                        </div>
+                        <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200">
+                          Secure
+                        </span>
                       </div>
-                      <h2 className="mt-3 text-2xl font-semibold text-white">
-                        Welcome back
+                      <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">
+                        Sign in to AgentifyAI
                       </h2>
                       <p className="mt-2 text-sm leading-6 text-slate-400">
-                        Continue with Google or verify your mobile number.
+                        Continue to your private dashboard, Study Lab, sessions, and autonomous missions.
                       </p>
                       <div className="mt-4 grid grid-cols-3 gap-2">
-                        {["Private", "Adaptive", "Secure"].map((item) => (
+                        {["Private", "Adaptive", "Mission ready"].map((item) => (
                           <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                             {item}
                           </span>
@@ -432,7 +444,7 @@ export default function LoginPage() {
                     <Button
                       variant="secondary"
                       size="lg"
-                      className="w-full"
+                      className="login-google-button w-full"
                       onClick={handleGoogleLogin}
                     >
                       <svg
@@ -467,7 +479,7 @@ export default function LoginPage() {
                             onChange={(event) => setPhoneNumber(event.target.value)}
                             placeholder="+91 98765 43210"
                             disabled={otpSent}
-                            className="w-full border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#00A3FF] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#00A3FF] disabled:cursor-not-allowed disabled:opacity-60"
                           />
                           {!phoneNumber && !otpSent && (
                             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-[#00A3FF]">
@@ -498,7 +510,7 @@ export default function LoginPage() {
                                 value={otp}
                                 onChange={(event) => setOtp(event.target.value)}
                                 placeholder="ENTER OTP"
-                                className="w-full border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-emerald-400"
+                                className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-emerald-400"
                               />
                               {!otp && (
                                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-emerald-400">
@@ -545,7 +557,7 @@ export default function LoginPage() {
                       </div>
                     )}
 
-                    <div className="mt-6 border border-white/10 bg-black/20 p-4">
+                    <div className="login-provider-card mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
                       <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em]">
                         <span className="text-[#6B6B6B] font-mono">Provider</span>
                         <span className="text-emerald-400 font-mono">Firebase Auth</span>
@@ -566,6 +578,7 @@ export default function LoginPage() {
               </div>
             </div>
           </section>
+          </div>
         </main>
       </div>
 
