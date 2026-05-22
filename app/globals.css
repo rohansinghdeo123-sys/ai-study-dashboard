@@ -252,6 +252,15 @@ body {
 .btn-sm { padding: var(--spacing-1) var(--spacing-3); font-size: var(--text-xs); }
 .btn-lg { padding: var(--spacing-3) var(--spacing-6); font-size: var(--text-base); }
 
+/* Filled brand-teal surfaces must always keep high-contrast foreground text. */
+[class*="!bg-cyan-400"],
+[class~="bg-cyan-400"],
+[class~="bg-[#0E7490]"] {
+  background-color: #0E7490 !important;
+  border-color: #0E7490 !important;
+  color: #FFFFFF !important;
+}
+
 /* ── Input styles ──────────────────────────────────────── */
 .input {
   width: 100%;
@@ -421,6 +430,12 @@ body {
 [data-theme="light"] [class~="bg-[#0E7490]"] {
   background-color: #0E7490 !important;
   border-color: #0E7490 !important;
+  color: #FFFFFF !important;
+}
+
+[data-theme="light"] [class*="!bg-cyan-400"] *,
+[data-theme="light"] [class~="bg-cyan-400"] *,
+[data-theme="light"] [class~="bg-[#0E7490]"] * {
   color: #FFFFFF !important;
 }
 

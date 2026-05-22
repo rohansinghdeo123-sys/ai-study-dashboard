@@ -1860,7 +1860,7 @@ export default function StudyPage() {
                     <Button
                       variant="primary"
                       size="md"
-                      className="!bg-cyan-400 !text-black hover:!bg-cyan-300"
+                      className="!bg-cyan-400 !text-white hover:!bg-cyan-300"
                       onClick={handleAskCoach}
                       disabled={coachLoading || !coachInput.trim()}
                     >
@@ -1888,7 +1888,7 @@ export default function StudyPage() {
                       <option value="explain">Explain</option>
                       <option value="key">Key Points</option>
                     </select>
-                    <Button variant="primary" size="sm" className="!bg-cyan-400 !text-black hover:!bg-cyan-300" onClick={() => handleRevision()} disabled={loadingRevision}>
+                    <Button variant="primary" size="sm" className="!bg-cyan-400 !text-white hover:!bg-cyan-300" onClick={() => handleRevision()} disabled={loadingRevision}>
                       {loadingRevision ? "Generating..." : "Generate Notes"}
                     </Button>
                     {revisionOutput && <Button variant="ghost" size="sm" onClick={handleCopyRevision}>Copy</Button>}
@@ -1933,13 +1933,13 @@ export default function StudyPage() {
                       onChange={(e) => setExamTopic(e.target.value)}
                       className="min-w-[220px] !bg-black/40"
                     />
-                    <Button variant={examType === "mcq" ? "primary" : "secondary"} size="sm" className={examType === "mcq" ? "!bg-cyan-400 !text-black" : ""} onClick={() => setExamType("mcq")}>
+                    <Button variant={examType === "mcq" ? "primary" : "secondary"} size="sm" className={examType === "mcq" ? "!bg-cyan-400 !text-white" : ""} onClick={() => setExamType("mcq")}>
                       MCQs
                     </Button>
-                    <Button variant={examType === "probable" ? "primary" : "secondary"} size="sm" className={examType === "probable" ? "!bg-cyan-400 !text-black" : ""} onClick={() => setExamType("probable")}>
+                    <Button variant={examType === "probable" ? "primary" : "secondary"} size="sm" className={examType === "probable" ? "!bg-cyan-400 !text-white" : ""} onClick={() => setExamType("probable")}>
                       Probable
                     </Button>
-                    <Button variant="primary" size="sm" className="!bg-cyan-400 !text-black hover:!bg-cyan-300" onClick={examType === "mcq" ? generateMCQs : generateProbable} disabled={loadingExam}>
+                    <Button variant="primary" size="sm" className="!bg-cyan-400 !text-white hover:!bg-cyan-300" onClick={examType === "mcq" ? generateMCQs : generateProbable} disabled={loadingExam}>
                       {loadingExam ? "Generating..." : "Generate"}
                     </Button>
                     {(mcqs.length > 0 || probableOutput) && <Button variant="danger" size="sm" onClick={clearExam}>Clear</Button>}

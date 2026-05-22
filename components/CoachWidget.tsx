@@ -367,7 +367,7 @@ export default function CoachWidget() {
                 <button
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
-                  className="rounded-lg bg-[#0E7490] px-5 text-xs font-bold text-black transition-all hover:bg-[#0E7490]/80 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="rounded-lg bg-[#0E7490] px-5 text-xs font-bold text-white transition-all hover:bg-[#0E7490]/80 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   SEND
                 </button>
