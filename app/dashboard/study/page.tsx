@@ -115,6 +115,19 @@ interface MissionCheckpoint {
   detail: string;
 }
 
+interface MissionPlanStep {
+  title: string;
+  duration?: string;
+  detail: string;
+  focus?: string;
+}
+
+interface MissionRoadmapStep {
+  condition: string;
+  next_step: string;
+  mentor_action: string;
+}
+
 interface AutonomousMission {
   mission_id: string;
   status: string;
@@ -134,6 +147,9 @@ interface AutonomousMission {
   steps: string[];
   next_actions: string[];
   success_criteria?: string[];
+  study_plan?: MissionPlanStep[];
+  diagnostic_question?: MCQ;
+  adaptive_roadmap?: MissionRoadmapStep[];
   agent_sequence?: MissionAgentStep[];
   checkpoints?: MissionCheckpoint[];
   student_state?: Record<string, unknown>;
@@ -533,6 +549,31 @@ function buildMissionChatSummary(mission: AutonomousMission, answer: string) {
     mission.why,
   ];
 
+  if (mission.study_plan?.length) {
+    lines.push(
+      "",
+      "Simple Study Plan:",
+      ...mission.study_plan.map((step) => `- ${step.title}${step.duration ? ` (${step.duration})` : ""}: ${step.detail}`),
+    );
+  }
+
+  if (mission.diagnostic_question?.question) {
+    lines.push(
+      "",
+      "One Diagnostic Question:",
+      mission.diagnostic_question.question,
+      ...mission.diagnostic_question.options.map((option) => `- ${option}`),
+    );
+  }
+
+  if (mission.adaptive_roadmap?.length) {
+    lines.push(
+      "",
+      "How I Will Adapt:",
+      ...mission.adaptive_roadmap.slice(0, 3).map((step) => `- ${step.condition}: ${step.next_step}`),
+    );
+  }
+
   if (mission.agent_sequence?.length) {
     lines.push(
       "",
@@ -554,6 +595,30 @@ function buildMissionChatSummary(mission: AutonomousMission, answer: string) {
   }
 
   return lines.join("\n");
+}
+
+function buildMissionResultSummary(mission: AutonomousMission, finalScore: number, totalQuestions: number) {
+  const passed = finalScore === totalQuestions;
+  const topicLabel = formatMissionLabel(mission.target_topic);
+  return [
+    "Adaptive Mission Report:",
+    passed
+      ? `You cleared the diagnostic for ${topicLabel}. That means your first concept signal is strong.`
+      : `The diagnostic found a weak spot in ${topicLabel}. That is useful, because now we know exactly where to repair.`,
+    "",
+    "What This Means:",
+    passed
+      ? "- Move from basic understanding to exam-style application."
+      : "- Rebuild the core idea with a simpler explanation before doing more MCQs.",
+    "- Keep the mission small: one concept, one example, one practice step.",
+    "",
+    "Personalized Next Roadmap:",
+    passed
+      ? `- Try two application questions on ${topicLabel}.`
+      : `- Ask me for a simpler explanation of ${topicLabel}, then retry one similar diagnostic.`,
+    "- Track whether mistakes come from memory, concept clarity, or application.",
+    "- Aim for 80%+ accuracy before moving to the next topic.",
+  ].join("\n");
 }
 
 // ------------------------------------------------------------------------------
@@ -974,11 +1039,19 @@ export default function StudyPage() {
 
       setAutonomousMission(mission);
       setExamTopic(mission.target_topic);
+      setCoachMessages((prev) => [
+        ...prev,
+        {
+          role: "coach",
+          content: buildMissionChatSummary(mission, answer),
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
 
       if (mission.primary_agent === "revision" && answer) {
         setRevisionOutput(answer);
         setActiveWorkspace("revise");
-      } else if (mission.primary_agent === "exam" && missionQuestions.length) {
+      } else if (missionQuestions.length) {
         setMcqs(missionQuestions);
         setProbableOutput(mission.mode === "probable" ? answer : "");
         setExamStatus("");
@@ -987,14 +1060,6 @@ export default function StudyPage() {
         setActiveWorkspace("practice");
         sessionStartTime.current = Date.now();
       } else {
-        setCoachMessages((prev) => [
-          ...prev,
-          {
-            role: "coach",
-            content: buildMissionChatSummary(mission, answer),
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          },
-        ]);
         setActiveWorkspace("chat");
       }
 
@@ -1075,11 +1140,15 @@ export default function StudyPage() {
         await runDailyCoachSignal();
         await loadCoachDashboard(userId);
 
+        const coachReport = autonomousMission?.mission_type === "adaptive_diagnostic"
+          ? buildMissionResultSummary(autonomousMission, finalScore, totalQuestions)
+          : `Session captured. Score: ${finalScore}/${totalQuestions}. I updated your learning profile and will use this to guide your next revision block.`;
+
         setCoachMessages((prev) => [
           ...prev,
           {
             role: "coach",
-            content: `Session captured. Score: ${finalScore}/${totalQuestions}. I updated your learning profile and will use this to guide your next revision block.`,
+            content: coachReport,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ]);
@@ -1523,15 +1592,16 @@ export default function StudyPage() {
       ];
     }
     const lastCoachMsg = [...coachMessages].reverse().find((m) => m.role === "coach");
-    const actions = [];
-    if (nextAction) actions.push({ label: "What to do next", prompt: nextAction });
-    if (lastCoachMsg && (lastCoachMsg.content.includes("alkane") || lastCoachMsg.content.includes("matter") || lastCoachMsg.content.includes("state"))) {
-      actions.push({ label: "Quiz on this topic", prompt: "Give me 5 MCQs on the last topic we discussed." });
-    }
-    actions.push({ label: "Revision summary", prompt: "Give me a quick revision summary of the last topic." });
-    actions.push({ label: "I'm stuck", prompt: "I'm feeling stuck. Help me get unstuck." });
+    const topicPrompt = lastCoachMsg ? "the last concept we discussed" : currentTopicLabel;
+    const actions: { label: string; prompt: string }[] = [
+      { label: "Need simpler explanation?", prompt: `Explain ${topicPrompt} in a simpler way with a very easy example.` },
+      { label: "Show live example", prompt: `Show a real-life example of ${topicPrompt} and connect it to the concept.` },
+      { label: "Practice this concept", prompt: `Give me one practice question on ${topicPrompt}, then check my answer.` },
+      { label: "Common mistake students make", prompt: `What common mistake do students make in ${topicPrompt}, and how can I avoid it?` },
+    ];
+    if (nextAction) actions.unshift({ label: "What to do next", prompt: nextAction });
     return actions.slice(0, 4);
-  }, [coachMessages, nextAction]);
+  }, [coachMessages, currentTopicLabel, nextAction]);
 
   if (authLoading || coachBooting) {
     return (
@@ -2131,6 +2201,23 @@ export default function StudyPage() {
                     </p>
                     <p className="mt-2 text-xs leading-5 text-gray-500">{autonomousMission.why}</p>
                   </div>
+
+                  {autonomousMission.study_plan?.length ? (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Simple Study Plan</p>
+                      <div className="mt-2 space-y-2">
+                        {autonomousMission.study_plan.slice(0, 3).map((step, index) => (
+                          <div key={`${step.title}-${index}`} className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold text-gray-200">{step.title}</p>
+                              {step.duration ? <span className="text-[10px] text-cyan-200">{step.duration}</span> : null}
+                            </div>
+                            <p className="mt-1 text-xs leading-5 text-gray-500">{step.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Agent Run</p>
