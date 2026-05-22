@@ -3,6 +3,7 @@
 import AgentifiedNotification from "@/components/AgentifiedNotification";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 interface ProgressState {
@@ -105,15 +106,15 @@ function getDisplayName(entry: LeaderboardEntry, fallback: string) {
 
 function MetricCard({ label, value, helper }: { label: string; value: string | number; helper: string }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/60 bg-white/70 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]">
+    <div className="rounded-[1.5rem] border border-white/60 bg-white/70 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">{value}</p>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{helper}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+      <p className="mt-2 text-sm text-slate-500">{helper}</p>
     </div>
   );
 }
 
-function ActionCard({
+function HubTile({
   href,
   eyebrow,
   title,
@@ -136,13 +137,13 @@ function ActionCard({
   return (
     <Link
       href={href}
-      className={`group relative overflow-hidden rounded-[2rem] bg-gradient-to-br ${toneClass} p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] transition hover:-translate-y-1 hover:shadow-[0_30px_90px_rgba(15,23,42,0.16)]`}
+      className={`group relative min-h-[210px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 transition hover:z-10 hover:scale-[1.025] hover:shadow-[0_30px_90px_rgba(15,23,42,0.18)]`}
     >
       <div className="absolute right-[-3rem] top-[-3rem] h-36 w-36 rounded-full bg-white/32 blur-2xl transition group-hover:scale-125" />
       <p className="relative text-xs font-bold uppercase tracking-[0.22em] opacity-70">{eyebrow}</p>
       <h2 className="relative mt-5 text-2xl font-semibold tracking-tight">{title}</h2>
       <p className="relative mt-3 max-w-sm text-sm leading-6 opacity-75">{description}</p>
-      <span className="relative mt-8 inline-flex rounded-full bg-white/30 px-4 py-2 text-sm font-semibold backdrop-blur-xl">
+      <span className="relative mt-8 inline-flex rounded-full bg-white/32 px-4 py-2 text-sm font-semibold backdrop-blur-xl">
         Open
       </span>
     </Link>
@@ -151,6 +152,7 @@ function ActionCard({
 
 export default function DashboardPage() {
   const { user, userId, loading, claimsLoading, isAdmin, getAuthHeaders } = useAuth();
+  const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   const [progress, setProgress] = useState<ProgressState>({ total_tests: 0, total_questions: 0, total_correct: 0, xp: 0, streak: 0 });
@@ -162,6 +164,7 @@ export default function DashboardPage() {
 
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const firstName = displayName.split(" ")[0] || "Student";
+  const showOverview = searchParams.get("workspace") === "overview";
   const accuracyValue = accuracy(progress);
   const level = Math.floor(progress.xp / 100) + 1;
   const recentSessions = sessions.slice(0, 3);
@@ -229,53 +232,90 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <div className="space-y-5">
-      <section className="relative overflow-hidden rounded-[2.2rem] border border-white/60 bg-white/72 p-6 shadow-[0_28px_100px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05] sm:p-8">
-        <div className="absolute right-[-8rem] top-[-8rem] h-72 w-72 rounded-full bg-[#14B8A6]/18 blur-3xl" />
-        <div className="absolute bottom-[-9rem] left-1/3 h-72 w-72 rounded-full bg-[#F2B84B]/16 blur-3xl" />
-        <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#0E7490]">Learning Hub</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-5xl">
+  if (!showOverview) {
+    return (
+      <div className="mx-auto max-w-7xl">
+        <section className="flex min-h-[calc(100svh-118px)] flex-col items-center justify-center gap-8 py-8">
+          <div className="max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0E7490]">Learning Hub</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
               Good to see you, {firstName}
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500 dark:text-slate-400">
-              Pick one path and start. Study is for open doubts. Mission is for guided improvement. Sessions keep your learning history.
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-500">
+              Choose one section from the hub. Each opens as a full-window learning workspace.
             </p>
           </div>
-          <div className="rounded-[1.7rem] border border-white/60 bg-white/68 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.05]">
+
+          <div className="relative w-full max-w-5xl">
+            <div className="absolute left-1/2 top-1/2 z-20 hidden h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/86 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-2xl md:flex">
+              <div>
+                <p className="text-3xl font-semibold text-slate-950">AI</p>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0E7490]">Choose path</p>
+              </div>
+            </div>
+            <div className="grid overflow-hidden rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
+              <HubTile
+                href="/dashboard?workspace=overview"
+                eyebrow="Overview"
+                title="Dashboard"
+                description="Your simple home base, focus signal, weak areas, and quick progress."
+                tone="teal"
+              />
+              <HubTile
+                href="/dashboard/study"
+                eyebrow="Ask"
+                title="Study Page"
+                description="A clean full-window AI tutor chat for doubts, examples, and follow-ups."
+                tone="navy"
+              />
+              <HubTile
+                href="/dashboard/sessions"
+                eyebrow="Review"
+                title="Sessions"
+                description="Replay previous attempts and understand what improved or needs repair."
+                tone="gold"
+              />
+              <HubTile
+                href="/dashboard/mission"
+                eyebrow="Improve"
+                title="Autonomous Mission"
+                description="A guided plan, one chapter-based MCQ, adaptive roadmap, and final report."
+                tone="teal"
+              />
+            </div>
+          </div>
+
+          <div className="w-full max-w-3xl rounded-[1.7rem] border border-white/70 bg-white/70 p-5 text-center shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Today&apos;s focus</p>
-            <p className="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">{focusMessage}</p>
-            <div className="mt-5 h-2 rounded-full bg-slate-100 dark:bg-white/10">
+            <p className="mt-3 text-2xl font-semibold text-slate-950">{focusMessage}</p>
+            <div className="mx-auto mt-5 h-2 max-w-xl rounded-full bg-slate-100">
               <div className="h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6,#F2B84B)] transition-all" style={{ width: `${Math.max(6, Math.min(100, accuracyValue || 6))}%` }} />
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <ActionCard
-          href="/dashboard/study"
-          eyebrow="Ask"
-          title="Study with AI"
-          description="A full-window tutor chat for doubts, examples, and follow-up explanations."
-          tone="navy"
-        />
-        <ActionCard
-          href="/dashboard/mission"
-          eyebrow="Improve"
-          title="Start Mission"
-          description="One focused plan, one diagnostic question, and a personalized next step."
-          tone="teal"
-        />
-        <ActionCard
-          href="/dashboard/sessions"
-          eyebrow="Review"
-          title="See Sessions"
-          description="Replay your attempts and understand what improved or needs repair."
-          tone="gold"
-        />
+        {showAgentNotification ? (
+          <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-5">
+      <section className="rounded-[2rem] border border-white/70 bg-white/74 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Dashboard workspace</p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Learning command center</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+              A focused overview of progress, weak areas, rankings, and the next best study move.
+            </p>
+          </div>
+          <Link href="/dashboard" className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
+            Back to hub
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-4">
@@ -286,11 +326,11 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]">
+        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">How to use AgentifyAI</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">Three simple moves</h2>
+              <h2 className="mt-2 text-xl font-semibold text-slate-950">Three simple moves</h2>
             </div>
             <Link href="/dashboard/mission" className="rounded-full bg-[#0E7490]/10 px-3 py-2 text-xs font-semibold text-[#0E7490]">
               Guided start
@@ -302,34 +342,34 @@ export default function DashboardPage() {
               ["2", "Run mission", "Use Mission when you want the app to choose the next step."],
               ["3", "Review result", "Use Sessions to learn from wrong answers."],
             ].map(([step, title, body]) => (
-              <div key={step} className="rounded-3xl border border-slate-200 bg-white/65 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+              <div key={step} className="rounded-3xl border border-slate-200 bg-white/65 p-4">
                 <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#0E7490] text-sm font-bold text-white">{step}</span>
-                <h3 className="mt-4 text-sm font-semibold text-slate-950 dark:text-white">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{body}</p>
+                <h3 className="mt-4 text-sm font-semibold text-slate-950">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]">
+        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Weak areas</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950 dark:text-white">What to repair next</h2>
+          <h2 className="mt-2 text-xl font-semibold text-slate-950">What to repair next</h2>
           <div className="mt-5 space-y-3">
             {weakAreas.length ? weakAreas.map((area, index) => {
               const score = Math.round(toNumber(area.accuracy ?? area.value));
               return (
-                <div key={`${area.topic}-${index}`} className="rounded-2xl border border-slate-200 bg-white/65 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+                <div key={`${area.topic}-${index}`} className="rounded-2xl border border-slate-200 bg-white/65 p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold capitalize text-slate-900 dark:text-white">{formatTopic(area.topic)}</p>
+                    <p className="text-sm font-semibold capitalize text-slate-900">{formatTopic(area.topic)}</p>
                     <span className="text-sm font-bold text-[#0E7490]">{score}%</span>
                   </div>
-                  <div className="mt-3 h-1.5 rounded-full bg-slate-100 dark:bg-white/10">
+                  <div className="mt-3 h-1.5 rounded-full bg-slate-100">
                     <div className="h-full rounded-full bg-[#14B8A6]" style={{ width: `${Math.max(5, Math.min(100, score))}%` }} />
                   </div>
                 </div>
               );
             }) : (
-              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm leading-6 text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400">
+              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm leading-6 text-slate-500">
                 Complete one mission to unlock weak-topic signals.
               </p>
             )}
@@ -337,20 +377,20 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/60 bg-white/62 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.07)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.04]">
+      <section className="rounded-[2rem] border border-white/60 bg-white/62 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Advanced tools</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="mt-2 text-sm leading-6 text-slate-500">
               Kept out of the main path so students can focus, but still available when needed.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard/progress" className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490] dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300">
+            <Link href="/dashboard/progress" className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
               Analytics
             </Link>
             {isAdmin ? (
-              <Link href="/dashboard/internal/ops" className="rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15 dark:text-amber-200">
+              <Link href="/dashboard/internal/ops" className="rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15">
                 Ops
               </Link>
             ) : null}
@@ -359,13 +399,13 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]">
+        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Recent sessions</p>
           <div className="mt-5 space-y-3">
             {recentSessions.length ? recentSessions.map((session, index) => (
-              <div key={session.id ?? index} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/65 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+              <div key={session.id ?? index} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/65 p-4">
                 <div>
-                  <p className="text-sm font-semibold capitalize text-slate-900 dark:text-white">{formatTopic(session.topic)}</p>
+                  <p className="text-sm font-semibold capitalize text-slate-900">{formatTopic(session.topic)}</p>
                   <p className="mt-1 text-xs text-slate-500">{getSessionDate(session)}</p>
                 </div>
                 <div className="text-right">
@@ -374,26 +414,26 @@ export default function DashboardPage() {
                 </div>
               </div>
             )) : (
-              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.03]">
+              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500">
                 No sessions yet. Start a mission to create your first record.
               </p>
             )}
           </div>
         </div>
 
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]">
+        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Leaderboard</p>
           <div className="mt-5 space-y-3">
             {leaderboard.length ? leaderboard.map((entry, index) => (
-              <div key={entry.user_id || index} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/65 p-4 dark:border-white/10 dark:bg-white/[0.03]">
+              <div key={entry.user_id || index} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/65 p-4">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-sm font-bold text-[#0E7490]">#{index + 1}</span>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">{getDisplayName(entry, `Student ${index + 1}`)}</p>
+                  <p className="text-sm font-semibold text-slate-900">{getDisplayName(entry, `Student ${index + 1}`)}</p>
                 </div>
                 <p className="text-sm font-bold text-[#0E7490]">{toNumber(entry.xp)} XP</p>
               </div>
             )) : (
-              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.03]">
+              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500">
                 Rankings will appear after students earn XP.
               </p>
             )}

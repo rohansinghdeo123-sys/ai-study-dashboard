@@ -1,21 +1,39 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 
-// ------------------------------------------------------------------------------
-// Types (unchanged except for optional replay_data)
-// ------------------------------------------------------------------------------
-type Session = {
-  id: string;
-  subject: string;
-  topic: string;
-  duration: number;
-  questions: number;
-  correct: number;
-  xp: number;
-  focusScore: number;
+type ReplayQuestion = {
+  id?: string;
+  text?: string;
+  question?: string;
+  topic?: string;
+  subtopic?: string;
+  options?: string[];
+  correct_answer?: string;
+  correct?: string;
+  user_answer?: string;
+  answer?: string;
+  is_correct?: boolean;
+  ai_explanation?: string;
+  explanation?: string;
+};
+
+type SessionRecord = {
+  id?: string | number;
+  subject?: string;
+  topic?: string;
+  duration?: number;
+  time_spent_seconds?: number;
+  questions?: number;
+  total_questions?: number;
+  correct?: number;
+  score?: number;
+  xp?: number;
+  xp_earned?: number;
+  focusScore?: number;
+  focus_score?: number;
   date?: string;
   timestamp?: string;
   createdAt?: string;
@@ -23,1094 +41,376 @@ type Session = {
   completedAt?: string;
   status?: string | null;
   performance?: number | null;
-  // new field for replay
   replay_data?: {
-    questions: {
-      id?: string;
-      text: string;
-      topic?: string;
-      subtopic?: string;
-      options: string[];
-      correct_answer: string;
-      user_answer: string;
-      is_correct: boolean;
-      ai_explanation?: string;
-    }[];
+    questions?: ReplayQuestion[];
   };
 };
 
-type SortKey = "latest" | "duration" | "performance";
-type Tone = "neutral" | "blue" | "green" | "amber" | "red";
+type SortKey = "latest" | "accuracy" | "xp";
 
-// ------------------------------------------------------------------------------
-// Utility functions (unchanged)
-// ------------------------------------------------------------------------------
-function cn(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
-function sum<T>(items: T[], getValue: (item: T) => number) {
-  return items.reduce((total, item) => total + getValue(item), 0);
+function toNumber(value: unknown, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-function average<T>(items: T[], getValue: (item: T) => number) {
-  if (!items.length) return 0;
-  return Math.round(sum(items, getValue) / items.length);
+function normalizeSessions(value: unknown): SessionRecord[] {
+  const list = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.sessions)
+      ? value.sessions
+      : [];
+
+  return list.filter(Boolean).map((item, index) => {
+    const session = item as SessionRecord;
+    return {
+      ...session,
+      id: session.id ?? `${session.topic || "session"}-${index}`,
+      subject: session.subject || "Study",
+      topic: session.topic || "Learning session",
+    };
+  });
 }
 
-function getAccuracy(session: Session) {
-  return session.questions > 0
-    ? Math.round((session.correct / session.questions) * 100)
-    : 0;
+function getQuestionCount(session: SessionRecord) {
+  return Math.max(0, toNumber(session.total_questions ?? session.questions));
 }
 
-function getPerformance(session: Session) {
-  return typeof session.performance === "number"
-    ? Math.round(session.performance)
-    : getAccuracy(session);
+function getCorrectCount(session: SessionRecord) {
+  return Math.max(0, toNumber(session.correct ?? session.score));
 }
 
-function getSessionDate(session: Session) {
-  const raw =
-    session.timestamp ??
-    session.date ??
-    session.createdAt ??
-    session.startedAt ??
-    session.completedAt;
+function getAccuracy(session: SessionRecord) {
+  const total = getQuestionCount(session);
+  if (!total) return 0;
+  return Math.round((getCorrectCount(session) / total) * 100);
+}
+
+function getXp(session: SessionRecord) {
+  return toNumber(session.xp_earned ?? session.xp);
+}
+
+function getDurationMinutes(session: SessionRecord) {
+  if (session.time_spent_seconds) return Math.max(1, Math.round(session.time_spent_seconds / 60));
+  return Math.max(0, toNumber(session.duration));
+}
+
+function getSessionDate(session: SessionRecord) {
+  const raw = session.timestamp || session.date || session.createdAt || session.startedAt || session.completedAt;
   if (!raw) return null;
   const parsed = new Date(raw);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function formatDateTime(value: Date | null) {
-  if (!value) return "UNAVAILABLE";
-  return value
-    .toLocaleString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-    .toUpperCase();
-}
-
-function formatMinutes(value: number) {
-  if (!Number.isFinite(value)) return "0M";
-  if (value >= 60) {
-    const hours = Math.floor(value / 60);
-    const mins = value % 60;
-    return mins ? `${hours}H ${mins}M` : `${hours}H`;
-  }
-  return `${value}M`;
-}
-
-function formatHours(value: number) {
-  return `${(value / 60).toFixed(1)}H`;
-}
-
-function getStatusTone(status?: string | null): Tone {
-  const normalized = status?.toLowerCase() ?? "";
-  if (normalized.includes("complete") || normalized.includes("done")) return "green";
-  if (normalized.includes("progress") || normalized.includes("active")) return "blue";
-  if (normalized.includes("review") || normalized.includes("pending")) return "amber";
-  if (normalized.includes("miss") || normalized.includes("failed")) return "red";
-  return "neutral";
-}
-
-function getScoreTone(value: number): Tone {
-  if (value >= 85) return "green";
-  if (value >= 70) return "blue";
-  if (value >= 55) return "amber";
-  return "red";
-}
-
-function toneText(tone: Tone) {
-  switch (tone) {
-    case "green": return "text-emerald-400";
-    case "blue": return "text-[#0E7490]";
-    case "amber": return "text-amber-400";
-    case "red": return "text-red-400";
-    default: return "text-gray-300";
-  }
-}
-
-function toneBadge(tone: Tone) {
-  switch (tone) {
-    case "green": return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-    case "blue": return "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]";
-    case "amber": return "border-amber-400/30 bg-amber-400/10 text-amber-400";
-    case "red": return "border-red-500/30 bg-red-500/10 text-red-400";
-    default: return "border-white/10 bg-white/5 text-gray-400";
-  }
-}
-
-// ------------------------------------------------------------------------------
-// Chemistry rendering (copied from study page for replay)
-// ------------------------------------------------------------------------------
-function renderChemistryText(value: string) {
-  const tokenRegex =
-    /(sp\d+|[A-Z][a-z]?(?:\d+)?(?:[A-Z][a-z]?(?:\d+)?)*(?:\^[+-]?\d+|\^[+-])?)/g;
-  const pieces = value.split(tokenRegex);
-  return pieces.map((piece, pieceIndex) => {
-    if (!piece) return null;
-    const spMatch = piece.match(/^sp(\d+)$/);
-    if (spMatch) {
-      return (
-        <span key={pieceIndex}>
-          sp<sup>{spMatch[1]}</sup>
-        </span>
-      );
-    }
-    const chargeMatch = piece.match(/^(.+)\^([+-]?\d+|[+-])$/);
-    const formula = chargeMatch ? chargeMatch[1] : piece;
-    const charge = chargeMatch ? chargeMatch[2] : null;
-    const atomMatches = [...formula.matchAll(/([A-Z][a-z]?)(\d*)/g)];
-    const matchedFormula = atomMatches.map((match) => match[0]).join("");
-    if (!atomMatches.length || matchedFormula !== formula) {
-      return <span key={pieceIndex}>{piece}</span>;
-    }
-    return (
-      <span key={pieceIndex}>
-        {atomMatches.map((match, atomIndex) => (
-          <span key={`${pieceIndex}-${atomIndex}`}>
-            {match[1]}
-            {match[2] ? <sub>{match[2]}</sub> : null}
-          </span>
-        ))}
-        {charge ? <sup>{charge}</sup> : null}
-      </span>
-    );
+function formatDate(value: Date | null) {
+  if (!value) return "No timestamp";
+  return value.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
-function ChemistryBlock({ value, className = "" }: { value: string; className?: string }) {
+function formatTopic(value?: string) {
+  return (value || "Learning session").replace(/_/g, " ");
+}
+
+function sortSessions(sessions: SessionRecord[], sortKey: SortKey) {
+  const list = [...sessions];
+  return list.sort((a, b) => {
+    if (sortKey === "accuracy") return getAccuracy(b) - getAccuracy(a);
+    if (sortKey === "xp") return getXp(b) - getXp(a);
+    return (getSessionDate(b)?.getTime() ?? 0) - (getSessionDate(a)?.getTime() ?? 0);
+  });
+}
+
+function StatCard({ label, value, helper }: { label: string; value: string | number; helper: string }) {
   return (
-    <div className={className}>
-      {value.split("\n").map((line, index, lines) => (
-        <span key={index}>
-          {renderChemistryText(line)}
-          {index < lines.length - 1 ? <br /> : null}
-        </span>
-      ))}
+    <div className="rounded-[1.5rem] border border-white/70 bg-white/78 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+      <p className="mt-2 text-sm text-slate-500">{helper}</p>
     </div>
   );
 }
 
-// ------------------------------------------------------------------------------
-// Custom hooks (unchanged except added filter states)
-// ------------------------------------------------------------------------------
-function useClock() {
-  const [clock, setClock] = useState("");
-  useEffect(() => {
-    const update = () => {
-      setClock(
-        new Date()
-          .toLocaleString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })
-          .toUpperCase(),
-      );
-    };
-    update();
-    const id = window.setInterval(update, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-  return clock;
+function AccuracyRail({ value }: { value: number }) {
+  return (
+    <div className="h-2 rounded-full bg-slate-100">
+      <div
+        className="h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6,#F2B84B)] transition-all"
+        style={{ width: `${Math.max(4, Math.min(100, value))}%` }}
+      />
+    </div>
+  );
 }
 
-function useSessions() {
-  const { user, loading: authLoading, getAuthHeaders } = useAuth();
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+function EmptyState() {
+  return (
+    <div className="flex min-h-[440px] flex-col items-center justify-center rounded-[2rem] border border-white/70 bg-white/70 p-8 text-center shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+      <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[#0E7490]/10 text-2xl font-bold text-[#0E7490]">
+        S
+      </div>
+      <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">No sessions yet</h2>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+        Complete one Study Lab conversation or Autonomous Mission. Your replay, score, XP, and weak signals will appear here.
+      </p>
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Link href="/dashboard/study" className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]">
+          Ask tutor
+        </Link>
+        <Link href="/dashboard/mission" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
+          Start mission
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+export default function SessionsPage() {
+  const { user, loading, claimsLoading, getAuthHeaders } = useAuth();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<string | number | null>(null);
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("latest");
+  const [loadingData, setLoadingData] = useState(true);
+  const [error, setError] = useState("");
+
   useEffect(() => {
+    if (loading || claimsLoading) return;
+    if (!user?.uid) {
+      setSessions([]);
+      setLoadingData(false);
+      return;
+    }
+
+    const uid = user.uid;
     let active = true;
-    async function load() {
-      if (authLoading) return;
-      if (!user?.uid) {
-        setSessions([]);
-        setLoading(false);
-        setError("NO AUTHENTICATED USER.");
-        return;
-      }
+    async function loadSessions() {
+      setLoadingData(true);
+      setError("");
       try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch(`${backendURL}/sessions/${user.uid}`, {
+        const response = await fetch(`${backendURL}/sessions/${uid}`, {
           cache: "no-store",
           headers: await getAuthHeaders(),
         });
-        if (!response.ok) {
-          throw new Error(`Failed to load sessions: ${response.status}`);
-        }
-        const payload = await response.json();
-        const nextSessions = Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload.sessions)
-            ? payload.sessions
-            : [];
-        if (active) setSessions(nextSessions as Session[]);
+        if (!response.ok) throw new Error(`Failed to load sessions: ${response.status}`);
+        const data = normalizeSessions(await response.json());
+        if (!active) return;
+        setSessions(data);
+        setSelectedId((current) => current ?? data[0]?.id ?? null);
       } catch {
-        if (active) {
-          setSessions([]);
-          setError("UNABLE TO LOAD SESSION DATA.");
-        }
+        if (!active) return;
+        setError("Sessions could not load right now.");
+        setSessions([]);
       } finally {
-        if (active) setLoading(false);
+        if (active) setLoadingData(false);
       }
     }
-    load();
+
+    void loadSessions();
     return () => {
       active = false;
     };
-  }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
+  }, [backendURL, claimsLoading, getAuthHeaders, loading, user?.uid]);
 
-  return { sessions, loading: loading || authLoading, error };
-}
-
-function groupBySubject(sessions: Session[]) {
-  const map = new Map<string, { subject: string; sessions: number; duration: number; xp: number; accuracy: number; focus: number }>();
-  for (const session of sessions) {
-    const current = map.get(session.subject) ?? {
-      subject: session.subject,
-      sessions: 0,
-      duration: 0,
-      xp: 0,
-      accuracy: 0,
-      focus: 0,
-    };
-    current.sessions += 1;
-    current.duration += session.duration;
-    current.xp += session.xp;
-    current.accuracy += getAccuracy(session);
-    current.focus += session.focusScore;
-    map.set(session.subject, current);
-  }
-  return [...map.values()]
-    .map((item) => ({
-      ...item,
-      accuracy: Math.round(item.accuracy / item.sessions),
-      focus: Math.round(item.focus / item.sessions),
-    }))
-    .sort((a, b) => b.accuracy - a.accuracy);
-}
-
-function sortSessions(sessions: Session[], sortKey: SortKey) {
-  const list = [...sessions];
-  return list.sort((a, b) => {
-    if (sortKey === "latest") {
-      const aTime = getSessionDate(a)?.getTime() ?? 0;
-      const bTime = getSessionDate(b)?.getTime() ?? 0;
-      return bTime - aTime;
-    }
-    if (sortKey === "duration") return b.duration - a.duration;
-    return getPerformance(b) - getPerformance(a);
-  });
-}
-
-// ------------------------------------------------------------------------------
-// Sub-components (updated to glass design)
-// ------------------------------------------------------------------------------
-function GlassPanel({
-  title,
-  tag,
-  right,
-  className,
-  children,
-}: {
-  title: string;
-  tag?: string;
-  right?: React.ReactNode;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      className={cn(
-        "overflow-hidden rounded-xl border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
-        className,
-      )}
-    >
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-slate-200">
-            {title.replace(/_/g, " ")}
-          </span>
-          {tag && (
-            <span className="rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 uppercase font-mono">
-              {tag}
-            </span>
-          )}
-        </div>
-        {right}
-      </div>
-      <div className="p-4">{children}</div>
-    </section>
-  );
-}
-
-function GlassCard({
-  label,
-  value,
-  tone = "neutral",
-  active = false,
-}: {
-  label: string;
-  value: string;
-  tone?: Tone;
-  active?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        "rounded-xl border border-white/10 bg-[#0E1118]/86 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90",
-        active && "border-cyan-300/25 bg-cyan-300/10",
-      )}
-    >
-      <div className="text-[11px] font-medium text-slate-500">{label}</div>
-      <div className={cn("mt-2 text-2xl font-semibold", toneText(tone))}>
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function Rail({ value, tone = "neutral" }: { value: number; tone?: Tone }) {
-  const width = Math.max(0, Math.min(100, value));
-  const bgColor =
-    tone === "green"
-      ? "bg-emerald-500"
-      : tone === "blue"
-        ? "bg-[#0E7490]"
-        : tone === "amber"
-          ? "bg-amber-400"
-          : tone === "red"
-            ? "bg-red-500"
-            : "bg-gray-400";
-  return (
-    <div className="h-1.5 w-full rounded-full bg-white/5">
-      <div
-        className={cn("h-full rounded-full transition-all duration-500", bgColor)}
-        style={{ width: `${width}%` }}
-      />
-    </div>
-  );
-}
-
-function TonePill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] font-mono",
-        toneBadge(tone),
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-function EmptyState({ title, detail }: { title: string; detail: string }) {
-  const router = useRouter();
-  return (
-    <div className="flex min-h-[260px] flex-col items-center justify-center px-6 text-center">
-      <div className="text-[10px] uppercase tracking-[0.34em] text-gray-500 font-mono">{title}</div>
-      <p className="mt-4 max-w-md text-sm text-gray-400">{detail}</p>
-      <button
-        onClick={() => router.push("/dashboard/study")}
-        className="mt-6 rounded-lg border border-[#0E7490]/30 bg-[#0E7490]/10 px-4 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
-      >
-        GO TO STUDY LAB
-      </button>
-    </div>
-  );
-}
-
-function LoadingState({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-[560px] items-center justify-center rounded-lg border border-white/10 bg-[#0E1118]/90 text-sm text-slate-500 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-      {label}
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------------------
-// New filtering components
-// ------------------------------------------------------------------------------
-function SessionFilters({
-  search,
-  setSearch,
-  minAccuracy,
-  setMinAccuracy,
-  startDate,
-  setStartDate,
-  endDate,
-  setEndDate,
-  clearFilters,
-}: {
-  search: string;
-  setSearch: (v: string) => void;
-  minAccuracy: number;
-  setMinAccuracy: (v: number) => void;
-  startDate: string;
-  setStartDate: (v: string) => void;
-  endDate: string;
-  setEndDate: (v: string) => void;
-  clearFilters: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2 p-3 border-b border-white/10">
-      <input
-        type="text"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="SEARCH TOPIC/SUBJECT"
-        className="w-48 rounded-md border border-white/10 bg-black/30 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white placeholder-gray-600 outline-none focus:border-[#0E7490] font-mono"
-        id="session-search"
-      />
-      <div className="flex items-center gap-1 text-xs text-gray-400">
-        <span>ACC &gt;=</span>
-        <input
-          type="number"
-          min={0}
-          max={100}
-          value={minAccuracy}
-          onChange={(e) => setMinAccuracy(Number(e.target.value))}
-          className="w-14 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#0E7490] font-mono"
-        />
-        <span>%</span>
-      </div>
-      <div className="flex items-center gap-1 text-xs text-gray-400">
-        <span>FROM</span>
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="w-36 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#0E7490] font-mono"
-        />
-      </div>
-      <div className="flex items-center gap-1 text-xs text-gray-400">
-        <span>TO</span>
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="w-36 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#0E7490] font-mono"
-        />
-      </div>
-      <button
-        onClick={clearFilters}
-        className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/20"
-      >
-        CLEAR
-      </button>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------------------
-// Session table with row highlighting
-// ------------------------------------------------------------------------------
-function SessionsTable({
-  sessions,
-  selectedId,
-  onSelect,
-}: {
-  sessions: Session[];
-  selectedId: string | null;
-  onSelect: (session: Session) => void;
-}) {
-  if (!sessions.length) {
-    return (
-      <EmptyState
-        title="NO SESSION RECORDS"
-        detail="No live sessions were returned from the backend. Complete an exam in Study Lab to populate the ledger."
-      />
-    );
-  }
-
-  return (
-    <div>
-      <div className="space-y-3 p-3 md:hidden">
-        {sessions.map((session) => {
-          const accuracy = getAccuracy(session);
-          const status = session.status?.trim() || "--";
-          const isSelected = selectedId === session.id;
-
-          return (
-            <button
-              key={session.id}
-              data-session-id={session.id}
-              type="button"
-              onClick={() => onSelect(session)}
-              className={cn(
-                "w-full rounded-xl border p-4 text-left transition-colors",
-                isSelected ? "border-cyan-300/30 bg-cyan-300/10" : "border-white/10 bg-white/[0.03]",
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold uppercase tracking-[0.08em] text-white">
-                    {session.topic}
-                  </div>
-                  <div className="mt-1 text-xs text-amber-300">{session.subject}</div>
-                </div>
-                <TonePill tone={getScoreTone(accuracy)}>{accuracy}%</TonePill>
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                  <div className="text-[10px] text-slate-500">Time</div>
-                  <div className="mt-1 text-xs font-semibold text-white">{formatMinutes(session.duration)}</div>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                  <div className="text-[10px] text-slate-500">Focus</div>
-                  <div className={cn("mt-1 text-xs font-semibold", toneText(getScoreTone(session.focusScore)))}>
-                    {session.focusScore}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-                  <div className="text-[10px] text-slate-500">XP</div>
-                  <div className="mt-1 text-xs font-semibold text-amber-300">{session.xp}</div>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-slate-500">
-                <span>{formatDateTime(getSessionDate(session))}</span>
-                <span>{status}</span>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="hidden overflow-auto md:block">
-      <div className="min-w-[1080px]">
-        <div className="grid grid-cols-[1fr_1.35fr_1.15fr_0.7fr_0.7fr_0.7fr_0.65fr_0.9fr] border-b border-white/10 bg-white/[0.02] px-4 py-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
-          <div>Subject</div>
-          <div>Topic</div>
-          <div>Timestamp</div>
-          <div className="text-right">Duration</div>
-          <div className="text-right">Acc</div>
-          <div className="text-right">Focus</div>
-          <div className="text-right">XP</div>
-          <div>Status</div>
-        </div>
-
-        {sessions.map((session) => {
-          const accuracy = getAccuracy(session);
-          const focusTone = getScoreTone(session.focusScore);
-          const status = session.status?.trim() || "--";
-          const isSelected = selectedId === session.id;
-
-          return (
-            <button
-              key={session.id}
-              data-session-id={session.id}
-              type="button"
-              onClick={() => onSelect(session)}
-              className={cn(
-                "grid w-full grid-cols-[1fr_1.35fr_1.15fr_0.7fr_0.7fr_0.7fr_0.65fr_0.9fr] items-center border-b border-white/5 px-4 py-3 text-left transition-colors",
-                isSelected ? "bg-[#0F1A24] border-l-2 border-l-[#0E7490]" : "hover:bg-white/[0.02]",
-              )}
-            >
-              <div className="truncate pr-3 text-xs font-semibold uppercase tracking-[0.08em] text-white font-mono">
-                {session.subject}
-              </div>
-              <div className="truncate pr-3 text-xs uppercase tracking-[0.06em] text-gray-300 font-mono">
-                {session.topic}
-              </div>
-              <div className="truncate pr-3 text-[11px] uppercase text-gray-500 font-mono">
-                {formatDateTime(getSessionDate(session))}
-              </div>
-              <div className="text-right text-xs text-gray-300 font-mono">
-                {formatMinutes(session.duration)}
-              </div>
-              <div className={cn("text-right text-xs font-bold font-mono", toneText(getScoreTone(accuracy)))}>
-                {accuracy}%
-              </div>
-              <div className={cn("text-right text-xs font-bold font-mono", toneText(focusTone))}>
-                {session.focusScore}
-              </div>
-              <div className="text-right text-xs font-bold text-amber-400 font-mono">
-                {session.xp}
-              </div>
-              <div>
-                {status === "--" ? (
-                  <span className="text-gray-500">--</span>
-                ) : (
-                  <TonePill tone={getStatusTone(status)}>{status}</TonePill>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      </div>
-    </div>
-  );
-}
-
-// ------------------------------------------------------------------------------
-// Enhanced Session Inspector with replay and quick action
-// ------------------------------------------------------------------------------
-function SessionInspector({ session }: { session: Session | null }) {
-  const router = useRouter();
-  const selectedTopic = session?.topic ?? "";
-  const handleReviseTopic = useCallback(() => {
-    if (!selectedTopic) return;
-    router.push(`/dashboard/study?chapter=hydrocarbon&topic=${selectedTopic}`);
-  }, [router, selectedTopic]);
-
-  if (!session) {
-    return (
-      <GlassPanel title="SESSION_INSPECTOR" tag="VIEW" className="h-full">
-        <EmptyState
-          title="SELECT A SESSION"
-          detail="Pick a row from the ledger to inspect session-level accuracy, pace, and execution quality."
-        />
-      </GlassPanel>
-    );
-  }
-
-  const accuracy = getAccuracy(session);
-  const misses = Math.max(0, session.questions - session.correct);
-  const missRate = session.questions ? Math.round((misses / session.questions) * 100) : 0;
-  const pace = session.duration > 0 ? (session.xp / (session.duration / 60)).toFixed(1) : "0.0";
-  const isWeak = accuracy < 60;
-
-  return (
-    <GlassPanel title="SESSION_INSPECTOR" tag="VIEW" className="h-full">
-      <div className="space-y-4">
-        {/* Top summary */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-          <div className="text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">Selected Topic</div>
-          <div className="mt-1 text-lg font-bold text-white font-mono uppercase">
-            {session.topic}
-          </div>
-          <div className="text-xs text-amber-400 font-mono">{session.subject}</div>
-        </div>
-
-        {/* Quick metrics */}
-        <div className="grid grid-cols-2 gap-3">
-          <GlassCard label="Accuracy" value={`${accuracy}%`} tone={getScoreTone(accuracy)} />
-          <GlassCard label="Focus" value={`${session.focusScore}`} tone={getScoreTone(session.focusScore)} />
-          <GlassCard label="Correct" value={`${session.correct}/${session.questions}`} />
-          <GlassCard label="XP Pace" value={`${pace}/m`} tone="amber" />
-        </div>
-
-        {/* Performance bars */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-          <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
-            <span>Performance Mix</span>
-            <span>{formatDateTime(getSessionDate(session))}</span>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span>Accuracy</span>
-                <span>{accuracy}%</span>
-              </div>
-              <Rail value={accuracy} tone={getScoreTone(accuracy)} />
-            </div>
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span>Focus</span>
-                <span>{session.focusScore}</span>
-              </div>
-              <Rail value={session.focusScore} tone={getScoreTone(session.focusScore)} />
-            </div>
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span>Miss Rate</span>
-                <span>{missRate}%</span>
-              </div>
-              <Rail value={missRate} tone={missRate > 0 ? "amber" : "green"} />
-            </div>
-          </div>
-        </div>
-
-        {/* Weak topic action */}
-        {isWeak && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-red-400 uppercase">Weak Topic Detected</p>
-              <p className="text-[11px] text-gray-400">Accuracy below 60%. Target this for revision.</p>
-            </div>
-            <button
-              onClick={handleReviseTopic}
-              className="rounded-lg border border-[#0E7490]/30 bg-[#0E7490]/10 px-4 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
-            >
-              REVISE NOW
-            </button>
-          </div>
-        )}
-
-        {/* Session meta */}
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-          <div className="mb-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">Session Meta</div>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between border-b border-white/5 pb-2">
-              <span className="text-gray-400">Duration</span>
-              <span className="text-white">{formatMinutes(session.duration)}</span>
-            </div>
-            <div className="flex justify-between border-b border-white/5 pb-2">
-              <span className="text-gray-400">XP Earned</span>
-              <span className="text-amber-400">{session.xp}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Timestamp</span>
-              <span className="text-right text-white">{formatDateTime(getSessionDate(session))}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Replay data (if available) */}
-        {session.replay_data?.questions?.length && (
-          <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-            <div className="mb-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
-              Session Replay ({session.replay_data.questions.length} Q)
-            </div>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {session.replay_data.questions.map((q, idx) => (
-                <div key={q.id ?? idx} className="border border-white/10 rounded-lg p-3 bg-black/20">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-xs font-bold text-white font-mono">
-                      Q{idx + 1}. <ChemistryBlock value={q.text} className="inline" />
-                    </span>
-                    <TonePill tone={q.is_correct ? "green" : "red"}>
-                      {q.is_correct ? "CORRECT" : "WRONG"}
-                    </TonePill>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Your answer: <span className={q.is_correct ? "text-emerald-400" : "text-red-400"}>{q.user_answer}</span>
-                  </div>
-                  {!q.is_correct && (
-                    <div className="text-xs text-amber-400 mt-1">
-                      Correct: {q.correct_answer}
-                    </div>
-                  )}
-                  {q.ai_explanation && (
-                    <div className="mt-2 text-[11px] text-gray-500 border-t border-white/5 pt-2">
-                      <ChemistryBlock value={q.ai_explanation} />
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </GlassPanel>
-  );
-}
-
-// ------------------------------------------------------------------------------
-// Main SessionsPage with filters and keyboard shortcuts
-// ------------------------------------------------------------------------------
-export default function SessionsPage() {
-  const { sessions, loading, error } = useSessions();
-  const [sortKey, setSortKey] = useState<SortKey>("latest");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [minAccuracy, setMinAccuracy] = useState(0);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  // Filter sessions
   const filteredSessions = useMemo(() => {
-    let result = [...sessions];
+    const normalizedSearch = search.trim().toLowerCase();
+    const filtered = normalizedSearch
+      ? sessions.filter((session) => {
+          const haystack = `${session.subject || ""} ${session.topic || ""} ${session.status || ""}`.toLowerCase();
+          return haystack.includes(normalizedSearch);
+        })
+      : sessions;
+    return sortSessions(filtered, sortKey);
+  }, [search, sessions, sortKey]);
 
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.topic.toLowerCase().includes(q) ||
-          s.subject.toLowerCase().includes(q),
-      );
-    }
+  const selectedSession = filteredSessions.find((session) => session.id === selectedId) || filteredSessions[0] || null;
+  const totalQuestions = sessions.reduce((total, session) => total + getQuestionCount(session), 0);
+  const totalCorrect = sessions.reduce((total, session) => total + getCorrectCount(session), 0);
+  const averageAccuracy = totalQuestions ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+  const totalXp = sessions.reduce((total, session) => total + getXp(session), 0);
+  const totalMinutes = sessions.reduce((total, session) => total + getDurationMinutes(session), 0);
+  const replayQuestions = selectedSession?.replay_data?.questions || [];
 
-    if (minAccuracy > 0) {
-      result = result.filter((s) => getAccuracy(s) >= minAccuracy);
-    }
-
-    if (startDate) {
-      const start = new Date(startDate);
-      result = result.filter((s) => {
-        const d = getSessionDate(s);
-        return d && d >= start;
-      });
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      result = result.filter((s) => {
-        const d = getSessionDate(s);
-        return d && d <= end;
-      });
-    }
-
-    return result;
-  }, [sessions, search, minAccuracy, startDate, endDate]);
-
-  const sortedSessions = useMemo(
-    () => sortSessions(filteredSessions, sortKey),
-    [filteredSessions, sortKey],
-  );
-
-  const selectedSession = useMemo(
-    () => sortedSessions.find((item) => item.id === selectedId) ?? sortedSessions[0] ?? null,
-    [selectedId, sortedSessions],
-  );
-
-  const summary = useMemo(
-    () => ({
-      totalDuration: sum(sessions, (item) => item.duration),
-      avgFocus: average(sessions, (item) => item.focusScore),
-      totalXp: sum(sessions, (item) => item.xp),
-      count: sessions.length,
-    }),
-    [sessions],
-  );
-
-  const totalQuestions = sum(sessions, (s) => s.questions);
-  const globalAccuracy = totalQuestions
-    ? Math.round((sum(sessions, (s) => s.correct) / totalQuestions) * 100)
-    : 0;
-  const subjectGroups = useMemo(() => groupBySubject(sessions), [sessions]);
-  const primeSubject = subjectGroups[0]?.subject ?? "None yet";
-  const weakSessionCount = useMemo(
-    () => sessions.filter((session) => getAccuracy(session) < 60).length,
-    [sessions],
-  );
-  const latestSession = sortedSessions[0] ?? null;
-
-  const clearFilters = useCallback(() => {
-    setSearch("");
-    setMinAccuracy(0);
-    setStartDate("");
-    setEndDate("");
-  }, []);
-
-  // Keyboard shortcuts
-  const handleKeyDown = useCallback(
-    (e: globalThis.KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement)
-        return;
-
-      if (e.key === "f" || e.key === "F") {
-        e.preventDefault();
-        document.getElementById("session-search")?.focus();
-      } else if (e.key === "Escape") {
-        clearFilters();
-      } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-        e.preventDefault();
-        const currentIndex = sortedSessions.findIndex((s) => s.id === selectedSession?.id);
-        let nextIndex = currentIndex;
-        if (e.key === "ArrowDown") {
-          nextIndex = currentIndex + 1 >= sortedSessions.length ? 0 : currentIndex + 1;
-        } else {
-          nextIndex = currentIndex - 1 < 0 ? sortedSessions.length - 1 : currentIndex - 1;
-        }
-        const next = sortedSessions[nextIndex];
-        if (next) {
-          setSelectedId(next.id);
-          // Scroll the row into view if needed
-          const rowEl = document.querySelector(`[data-session-id="${next.id}"]`);
-          rowEl?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        }
-      } else if (e.key === "Enter") {
-        if (selectedSession) {
-          // Already selected, no extra action needed as inspector updates automatically
-        }
-      }
-    },
-    [sortedSessions, selectedSession, clearFilters],
-  );
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
-  const clock = useClock();
+  if (loading || claimsLoading) {
+    return (
+      <div className="flex min-h-[70svh] items-center justify-center text-sm text-[#0E7490]">
+        Loading sessions...
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 text-slate-200">
-      <style jsx global>{`
-        [data-session-id] { scroll-margin-top: 80px; }
-      `}</style>
-      <section className="sessions-hero-card rounded-2xl border border-white/10 bg-[#0E1118]/90 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl md:p-6">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-stretch">
-          <div className="relative z-10">
-            <div className="flex flex-wrap items-center gap-2">
-              <TonePill tone="blue">Session Intelligence</TonePill>
-              <TonePill tone={weakSessionCount ? "amber" : "green"}>
-                {weakSessionCount ? `${weakSessionCount} revise` : "stable"}
-              </TonePill>
-            </div>
-            <h1 className="mt-5 max-w-3xl text-3xl font-semibold tracking-tight text-white md:text-4xl">
-              Every study session, replayable and actionable.
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-              Review the exact topics you worked on, inspect weak moments, and jump back into Study Lab with a cleaner revision path.
+    <div className="mx-auto flex min-h-[calc(100svh-105px)] w-full max-w-7xl flex-col gap-5">
+      <section className="rounded-[2rem] border border-white/70 bg-white/74 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Session Library</p>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Replay what you learned</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+              A clean record of practice, tutor sessions, and autonomous missions so students can see progress without hunting through chats.
             </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Records</div>
-                <div className="mt-2 text-2xl font-semibold text-white">{filteredSessions.length}</div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Prime Subject</div>
-                <div className="mt-2 truncate text-2xl font-semibold text-emerald-300">{primeSubject}</div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Latest</div>
-                <div className="mt-2 text-2xl font-semibold text-amber-300">
-                  {latestSession ? formatMinutes(latestSession.duration) : "--"}
-                </div>
-              </div>
-            </div>
           </div>
-
-          <div className="relative z-10 flex flex-col justify-between rounded-2xl border border-white/10 bg-black/20 p-5">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  Live Console
-                </span>
-                <span className="flex items-center gap-2 text-xs text-emerald-300">
-                  <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.8)]" />
-                  LIVE
-                </span>
-              </div>
-              <div className="mt-4 text-sm text-slate-400">Updated {clock}</div>
-            </div>
-            <div className="mt-8 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Accuracy</div>
-                <div className={cn("mt-2 text-2xl font-semibold", toneText(getScoreTone(globalAccuracy)))}>
-                  {globalAccuracy}%
-                </div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Study Time</div>
-                <div className="mt-2 text-2xl font-semibold text-amber-300">
-                  {formatHours(summary.totalDuration)}
-                </div>
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search topic..."
+              className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0E7490] sm:w-56"
+            />
+            {(["latest", "accuracy", "xp"] as SortKey[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => setSortKey(key)}
+                className={`rounded-2xl border px-4 py-3 text-xs font-semibold capitalize transition ${
+                  sortKey === key ? "border-[#0E7490]/25 bg-[#0E7490]/10 text-[#0E7490]" : "border-slate-200 bg-white/75 text-slate-500 hover:text-slate-900"
+                }`}
+              >
+                {key}
+              </button>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Loading state */}
-      {loading ? (
-        <LoadingState label="LOADING SESSION CONSOLE..." />
-      ) : error ? (
-        <div className="flex min-h-[560px] items-center justify-center text-red-400 text-sm uppercase tracking-wider font-mono">
-          {error}
-        </div>
+      <section className="grid gap-4 md:grid-cols-4">
+        <StatCard label="Sessions" value={sessions.length} helper={loadingData ? "Updating..." : "Stored attempts"} />
+        <StatCard label="Accuracy" value={`${averageAccuracy}%`} helper={`${totalCorrect}/${totalQuestions || 0} correct`} />
+        <StatCard label="XP" value={totalXp} helper="Earned from practice" />
+        <StatCard label="Study time" value={`${totalMinutes}m`} helper="Recorded duration" />
+      </section>
+
+      {error ? (
+        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</p>
+      ) : null}
+
+      {!filteredSessions.length ? (
+        <EmptyState />
       ) : (
-        <div className="space-y-6">
-          {/* Top stats cards */}
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            <GlassCard label="Total Sessions" value={`${summary.count}`} />
-            <GlassCard label="Study Time" value={formatHours(summary.totalDuration)} tone="amber" />
-            <GlassCard label="Avg Accuracy" value={`${globalAccuracy}%`} tone={getScoreTone(globalAccuracy)} />
-            <GlassCard label="Avg Focus" value={`${summary.avgFocus}`} tone={getScoreTone(summary.avgFocus)} />
-            <GlassCard label="Total XP" value={`${summary.totalXp}`} tone="amber" />
-            <GlassCard label="Prime Subject" value={primeSubject} tone="green" active />
-          </div>
-
-          {/* Main grid */}
-          <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_420px]">
-            {/* Left: KPI & Subject Matrix */}
-            <div className="space-y-6">
-              <GlassPanel title="KPI_SNAPSHOT" tag="SYS">
-                <div className="space-y-2">
-                  <GlassCard label="Sessions" value={`${summary.count}`} />
-                  <GlassCard label="Study Time" value={formatHours(summary.totalDuration)} tone="amber" />
-                  <GlassCard label="Avg Accuracy" value={`${globalAccuracy}%`} tone={getScoreTone(globalAccuracy)} />
-                  <GlassCard label="Avg Focus" value={`${summary.avgFocus}`} tone={getScoreTone(summary.avgFocus)} />
-                </div>
-              </GlassPanel>
-
-              <GlassPanel title="SUBJECT_MATRIX" tag="SYS">
-                {subjectGroups.length === 0 ? (
-                  <div className="p-4 text-xs text-gray-500 uppercase tracking-wider">No data</div>
-                ) : (
-                  <div className="p-2 space-y-3">
-                    {subjectGroups.slice(0, 5).map((sub) => (
-                      <div key={sub.subject} className="px-2">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs font-bold text-white uppercase">{sub.subject}</span>
-                          <span className={cn("text-xs font-bold", toneText(getScoreTone(sub.accuracy)))}>
-                            {sub.accuracy}%
-                          </span>
-                        </div>
-                        <Rail value={sub.accuracy} tone={getScoreTone(sub.accuracy)} />
-                        <div className="text-[10px] text-gray-500 mt-1">{sub.sessions} sessions - {formatHours(sub.duration)}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </GlassPanel>
+        <section className="grid min-h-[560px] flex-1 gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/74 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+            <div className="border-b border-slate-200/70 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Timeline</p>
             </div>
+            <div className="max-h-[640px] space-y-3 overflow-y-auto p-4">
+              {filteredSessions.map((session) => {
+                const accuracy = getAccuracy(session);
+                const active = selectedSession?.id === session.id;
+                return (
+                  <button
+                    key={session.id}
+                    onClick={() => setSelectedId(session.id ?? null)}
+                    className={`w-full rounded-[1.4rem] border p-4 text-left transition ${
+                      active
+                        ? "border-[#0E7490]/25 bg-[#0E7490]/10 shadow-[0_18px_50px_rgba(14,116,144,0.12)]"
+                        : "border-slate-200 bg-white/62 hover:border-[#0E7490]/20 hover:bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold capitalize text-slate-950">{formatTopic(session.topic)}</p>
+                        <p className="mt-1 text-sm text-slate-500">{session.subject || "Study"} - {formatDate(getSessionDate(session))}</p>
+                      </div>
+                      <span className="rounded-full bg-white/80 px-3 py-1 text-sm font-bold text-[#0E7490]">{accuracy}%</span>
+                    </div>
+                    <div className="mt-4">
+                      <AccuracyRail value={accuracy} />
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+                      <span className="rounded-full bg-slate-100 px-3 py-1">{getQuestionCount(session)} questions</span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1">{getXp(session)} XP</span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1">{getDurationMinutes(session)}m</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-            {/* Middle: Session Ledger */}
-            <GlassPanel title="SESSION_LEDGER" tag="LOG" className="flex flex-col min-h-0">
-              <SessionFilters
-                search={search}
-                setSearch={setSearch}
-                minAccuracy={minAccuracy}
-                setMinAccuracy={setMinAccuracy}
-                startDate={startDate}
-                setStartDate={setStartDate}
-                endDate={endDate}
-                setEndDate={setEndDate}
-                clearFilters={clearFilters}
-              />
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.02]">
-                <span className="text-xs uppercase tracking-[0.24em] text-gray-500 font-mono">
-                  Sort by
-                </span>
-                <div className="flex gap-2">
-                  {(["latest", "duration", "performance"] as const).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => setSortKey(key)}
-                      className={cn(
-                        "rounded-md border px-3 py-1 text-xs font-bold uppercase tracking-wider font-mono transition-all",
-                        sortKey === key
-                          ? "border-amber-400/40 bg-amber-400/10 text-amber-400"
-                          : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white",
-                      )}
+          <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/78 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+            {selectedSession ? (
+              <div className="flex h-full flex-col">
+                <div className="border-b border-slate-200/70 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0E7490]">Selected session</p>
+                  <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="text-3xl font-semibold capitalize tracking-tight text-slate-950">{formatTopic(selectedSession.topic)}</h2>
+                      <p className="mt-2 text-sm text-slate-500">{selectedSession.subject || "Study"} - {formatDate(getSessionDate(selectedSession))}</p>
+                    </div>
+                    <Link
+                      href={`/dashboard/study?topic=${encodeURIComponent(String(selectedSession.topic || ""))}`}
+                      className="rounded-2xl bg-[#0E7490] px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]"
                     >
-                      {key}
-                    </button>
-                  ))}
+                      Revise topic
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 border-b border-slate-200/70 p-5 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs text-slate-400">Accuracy</p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-950">{getAccuracy(selectedSession)}%</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs text-slate-400">Correct</p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-950">{getCorrectCount(selectedSession)}/{getQuestionCount(selectedSession)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 p-4">
+                    <p className="text-xs text-slate-400">XP</p>
+                    <p className="mt-2 text-2xl font-semibold text-slate-950">{getXp(selectedSession)}</p>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-4 overflow-y-auto p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Replay</p>
+                  {replayQuestions.length ? (
+                    replayQuestions.map((question, index) => {
+                      const text = question.text || question.question || `Question ${index + 1}`;
+                      const correct = question.correct_answer || question.correct || "";
+                      const userAnswer = question.user_answer || question.answer || "";
+                      return (
+                        <div key={question.id || text} className="rounded-[1.4rem] border border-slate-200 bg-white/70 p-4">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-sm font-bold text-[#0E7490]">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold leading-6 text-slate-950">{text}</p>
+                              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                <div className="rounded-2xl bg-slate-50 p-3 text-sm text-slate-600">
+                                  Your answer: <span className="font-semibold text-slate-950">{userAnswer || "Not captured"}</span>
+                                </div>
+                                <div className="rounded-2xl bg-emerald-50 p-3 text-sm text-emerald-700">
+                                  Correct: <span className="font-semibold">{correct || "Not captured"}</span>
+                                </div>
+                              </div>
+                              {(question.ai_explanation || question.explanation) ? (
+                                <p className="mt-3 rounded-2xl bg-[#0E7490]/10 p-3 text-sm leading-6 text-slate-600">
+                                  {question.ai_explanation || question.explanation}
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <p className="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-500">
+                      Replay details were not saved for this session. Future missions and quiz attempts will store question-level review data here.
+                    </p>
+                  )}
                 </div>
               </div>
-              <div className="flex-1 overflow-auto">
-                <SessionsTable
-                  sessions={sortedSessions}
-                  selectedId={selectedSession?.id ?? null}
-                  onSelect={(s) => setSelectedId(s.id)}
-                />
-              </div>
-            </GlassPanel>
-
-            {/* Right: Inspector */}
-            <SessionInspector session={selectedSession} />
+            ) : null}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

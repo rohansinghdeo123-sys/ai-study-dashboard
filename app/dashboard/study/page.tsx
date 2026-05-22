@@ -224,11 +224,11 @@ function CoachAnswer({ value }: { value: string }) {
         return (
           <section key={`${heading || "answer"}-${blockIndex}`} className="space-y-2">
             {heading ? (
-              <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[#0E7490] dark:text-teal-200">
+              <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[#0E7490]">
                 {renderInlineChemistry(heading)}
               </h3>
             ) : null}
-            <div className="space-y-2 text-[15px] leading-7 text-slate-700 dark:text-slate-200">
+            <div className="space-y-2 text-[15px] leading-7 text-slate-700">
               {body.map((line, lineIndex) => {
                 const bullet = line.match(/^[-*]\s+(.*)$/);
                 if (bullet) {
@@ -251,7 +251,7 @@ function CoachAnswer({ value }: { value: string }) {
 
 function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
   return (
-    <div className="w-full max-w-2xl rounded-3xl border border-white/60 bg-white/78 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06]">
+    <div className="w-full max-w-2xl rounded-3xl border border-white/60 bg-white/78 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
       <div className="grid gap-2 sm:grid-cols-3">
         {stages.map((stage) => {
           const active = stage.status === "active";
@@ -264,14 +264,14 @@ function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
                   ? "border-[#0E7490]/25 bg-[#0E7490]/10"
                   : done
                   ? "border-emerald-400/25 bg-emerald-400/10"
-                  : "border-slate-200/80 bg-white/55 dark:border-white/10 dark:bg-white/[0.03]"
+                  : "border-slate-200/80 bg-white/55"
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">{stage.title}</p>
+                <p className="text-sm font-semibold text-slate-900">{stage.title}</p>
                 <span className={`h-2 w-2 rounded-full ${done ? "bg-emerald-400" : active ? "animate-pulse bg-[#0E7490]" : "bg-slate-300"}`} />
               </div>
-              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{stage.agent}</p>
+              <p className="mt-1 text-[11px] text-slate-500">{stage.agent}</p>
             </div>
           );
         })}
@@ -307,6 +307,7 @@ export default function StudyPage() {
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
+  const hasCoachResponse = messages.some((message) => message.role === "coach" && message.content.trim().length > 0);
 
   const quickActions = useMemo(
     () => [
@@ -477,15 +478,15 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-120px)] max-w-5xl flex-col">
-      <section className="mb-4 overflow-hidden rounded-[2rem] border border-white/60 bg-white/72 p-4 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.05]">
+    <div className="mx-auto flex min-h-[calc(100svh-105px)] w-full max-w-7xl flex-col">
+      <section className="mb-4 overflow-hidden rounded-[2rem] border border-white/60 bg-white/72 p-4 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Study Lab</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white sm:text-3xl">
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
               Ask {coachName} anything
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               A calm AI tutor chat for explanations, examples, exam answers, and follow-up doubts.
             </p>
           </div>
@@ -498,7 +499,7 @@ export default function StudyPage() {
                 setChapter(next);
                 setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
               }}
-              className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490] dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
+              className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
             >
               {CHAPTERS.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -509,7 +510,7 @@ export default function StudyPage() {
             <select
               value={topic}
               onChange={(event) => setTopic(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490] dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
+              className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
             >
               {selectedChapter.topics.map((item) => (
                 <option key={item.value} value={item.value}>
@@ -521,30 +522,19 @@ export default function StudyPage() {
         </div>
       </section>
 
-      <section className="flex min-h-[620px] flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/70 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-[#07111F]/74">
+      <section className="flex min-h-[calc(100svh-285px)] flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/76 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
           {messages.length === 0 ? (
             <div className="flex min-h-[430px] flex-col items-center justify-center text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-xl font-bold text-white shadow-[0_20px_55px_rgba(14,116,144,0.24)]">
                 {coachName[0]}
               </div>
-              <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
+              <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">
                 What do you want to understand today, {displayName.split(" ")[0]}?
               </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-                Start with a doubt, a short phrase, or even an incomplete follow-up. Your tutor will connect it with the lesson context.
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+                Start with a doubt, a short phrase, or even an incomplete follow-up. Assistance options will appear after your tutor understands the intent.
               </p>
-              <div className="mt-8 grid w-full max-w-3xl gap-3 sm:grid-cols-2">
-                {quickActions.map((action) => (
-                  <button
-                    key={action.label}
-                    onClick={() => void sendMessage(action.prompt)}
-                    className="rounded-2xl border border-slate-200 bg-white/80 p-4 text-left text-sm font-medium text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/35 hover:text-[#0E7490] hover:shadow-[0_18px_45px_rgba(14,116,144,0.10)] dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-200"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
             </div>
           ) : (
             <div className="mx-auto max-w-3xl space-y-6">
@@ -554,7 +544,7 @@ export default function StudyPage() {
                     className={`max-w-[88%] rounded-[1.5rem] px-5 py-4 ${
                       message.role === "user"
                         ? "bg-[#0E7490] text-white shadow-[0_16px_40px_rgba(14,116,144,0.20)]"
-                        : "border border-slate-200 bg-white/78 text-slate-800 shadow-[0_16px_45px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-100"
+                        : "border border-slate-200 bg-white/78 text-slate-800 shadow-[0_16px_45px_rgba(15,23,42,0.08)]"
                     }`}
                   >
                     <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">
@@ -581,15 +571,15 @@ export default function StudyPage() {
           )}
         </div>
 
-        <div className="border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#07111F]/88">
+        <div className="border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
           <div className="mx-auto max-w-3xl">
-            {messages.length > 0 ? (
+            {hasCoachResponse ? (
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
                 {quickActions.map((action) => (
                   <button
                     key={action.label}
                     onClick={() => setInput(action.prompt)}
-                    className="shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-[#0E7490]/35 hover:text-[#0E7490] dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300"
+                    className="shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-[#0E7490]/35 hover:text-[#0E7490]"
                   >
                     {action.label}
                   </button>
@@ -597,7 +587,7 @@ export default function StudyPage() {
               </div>
             ) : null}
 
-            <div className="flex items-end gap-3 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_55px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-white/[0.04]">
+            <div className="flex items-end gap-3 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -605,7 +595,7 @@ export default function StudyPage() {
                 onKeyDown={handleKeyDown}
                 rows={1}
                 placeholder={`Message ${coachName}...`}
-                className="max-h-40 min-h-12 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-white"
+                className="max-h-40 min-h-12 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
               />
               <button
                 onClick={() => void sendMessage()}
