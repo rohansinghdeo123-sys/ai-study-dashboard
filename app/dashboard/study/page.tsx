@@ -101,6 +101,20 @@ interface AutonomousMissionResult {
   metadata?: Record<string, unknown>;
 }
 
+interface MissionAgentStep {
+  agent: string;
+  role: string;
+  status: string;
+  detail: string;
+}
+
+interface MissionCheckpoint {
+  title: string;
+  owner: string;
+  status: string;
+  detail: string;
+}
+
 interface AutonomousMission {
   mission_id: string;
   status: string;
@@ -108,6 +122,10 @@ interface AutonomousMission {
   chapter?: string;
   target_topic: string;
   target_source: string;
+  mission_type?: string;
+  priority?: string;
+  mastery_band?: string;
+  estimated_minutes?: number;
   primary_agent: string;
   mode: string;
   difficulty: string;
@@ -115,6 +133,11 @@ interface AutonomousMission {
   why: string;
   steps: string[];
   next_actions: string[];
+  success_criteria?: string[];
+  agent_sequence?: MissionAgentStep[];
+  checkpoints?: MissionCheckpoint[];
+  student_state?: Record<string, unknown>;
+  completion_report?: Record<string, unknown>;
   result?: AutonomousMissionResult;
   analytics_summary?: Record<string, unknown>;
   latency_ms?: number;
@@ -488,6 +511,49 @@ function AgentPipeline({
       </div>
     </div>
   );
+}
+
+function formatMissionLabel(value?: string | number) {
+  if (value === undefined || value === null || value === "") return "Not set";
+  return String(value).replace(/_/g, " ");
+}
+
+function buildMissionChatSummary(mission: AutonomousMission, answer: string) {
+  const lines = [
+    `Autonomous Mission:`,
+    mission.objective,
+    "",
+    `Mission Profile:`,
+    `- Type: ${formatMissionLabel(mission.mission_type || mission.mode)}`,
+    `- Priority: ${formatMissionLabel(mission.priority || "medium")}`,
+    `- Mastery band: ${formatMissionLabel(mission.mastery_band || "unknown")}`,
+    `- Estimated time: ${mission.estimated_minutes || 15} minutes`,
+    "",
+    `Why This Mission:`,
+    mission.why,
+  ];
+
+  if (mission.agent_sequence?.length) {
+    lines.push(
+      "",
+      "Agent Run:",
+      ...mission.agent_sequence.slice(0, 4).map((step) => `- ${step.agent}: ${step.detail}`),
+    );
+  }
+
+  if (mission.success_criteria?.length) {
+    lines.push("", "Success Criteria:", ...mission.success_criteria.map((item) => `- ${item}`));
+  }
+
+  if (mission.next_actions?.length) {
+    lines.push("", "Next Action:", `- ${mission.next_actions[0]}`);
+  }
+
+  if (answer) {
+    lines.push("", answer);
+  }
+
+  return lines.join("\n");
 }
 
 // ------------------------------------------------------------------------------
@@ -925,7 +991,7 @@ export default function StudyPage() {
           ...prev,
           {
             role: "coach",
-            content: `Autonomous Mission:\n${mission.objective}\n\nWhy:\n${mission.why}\n\nNext:\n${mission.next_actions.join("\n")}${answer ? `\n\n${answer}` : ""}`,
+            content: buildMissionChatSummary(mission, answer),
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ]);
@@ -1571,14 +1637,32 @@ export default function StudyPage() {
               <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
                 Chemistry
               </span>
+              {autonomousMission && (
+                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                  {formatMissionLabel(autonomousMission.mission_type)}
+                </span>
+              )}
               <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500">Today&apos;s learning mission</span>
             </div>
             <h1 className="mt-2 text-lg font-semibold tracking-tight text-white md:text-xl">
-              Master {currentTopicLabel}
+              {autonomousMission ? autonomousMission.objective : `Master ${currentTopicLabel}`}
             </h1>
             <p className="mt-1.5 max-w-3xl text-sm leading-6 text-gray-400">
-              {nextAction}
+              {autonomousMission ? autonomousMission.why : nextAction}
             </p>
+            {autonomousMission && (
+              <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-wider text-gray-500">
+                <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1">
+                  Priority <b className="ml-1 text-emerald-300">{formatMissionLabel(autonomousMission.priority)}</b>
+                </span>
+                <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1">
+                  Mastery <b className="ml-1 text-cyan-300">{formatMissionLabel(autonomousMission.mastery_band)}</b>
+                </span>
+                <span className="rounded-md border border-white/10 bg-black/20 px-2 py-1">
+                  ETA <b className="ml-1 text-orange-300">{autonomousMission.estimated_minutes || 15}m</b>
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="study-topic-card rounded-lg border border-white/10 bg-white/[0.03] p-3">
@@ -2016,12 +2100,27 @@ export default function StudyPage() {
                   </h3>
                 </div>
                 <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] uppercase text-emerald-200">
-                  {autonomousMission?.primary_agent || "auto"}
+                  {autonomousMission?.priority || autonomousMission?.primary_agent || "auto"}
                 </span>
               </div>
 
               {autonomousMission ? (
                 <div className="mt-4 space-y-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+                      <p className="text-[9px] uppercase tracking-wider text-gray-500">Type</p>
+                      <p className="mt-1 truncate text-xs font-semibold text-gray-100">{formatMissionLabel(autonomousMission.mission_type || autonomousMission.mode)}</p>
+                    </div>
+                    <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+                      <p className="text-[9px] uppercase tracking-wider text-gray-500">Band</p>
+                      <p className="mt-1 truncate text-xs font-semibold text-cyan-200">{formatMissionLabel(autonomousMission.mastery_band)}</p>
+                    </div>
+                    <div className="rounded-md border border-white/10 bg-white/[0.03] p-2">
+                      <p className="text-[9px] uppercase tracking-wider text-gray-500">ETA</p>
+                      <p className="mt-1 truncate text-xs font-semibold text-orange-200">{autonomousMission.estimated_minutes || 15}m</p>
+                    </div>
+                  </div>
+
                   <div className="rounded-md border border-white/10 bg-white/[0.03] p-3">
                     <div className="flex justify-between gap-3 text-[10px] uppercase tracking-wider text-gray-500">
                       <span>Target</span>
@@ -2034,18 +2133,39 @@ export default function StudyPage() {
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Execution Steps</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Agent Run</p>
                     <div className="mt-2 space-y-2">
-                      {autonomousMission.steps.slice(0, 3).map((step, index) => (
-                        <div key={`${step}-${index}`} className="flex gap-2 text-xs leading-5 text-gray-400">
+                      {(autonomousMission.agent_sequence?.length ? autonomousMission.agent_sequence : autonomousMission.steps.map((step) => ({
+                        agent: "Mission Step",
+                        role: "step",
+                        status: "complete",
+                        detail: step,
+                      }))).slice(0, 4).map((step, index) => (
+                        <div key={`${step.agent}-${index}`} className="flex gap-2 text-xs leading-5 text-gray-400">
                           <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-400/10 text-[10px] text-emerald-200">
                             {index + 1}
                           </span>
-                          <span>{step}</span>
+                          <span>
+                            <b className="font-semibold text-gray-300">{step.agent}</b>: {step.detail}
+                          </span>
                         </div>
                       ))}
                     </div>
                   </div>
+
+                  {autonomousMission.success_criteria?.length ? (
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Success Criteria</p>
+                      <div className="mt-2 space-y-2">
+                        {autonomousMission.success_criteria.slice(0, 3).map((item, index) => (
+                          <div key={`${item}-${index}`} className="flex gap-2 text-xs leading-5 text-gray-400">
+                            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-300/80" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-500">Next Action</p>
