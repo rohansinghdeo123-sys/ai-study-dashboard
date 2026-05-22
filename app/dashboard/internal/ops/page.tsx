@@ -249,7 +249,7 @@ function StatusBadge({ value, tone = "neutral" }: { value: string; tone?: "green
     green: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
     amber: "border-amber-400/25 bg-amber-400/10 text-amber-300",
     red: "border-red-400/25 bg-red-400/10 text-red-300",
-    blue: "border-[#00A3FF]/25 bg-[#00A3FF]/10 text-[#00A3FF]",
+    blue: "border-[#0E7490]/25 bg-[#0E7490]/10 text-[#0E7490]",
     neutral: "border-white/10 bg-white/[0.04] text-slate-400",
   };
   return (
@@ -264,7 +264,7 @@ function MetricRail({ value, tone = "blue" }: { value: number; tone?: "green" | 
     green: "bg-emerald-400",
     amber: "bg-amber-400",
     red: "bg-red-400",
-    blue: "bg-[#00A3FF]",
+    blue: "bg-[#0E7490]",
   };
   return (
     <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
@@ -288,7 +288,7 @@ function GlassCard({
     green: "text-emerald-400",
     amber: "text-amber-400",
     red: "text-red-400",
-    blue: "text-[#00A3FF]",
+    blue: "text-[#0E7490]",
     neutral: "text-gray-300",
   };
   return (
@@ -809,7 +809,7 @@ export default function InternalOpsPage() {
 
   if (loading || claimsLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#0A0A0F] text-sm uppercase tracking-wider text-[#00A3FF] animate-pulse">
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#0A0A0F] text-sm uppercase tracking-wider text-[#0E7490] animate-pulse">
         VERIFYING ADMIN SESSION...
       </div>
     );
@@ -914,7 +914,7 @@ export default function InternalOpsPage() {
                       className={cn(
                         "w-full rounded-xl border p-3 text-left transition-all",
                         selectedAgent === agent.agent_id
-                          ? "border-[#00A3FF]/40 bg-[#00A3FF]/10 shadow-[0_14px_36px_rgba(0,163,255,0.12)]"
+                          ? "border-[#0E7490]/40 bg-[#0E7490]/10 shadow-[0_14px_36px_rgba(14,116,144,0.12)]"
                           : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.055]",
                       )}
                     >
@@ -960,7 +960,7 @@ export default function InternalOpsPage() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      className="w-full !border-[#00A3FF]/20 !bg-[#00A3FF]/10 !text-[#00A3FF] hover:!bg-[#00A3FF]/20"
+                      className="w-full !border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490] hover:!bg-[#0E7490]/20"
                       onClick={() => requestReport(agent.agent_id)}
                     >
                       Request Report
@@ -1036,11 +1036,11 @@ export default function InternalOpsPage() {
               <div className="flex flex-col h-full overflow-hidden">
                 <div className="flex items-center gap-3 mb-3 text-[10px]">
                   <span className="text-gray-500">FILTER:</span>
-                  <select value={logFilter} onChange={(e) => setLogFilter(e.target.value)} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-300 font-mono outline-none focus:border-[#00A3FF]">
+                  <select value={logFilter} onChange={(e) => setLogFilter(e.target.value)} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-300 font-mono outline-none focus:border-[#0E7490]">
                     <option value="all">ALL AGENTS</option>
                     {agents.map((a) => <option key={a.agent_id} value={a.agent_id}>{a.agent_id.toUpperCase()}</option>)}
                   </select>
-                  <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-300 font-mono outline-none focus:border-[#00A3FF]">
+                  <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="rounded border border-white/10 bg-black/30 px-2 py-1 text-xs text-gray-300 font-mono outline-none focus:border-[#0E7490]">
                     <option value="all">ALL</option>
                     <option value="info">INFO</option>
                     <option value="warning">WARNING</option>
@@ -1075,7 +1075,7 @@ export default function InternalOpsPage() {
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-3 text-xs">
-                      <span className="font-bold text-[#00A3FF] uppercase">COMM_CHANNEL: {selectedAgent}</span>
+                      <span className="font-bold text-[#0E7490] uppercase">COMM_CHANNEL: {selectedAgent}</span>
                       <div className="flex gap-1">
                         {["restart", "pause", "resume", "clear_memory"].map((cmd) => (
                           <Button key={cmd} variant="ghost" size="sm" onClick={() => sendCommand(selectedAgent, cmd)}>
@@ -1097,7 +1097,7 @@ export default function InternalOpsPage() {
                     <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                       {chatMessages.filter((m) => m.agent_id === selectedAgent).map((msg, i) => (
                         <div key={i} className={cn("flex", msg.role === "admin" ? "justify-end" : "justify-start")}>
-                          <div className={cn("max-w-[80%] rounded-xl px-4 py-3 text-sm", msg.role === "admin" ? "bg-[#00A3FF]/10 border border-[#00A3FF]/20 text-[#00A3FF]" : "bg-white/5 border border-white/10 text-gray-200")}>
+                          <div className={cn("max-w-[80%] rounded-xl px-4 py-3 text-sm", msg.role === "admin" ? "bg-[#0E7490]/10 border border-[#0E7490]/20 text-[#0E7490]" : "bg-white/5 border border-white/10 text-gray-200")}>
                             <div className="text-[10px] text-gray-500 mb-1">{msg.role === "admin" ? "ADMIN" : msg.agent_id.toUpperCase()} - {formatTime(msg.timestamp)}</div>
                             <div className="whitespace-pre-wrap break-words">{msg.content}</div>
                           </div>
@@ -1106,7 +1106,7 @@ export default function InternalOpsPage() {
                       {chatLoading && (
                         <div className="flex justify-start">
                           <div className="rounded-xl bg-white/5 px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
-                            <span className="h-2 w-2 bg-[#00A3FF] rounded-full animate-pulse" />
+                            <span className="h-2 w-2 bg-[#0E7490] rounded-full animate-pulse" />
                             {selectedAgent} is thinking...
                           </div>
                         </div>
@@ -1114,7 +1114,7 @@ export default function InternalOpsPage() {
                       <div ref={chatEndRef} />
                     </div>
                     <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
-                      <span className="text-xs text-[#00A3FF] font-mono">ADMIN &gt;</span>
+                      <span className="text-xs text-[#0E7490] font-mono">ADMIN &gt;</span>
                       <input
                         type="text"
                         value={chatInput}
@@ -1128,7 +1128,7 @@ export default function InternalOpsPage() {
                         size="sm"
                         onClick={toggleListening}
                         disabled={!recognitionRef.current}
-                        className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#00A3FF]/20 !bg-[#00A3FF]/10 !text-[#00A3FF]"}
+                        className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490]"}
                       >
                         Mic
                       </Button>
@@ -1190,7 +1190,7 @@ export default function InternalOpsPage() {
             {activeTab === "meeting" && (
               <div className="flex flex-col h-full overflow-hidden">
                 <div className="flex items-center justify-between mb-3 text-xs">
-                  <span className="font-bold text-[#00A3FF] uppercase">TEAM MEETING</span>
+                  <span className="font-bold text-[#0E7490] uppercase">TEAM MEETING</span>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" onClick={selectAllMeetingAgents}>ALL</Button>
                     <Button variant="secondary" size="sm" onClick={clearMeetingAgents}>CLEAR</Button>
@@ -1206,7 +1206,7 @@ export default function InternalOpsPage() {
                         type="checkbox"
                         checked={meetingAgentIds.includes(agent.agent_id)}
                         onChange={() => toggleMeetingAgent(agent.agent_id)}
-                        className="rounded border-white/20 bg-black/30 accent-[#00A3FF]"
+                        className="rounded border-white/20 bg-black/30 accent-[#0E7490]"
                       />
                       <span style={{ color: getAgentColor(agent.agent_id) }}>{agent.display_name}</span>
                     </label>
@@ -1220,7 +1220,7 @@ export default function InternalOpsPage() {
                       const isAdmin = msg.role === "admin";
                       return (
                         <div key={i} className={cn("flex", isAdmin ? "justify-end" : "justify-start")}>
-                          <div className={cn("max-w-[80%] rounded-xl px-4 py-3 text-sm", isAdmin ? "bg-[#00A3FF]/10 border border-[#00A3FF]/20 text-[#00A3FF]" : "bg-white/5 border border-white/10 text-gray-200")}>
+                          <div className={cn("max-w-[80%] rounded-xl px-4 py-3 text-sm", isAdmin ? "bg-[#0E7490]/10 border border-[#0E7490]/20 text-[#0E7490]" : "bg-white/5 border border-white/10 text-gray-200")}>
                             <div className="text-[10px] text-gray-500 mb-1">
                               {isAdmin ? "ADMIN" : msg.agent_id.toUpperCase()} - {formatTime(msg.timestamp)}
                             </div>
@@ -1233,7 +1233,7 @@ export default function InternalOpsPage() {
                   {Object.keys(meetingLoading).some((id) => meetingLoading[id]) && (
                     <div className="flex justify-start">
                       <div className="rounded-xl bg-white/5 px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
-                        <span className="h-2 w-2 bg-[#00A3FF] rounded-full animate-pulse" />
+                        <span className="h-2 w-2 bg-[#0E7490] rounded-full animate-pulse" />
                         Agents responding...
                       </div>
                     </div>
@@ -1241,7 +1241,7 @@ export default function InternalOpsPage() {
                   <div ref={meetingEndRef} />
                 </div>
                 <div className="mt-3 flex items-center gap-2 border-t border-white/10 pt-3">
-                  <span className="text-xs text-[#00A3FF] font-mono">ADMIN &gt;</span>
+                  <span className="text-xs text-[#0E7490] font-mono">ADMIN &gt;</span>
                   <input
                     type="text"
                     value={meetingInput}
@@ -1256,7 +1256,7 @@ export default function InternalOpsPage() {
                     size="sm"
                     onClick={toggleListening}
                     disabled={!recognitionRef.current}
-                    className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#00A3FF]/20 !bg-[#00A3FF]/10 !text-[#00A3FF]"}
+                    className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490]"}
                   >
                     Mic
                   </Button>

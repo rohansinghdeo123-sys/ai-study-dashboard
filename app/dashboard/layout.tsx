@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         )}
 
         <main className="relative min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#07080D] pb-20 md:pb-0">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(34,211,238,0.11),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(245,158,11,0.08),transparent_30%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.11),transparent_28%),radial-gradient(circle_at_88%_10%,rgba(242,184,75,0.08),transparent_30%)]" />
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] opacity-45" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-white/[0.045] to-transparent" />
           <div className="relative z-10 mx-auto max-w-[1760px] p-3 sm:p-4 md:p-5 xl:p-6">

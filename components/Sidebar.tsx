@@ -139,8 +139,8 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               className={`group flex items-center gap-3 rounded-lg border px-3 py-3 transition ${
                 isActive
                   ? isOps
-                    ? "border-amber-400/30 bg-amber-400/10 text-amber-200 shadow-[0_0_24px_rgba(245,158,11,0.08)]"
-                    : "border-cyan-400/25 bg-cyan-400/10 text-cyan-100 shadow-[0_0_24px_rgba(34,211,238,0.08)]"
+                    ? "border-amber-400/30 bg-amber-400/10 text-amber-200 shadow-[0_0_24px_rgba(242,184,75,0.08)]"
+                    : "border-cyan-400/25 bg-cyan-400/10 text-cyan-100 shadow-[0_0_24px_rgba(20,184,166,0.08)]"
                   : "border-transparent text-slate-500 hover:border-white/10 hover:bg-white/[0.04] hover:text-slate-200"
               }`}
             >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 // ─── Types (same as study page) ────────────────────────────────────────────
@@ -72,52 +72,67 @@ export default function CoachWidget() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Fetch coach data + user progress
-  const fetchCoach = useCallback(async () => {
-    if (!user) return;
-    try {
-      const token = await user.getIdToken();
-      const [coachRes, progressRes] = await Promise.all([
-        fetch(`${backendURL}/coach/${user.uid}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        }),
-        fetch(`${backendURL}/get-progress/${user.uid}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          cache: "no-store",
-        }),
-      ]);
-
-      if (coachRes.ok) {
-        const data = await coachRes.json();
-        const profile: CoachProfile = data.profile ?? {};
-        setCoachName(profile.coach_name || "AI Coach");
-        setNextBestAction(
-          profile.next_best_action || profile.daily_strategy || "Ask me anything about your study plan."
-        );
-      }
-
-      if (progressRes.ok) {
-        const prog = await progressRes.json();
-        setProgress({
-          accuracy: prog.accuracy ?? 0,
-          total_tests: prog.total_tests ?? 0,
-        });
-      }
-
-      // Personalised greeting
-      const hour = new Date().getHours();
-      const timeGreet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-      const name = user.displayName || user.email?.split("@")[0] || "Student";
-      setGreeting(`${timeGreet}, ${name}!`);
-    } catch {
-      setNextBestAction("I'm waking up… try again in a moment.");
-    }
-    setCoachReady(true);
-  }, [user, backendURL]);
-
   useEffect(() => {
-    fetchCoach();
-  }, [fetchCoach]);
+    if (!user) return;
+    const activeUser = user;
+    let cancelled = false;
+
+    async function loadCoach() {
+      try {
+        const token = await activeUser.getIdToken();
+        const [coachRes, progressRes] = await Promise.all([
+          fetch(`${backendURL}/coach/${activeUser.uid}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          }),
+          fetch(`${backendURL}/get-progress/${activeUser.uid}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          }),
+        ]);
+
+        if (cancelled) return;
+
+        if (coachRes.ok) {
+          const data = await coachRes.json();
+          if (cancelled) return;
+          const profile: CoachProfile = data.profile ?? {};
+          setCoachName(profile.coach_name || "AI Coach");
+          setNextBestAction(
+            profile.next_best_action || profile.daily_strategy || "Ask me anything about your study plan."
+          );
+        }
+
+        if (progressRes.ok) {
+          const prog = await progressRes.json();
+          if (cancelled) return;
+          setProgress({
+            accuracy: prog.accuracy ?? 0,
+            total_tests: prog.total_tests ?? 0,
+          });
+        }
+
+        const hour = new Date().getHours();
+        const timeGreet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+        const name = activeUser.displayName || activeUser.email?.split("@")[0] || "Student";
+        setGreeting(`${timeGreet}, ${name}!`);
+      } catch {
+        if (!cancelled) {
+          setNextBestAction("I'm waking up… try again in a moment.");
+        }
+      } finally {
+        if (!cancelled) {
+          setCoachReady(true);
+        }
+      }
+    }
+
+    void loadCoach();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, backendURL]);
 
   // Auto‑scroll messages
   useEffect(() => {
@@ -196,25 +211,25 @@ export default function CoachWidget() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full border border-[#00A3FF]/30 bg-[#0A0A0F]/90 backdrop-blur-md px-4 py-3 shadow-[0_0_30px_rgba(0,163,255,0.2)] transition-all hover:border-[#00A3FF]/60 hover:shadow-[0_0_50px_rgba(0,163,255,0.4)] animate-pulse-subtle"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full border border-[#0E7490]/30 bg-[#0A0A0F]/90 backdrop-blur-md px-4 py-3 shadow-[0_0_30px_rgba(14,116,144,0.2)] transition-all hover:border-[#0E7490]/60 hover:shadow-[0_0_50px_rgba(14,116,144,0.4)] animate-pulse-subtle"
         >
           <span className="relative flex h-3 w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
           </span>
-          <span className="text-sm font-bold text-[#00A3FF] font-mono">{coachName}</span>
+          <span className="text-sm font-bold text-[#0E7490] font-mono">{coachName}</span>
         </button>
       )}
 
       {/* Expanded Chat Panel */}
       {open && (
         <div className="fixed bottom-0 right-0 z-50 w-full max-w-[420px] sm:bottom-6 sm:right-6 sm:w-auto sm:max-w-[420px] animate-in slide-in-from-bottom-4 duration-300">
-          <div className="flex h-[70vh] sm:h-[540px] flex-col rounded-t-2xl sm:rounded-2xl border border-[#00A3FF]/20 bg-[#0A0A0F]/95 backdrop-blur-md shadow-[0_0_60px_rgba(0,163,255,0.15)]">
+          <div className="flex h-[70vh] sm:h-[540px] flex-col rounded-t-2xl sm:rounded-2xl border border-[#0E7490]/20 bg-[#0A0A0F]/95 backdrop-blur-md shadow-[0_0_60px_rgba(14,116,144,0.15)]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-black/30 rounded-t-2xl">
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-sm font-bold text-[#00A3FF] font-mono">{coachName}</span>
+                <span className="text-sm font-bold text-[#0E7490] font-mono">{coachName}</span>
               </div>
               <div className="flex items-center gap-1">
                 {/* Clear chat button */}
@@ -272,7 +287,7 @@ export default function CoachWidget() {
                 {nextBestAction && (
                   <button
                     onClick={() => askSuggestion(nextBestAction)}
-                    className="rounded-md border border-[#00A3FF]/20 bg-[#00A3FF]/10 px-3 py-1.5 text-[10px] text-[#00A3FF] hover:bg-[#00A3FF]/20"
+                    className="rounded-md border border-[#0E7490]/20 bg-[#0E7490]/10 px-3 py-1.5 text-[10px] text-[#0E7490] hover:bg-[#0E7490]/20"
                   >
                     {nextBestAction}
                   </button>
@@ -347,12 +362,12 @@ export default function CoachWidget() {
                   onKeyDown={handleKeyDown}
                   placeholder={`Message ${coachName}...`}
                   rows={2}
-                  className="flex-1 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#00A3FF]"
+                  className="flex-1 resize-none rounded-lg border border-white/10 bg-black/30 p-3 text-sm text-white placeholder-gray-600 outline-none focus:border-[#0E7490]"
                 />
                 <button
                   onClick={handleSend}
                   disabled={loading || !input.trim()}
-                  className="rounded-lg bg-[#00A3FF] px-5 text-xs font-bold text-black transition-all hover:bg-[#00A3FF]/80 disabled:cursor-not-allowed disabled:opacity-30"
+                  className="rounded-lg bg-[#0E7490] px-5 text-xs font-bold text-black transition-all hover:bg-[#0E7490]/80 disabled:cursor-not-allowed disabled:opacity-30"
                 >
                   SEND
                 </button>
@@ -365,8 +380,8 @@ export default function CoachWidget() {
       {/* Subtle pulse animation */}
       <style jsx global>{`
         @keyframes pulse-subtle {
-          0%, 100% { box-shadow: 0 0 30px rgba(0,163,255,0.2); }
-          50% { box-shadow: 0 0 50px rgba(0,163,255,0.4); }
+          0%, 100% { box-shadow: 0 0 30px rgba(14,116,144,0.2); }
+          50% { box-shadow: 0 0 50px rgba(14,116,144,0.4); }
         }
         .animate-pulse-subtle {
           animation: pulse-subtle 2s infinite;

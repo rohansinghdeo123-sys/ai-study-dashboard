@@ -605,7 +605,7 @@ function TerminalBadge({
         "inline-flex border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.22em] font-mono",
         tone === "orange" && "border-orange-500/30 bg-orange-500/10 text-orange-500",
         tone === "green" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-        tone === "blue" && "border-[#00A3FF]/30 bg-[#00A3FF]/10 text-[#00A3FF]",
+        tone === "blue" && "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]",
         tone === "red" && "border-red-500/30 bg-red-500/10 text-red-400",
         tone === "neutral" && "border-white/10 bg-black/20 text-gray-400",
         tone === "amber" && "border-amber-400/40 bg-amber-400/10 text-amber-400",
@@ -639,7 +639,7 @@ function GlassCard({
           accent === "orange" && "text-orange-400",
           accent === "green" && "text-emerald-400",
           accent === "red" && "text-red-400",
-          accent === "blue" && "text-[#00A3FF]",
+          accent === "blue" && "text-[#0E7490]",
           accent === "neutral" && "text-white",
         )}
       >
@@ -1348,13 +1348,13 @@ export default function DashboardPage() {
                 className="rounded-lg border border-white/10 bg-black/20 p-4"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="h-2 w-2 rounded-full bg-[#00A3FF] animate-pulse" />
+                  <span className="h-2 w-2 rounded-full bg-[#0E7490] animate-pulse" />
                   <span
                     className={cn(
                       "text-[10px] font-bold uppercase tracking-[0.2em]",
                       insight.severity === "warning" && "text-orange-400",
                       insight.severity === "success" && "text-emerald-400",
-                      insight.severity !== "warning" && insight.severity !== "success" && "text-[#00A3FF]",
+                      insight.severity !== "warning" && insight.severity !== "success" && "text-[#0E7490]",
                     )}
                   >
                     {insight.type ?? "signal"}

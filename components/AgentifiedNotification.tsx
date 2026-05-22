@@ -127,7 +127,7 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
               <div className="agentified-ring agentified-ring-a" />
               <div className="agentified-ring agentified-ring-b" />
               <div className="agentified-pulse" />
-              <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-4xl font-black text-cyan-200 shadow-[0_0_50px_rgba(34,211,238,0.16)]">
+              <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-4xl font-black text-cyan-200 shadow-[0_0_50px_rgba(20,184,166,0.16)]">
                 A
               </div>
             </div>

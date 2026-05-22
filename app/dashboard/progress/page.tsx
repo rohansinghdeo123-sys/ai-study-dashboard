@@ -160,7 +160,7 @@ function getScoreTone(value: number): Tone {
 
 function toneText(tone: Tone) {
   if (tone === "green") return "text-emerald-400";
-  if (tone === "blue") return "text-[#00A3FF]";
+  if (tone === "blue") return "text-[#0E7490]";
   if (tone === "amber") return "text-amber-400";
   if (tone === "red") return "text-red-400";
   return "text-gray-300";
@@ -168,7 +168,7 @@ function toneText(tone: Tone) {
 
 function toneBadge(tone: Tone) {
   if (tone === "green") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-  if (tone === "blue") return "border-[#00A3FF]/30 bg-[#00A3FF]/10 text-[#00A3FF]";
+  if (tone === "blue") return "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]";
   if (tone === "amber") return "border-amber-400/30 bg-amber-400/10 text-amber-400";
   if (tone === "red") return "border-red-500/30 bg-red-500/10 text-red-400";
   return "border-white/10 bg-white/5 text-gray-400";
@@ -512,7 +512,7 @@ function TonePill({ children, tone = "neutral" }: { children: React.ReactNode; t
 
 function Rail({ value, tone = "neutral" }: { value: number; tone?: Tone }) {
   const width = Math.max(0, Math.min(100, value));
-  const bg = tone === "green" ? "bg-emerald-500" : tone === "blue" ? "bg-[#00A3FF]" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-500" : "bg-gray-400";
+  const bg = tone === "green" ? "bg-emerald-500" : tone === "blue" ? "bg-[#0E7490]" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-500" : "bg-gray-400";
   return (
     <div className="h-1.5 w-full rounded-full bg-white/5">
       <div className={cn("h-full rounded-full transition-all duration-500", bg)} style={{ width: `${width}%` }} />
@@ -756,7 +756,7 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] font-mono text-[#00A3FF] animate-pulse">
+      <div className="flex items-center justify-center min-h-[60vh] font-mono text-[#0E7490] animate-pulse">
         LOADING ANALYTICS TERMINAL...
       </div>
     );
@@ -968,7 +968,7 @@ export default function ProgressPage() {
                 </div>
                 <button
                   onClick={() => handleReviseTopic(topic.topic)}
-                  className="mt-3 w-full rounded-md border border-[#00A3FF]/30 bg-[#00A3FF]/10 py-2 text-xs font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
+                  className="mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
                 >
                   REVISE NOW
                 </button>

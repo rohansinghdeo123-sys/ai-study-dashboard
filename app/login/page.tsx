@@ -64,7 +64,7 @@ function TerminalBadge({
         "font-mono",
         tone === "orange" && "border-amber-600/30 bg-amber-600/10 text-amber-500",
         tone === "green" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-        tone === "blue" && "border-[#00A3FF]/30 bg-[#00A3FF]/10 text-[#00A3FF]",
+        tone === "blue" && "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]",
         tone === "red" && "border-red-500/30 bg-red-500/10 text-red-400",
         tone === "neutral" && "border-[#1A1A1A] bg-black text-[#6B6B6B]",
         tone === "amber" && "border-amber-400/40 bg-amber-400/10 text-amber-400",
@@ -405,13 +405,13 @@ export default function LoginPage() {
               className={cn(
                 "login-auth-card w-full rounded-3xl border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
                 shake && "animate-shake",
-                granted && "border-cyan-300/30 shadow-[0_0_40px_rgba(34,211,238,0.16)]",
+                granted && "border-cyan-300/30 shadow-[0_0_40px_rgba(20,184,166,0.16)]",
               )}
             >
               <div className="p-6 md:p-8">
                 {granted ? (
                   <div className="flex flex-col items-center justify-center py-12">
-                    <div className="text-4xl font-bold text-[#00A3FF]">ACCESS GRANTED</div>
+                    <div className="text-4xl font-bold text-[#0E7490]">ACCESS GRANTED</div>
                     <div className="mt-2 text-sm text-gray-400">Redirecting to dashboard...</div>
                   </div>
                 ) : (
@@ -479,10 +479,10 @@ export default function LoginPage() {
                             onChange={(event) => setPhoneNumber(event.target.value)}
                             placeholder="+91 98765 43210"
                             disabled={otpSent}
-                            className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#00A3FF] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#0E7490] disabled:cursor-not-allowed disabled:opacity-60"
                           />
                           {!phoneNumber && !otpSent && (
-                            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-[#00A3FF]">
+                            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-[#0E7490]">
                               _
                             </span>
                           )}
@@ -564,7 +564,7 @@ export default function LoginPage() {
                       </div>
                       <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em]">
                         <span className="text-[#6B6B6B] font-mono">Status</span>
-                        <span className="text-[#00A3FF] font-mono">OTP Enabled</span>
+                        <span className="text-[#0E7490] font-mono">OTP Enabled</span>
                       </div>
                     </div>
                   </>

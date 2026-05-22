@@ -20,7 +20,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#07080D",
+  themeColor: "#F8FAFC",
 };
 
 export default function RootLayout({
@@ -36,7 +36,7 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('agentify-theme') || 'dark';
+                  var theme = localStorage.getItem('agentify-theme') || 'light';
                   document.documentElement.setAttribute('data-theme', theme);
                 } catch(e) {}
               })();
@@ -44,7 +44,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="flex min-h-screen flex-col bg-[#07080D] text-slate-100 antialiased">
+      <body className="flex min-h-screen flex-col antialiased">
         <AuthProvider>
           <BetaBanner />
           <main className="min-h-0 w-full flex-1">

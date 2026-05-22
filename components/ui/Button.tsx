@@ -21,7 +21,7 @@ export default function Button({
 
   const variants = {
     primary:
-      "bg-[var(--color-accent-blue)] text-white hover:brightness-110 active:brightness-95",
+      "border border-transparent bg-[linear-gradient(135deg,#0F172A_0%,#0E7490_46%,#14B8A6_100%)] text-white shadow-[0_14px_30px_rgba(14,116,144,0.18)] hover:brightness-110 active:brightness-95",
     secondary:
       "bg-[var(--color-surface-2)] text-[var(--color-text-primary)] border border-[var(--color-border-default)] hover:bg-[var(--color-surface-3)]",
     ghost:

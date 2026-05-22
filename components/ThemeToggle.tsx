@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 type ThemeMode = "dark" | "light";
 
 function getStoredTheme(): ThemeMode {
-  if (typeof window === "undefined") return "dark";
-  return localStorage.getItem("agentify-theme") === "light" ? "light" : "dark";
+  if (typeof window === "undefined") return "light";
+  return localStorage.getItem("agentify-theme") === "dark" ? "dark" : "light";
 }
 
 function applyTheme(theme: ThemeMode) {
@@ -31,10 +31,10 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
       type="button"
       onClick={toggleTheme}
       data-theme-toggle
-      aria-label={`Switch to ${theme === "dark" ? "bright" : "dark"} theme`}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
       className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-cyan-100"
     >
-      {compact ? (theme === "dark" ? "Bright" : "Dark") : theme === "dark" ? "Bright theme" : "Dark theme"}
+      {compact ? (theme === "dark" ? "Light" : "Dark") : theme === "dark" ? "Light theme" : "Dark theme"}
     </button>
   );
 }

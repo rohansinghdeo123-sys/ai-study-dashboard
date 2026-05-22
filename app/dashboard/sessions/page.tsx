@@ -128,7 +128,7 @@ function getScoreTone(value: number): Tone {
 function toneText(tone: Tone) {
   switch (tone) {
     case "green": return "text-emerald-400";
-    case "blue": return "text-[#00A3FF]";
+    case "blue": return "text-[#0E7490]";
     case "amber": return "text-amber-400";
     case "red": return "text-red-400";
     default: return "text-gray-300";
@@ -138,7 +138,7 @@ function toneText(tone: Tone) {
 function toneBadge(tone: Tone) {
   switch (tone) {
     case "green": return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-    case "blue": return "border-[#00A3FF]/30 bg-[#00A3FF]/10 text-[#00A3FF]";
+    case "blue": return "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]";
     case "amber": return "border-amber-400/30 bg-amber-400/10 text-amber-400";
     case "red": return "border-red-500/30 bg-red-500/10 text-red-400";
     default: return "border-white/10 bg-white/5 text-gray-400";
@@ -389,7 +389,7 @@ function Rail({ value, tone = "neutral" }: { value: number; tone?: Tone }) {
     tone === "green"
       ? "bg-emerald-500"
       : tone === "blue"
-        ? "bg-[#00A3FF]"
+        ? "bg-[#0E7490]"
         : tone === "amber"
           ? "bg-amber-400"
           : tone === "red"
@@ -426,7 +426,7 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
       <p className="mt-4 max-w-md text-sm text-gray-400">{detail}</p>
       <button
         onClick={() => router.push("/dashboard/study")}
-        className="mt-6 rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-4 py-2 text-xs font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
+        className="mt-6 rounded-lg border border-[#0E7490]/30 bg-[#0E7490]/10 px-4 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
       >
         GO TO STUDY LAB
       </button>
@@ -473,7 +473,7 @@ function SessionFilters({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="SEARCH TOPIC/SUBJECT"
-        className="w-48 rounded-md border border-white/10 bg-black/30 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white placeholder-gray-600 outline-none focus:border-[#00A3FF] font-mono"
+        className="w-48 rounded-md border border-white/10 bg-black/30 px-3 py-1.5 text-xs uppercase tracking-[0.18em] text-white placeholder-gray-600 outline-none focus:border-[#0E7490] font-mono"
         id="session-search"
       />
       <div className="flex items-center gap-1 text-xs text-gray-400">
@@ -484,7 +484,7 @@ function SessionFilters({
           max={100}
           value={minAccuracy}
           onChange={(e) => setMinAccuracy(Number(e.target.value))}
-          className="w-14 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#00A3FF] font-mono"
+          className="w-14 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#0E7490] font-mono"
         />
         <span>%</span>
       </div>
@@ -494,7 +494,7 @@ function SessionFilters({
           type="date"
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="w-36 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#00A3FF] font-mono"
+          className="w-36 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#0E7490] font-mono"
         />
       </div>
       <div className="flex items-center gap-1 text-xs text-gray-400">
@@ -503,7 +503,7 @@ function SessionFilters({
           type="date"
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
-          className="w-36 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#00A3FF] font-mono"
+          className="w-36 rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white outline-none focus:border-[#0E7490] font-mono"
         />
       </div>
       <button
@@ -617,7 +617,7 @@ function SessionsTable({
               onClick={() => onSelect(session)}
               className={cn(
                 "grid w-full grid-cols-[1fr_1.35fr_1.15fr_0.7fr_0.7fr_0.7fr_0.65fr_0.9fr] items-center border-b border-white/5 px-4 py-3 text-left transition-colors",
-                isSelected ? "bg-[#0F1A24] border-l-2 border-l-[#00A3FF]" : "hover:bg-white/[0.02]",
+                isSelected ? "bg-[#0F1A24] border-l-2 border-l-[#0E7490]" : "hover:bg-white/[0.02]",
               )}
             >
               <div className="truncate pr-3 text-xs font-semibold uppercase tracking-[0.08em] text-white font-mono">
@@ -745,7 +745,7 @@ function SessionInspector({ session }: { session: Session | null }) {
             </div>
             <button
               onClick={handleReviseTopic}
-              className="rounded-lg border border-[#00A3FF]/30 bg-[#00A3FF]/10 px-4 py-2 text-xs font-bold text-[#00A3FF] hover:bg-[#00A3FF]/20 transition-all"
+              className="rounded-lg border border-[#0E7490]/30 bg-[#0E7490]/10 px-4 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
             >
               REVISE NOW
             </button>
