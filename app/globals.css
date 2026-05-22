@@ -1148,7 +1148,127 @@ body {
 }
 
 /* ============================================================
-   8. MOBILE APP SHELL AND RESPONSIVE SAFETY
+   8. DASHBOARD THEME RESTORATION
+   ============================================================ */
+[data-theme="dark"] .dashboard-shell {
+  background: #05070D !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .dashboard-ambient > div:nth-child(1) {
+  background: rgba(20,184,166,0.10) !important;
+}
+
+[data-theme="dark"] .dashboard-ambient > div:nth-child(2) {
+  background: rgba(242,184,75,0.08) !important;
+}
+
+[data-theme="dark"] .dashboard-ambient > div:nth-child(3) {
+  background: rgba(14,116,144,0.18) !important;
+}
+
+[data-theme="dark"] .dashboard-ambient > div:nth-child(4) {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.035) 1px, transparent 1px) !important;
+  opacity: 0.32 !important;
+}
+
+[data-theme="dark"] .dashboard-ambient > div:nth-child(5) {
+  background: radial-gradient(circle at 50% 0%, rgba(14,116,144,0.18), transparent 46%) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .dashboard-nav-card,
+[data-theme="dark"] .dashboard-shell .theme-toggle-button {
+  background: rgba(7,17,31,0.84) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  color: #CBD5E1 !important;
+  box-shadow: 0 22px 70px rgba(0,0,0,0.34) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .dashboard-nav-card:hover,
+[data-theme="dark"] .dashboard-shell .theme-toggle-button:hover {
+  border-color: rgba(20,184,166,0.36) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .dashboard-shell [class*="bg-white"],
+[data-theme="dark"] .dashboard-shell [class*="bg-slate-50"],
+[data-theme="dark"] .dashboard-shell [class*="bg-slate-100"] {
+  background-color: rgba(255,255,255,0.055) !important;
+}
+
+[data-theme="dark"] .dashboard-shell [class*="border-white"],
+[data-theme="dark"] .dashboard-shell [class*="border-slate-200"],
+[data-theme="dark"] .dashboard-shell [class*="border-slate-300"] {
+  border-color: rgba(255,255,255,0.10) !important;
+}
+
+[data-theme="dark"] .dashboard-shell [class*="text-slate-950"],
+[data-theme="dark"] .dashboard-shell [class*="text-slate-900"],
+[data-theme="dark"] .dashboard-shell [class*="text-slate-800"] {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .dashboard-shell [class*="text-slate-700"],
+[data-theme="dark"] .dashboard-shell [class*="text-slate-600"] {
+  color: #CBD5E1 !important;
+}
+
+[data-theme="dark"] .dashboard-shell [class*="text-slate-500"],
+[data-theme="dark"] .dashboard-shell [class*="text-slate-400"] {
+  color: #94A3B8 !important;
+}
+
+[data-theme="dark"] .dashboard-shell input,
+[data-theme="dark"] .dashboard-shell textarea,
+[data-theme="dark"] .dashboard-shell select {
+  background: rgba(255,255,255,0.055) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .dashboard-shell ::placeholder {
+  color: #64748B !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-grid {
+  background: rgba(7,17,31,0.60) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  box-shadow: 0 40px 140px rgba(0,0,0,0.42) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-center {
+  background: rgba(248,250,252,0.93) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  color: #020617 !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-center * {
+  color: inherit !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-tile--teal {
+  background: linear-gradient(135deg, #07111F 0%, #0B2632 54%, #0E5264 100%) !important;
+  color: #D8F6EF !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-tile--study {
+  background: linear-gradient(135deg, #0F172A 0%, #0B2940 46%, #0E7490 100%) !important;
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-tile--gold {
+  background: linear-gradient(135deg, #17110A 0%, #2A210F 52%, #4A3512 100%) !important;
+  color: #FFE8AE !important;
+}
+
+[data-theme="dark"] .dashboard-shell .hub-tile * {
+  color: inherit !important;
+}
+
+/* ============================================================
+   9. MOBILE APP SHELL AND RESPONSIVE SAFETY
    ============================================================ */
 @media (max-width: 767px) {
   html,

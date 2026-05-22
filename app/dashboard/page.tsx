@@ -125,19 +125,19 @@ function HubTile({
   eyebrow: string;
   title: string;
   description: string;
-  tone: "teal" | "gold" | "navy";
+  tone: "teal" | "gold" | "study";
 }) {
   const toneClass =
     tone === "gold"
       ? "from-[#FFF4D8] to-[#FFE8AE] text-[#7A4B00]"
-      : tone === "navy"
-        ? "from-[#0F172A] to-[#0E7490] text-white"
+      : tone === "study"
+        ? "from-[#F1FBFF] via-[#E7F8F6] to-[#C9F0EC] text-[#0B5363]"
         : "from-[#E6FFFB] to-[#D8F6EF] text-[#0E5264]";
 
   return (
     <Link
       href={href}
-      className={`group relative min-h-[210px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 transition hover:z-10 hover:scale-[1.025] hover:shadow-[0_30px_90px_rgba(15,23,42,0.18)]`}
+      className={`hub-tile hub-tile--${tone} group relative min-h-[210px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 transition hover:z-10 hover:scale-[1.025] hover:shadow-[0_30px_90px_rgba(15,23,42,0.18)]`}
     >
       <div className="absolute right-[-3rem] top-[-3rem] h-36 w-36 rounded-full bg-white/32 blur-2xl transition group-hover:scale-125" />
       <p className="relative text-xs font-bold uppercase tracking-[0.22em] opacity-70">{eyebrow}</p>
@@ -247,13 +247,13 @@ export default function DashboardPage() {
           </div>
 
           <div className="relative w-full max-w-5xl">
-            <div className="absolute left-1/2 top-1/2 z-20 hidden h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/86 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-2xl md:flex">
+            <div className="hub-center absolute left-1/2 top-1/2 z-20 hidden h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/86 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-2xl md:flex">
               <div>
                 <p className="text-3xl font-semibold text-slate-950">AI</p>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0E7490]">Choose path</p>
               </div>
             </div>
-            <div className="grid overflow-hidden rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
+            <div className="hub-grid grid overflow-hidden rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
               <HubTile
                 href="/dashboard?workspace=overview"
                 eyebrow="Overview"
@@ -266,7 +266,7 @@ export default function DashboardPage() {
                 eyebrow="Ask"
                 title="Study Page"
                 description="A clean full-window AI tutor chat for doubts, examples, and follow-ups."
-                tone="navy"
+                tone="study"
               />
               <HubTile
                 href="/dashboard/sessions"

@@ -62,8 +62,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   if (isAdminRoute && !isAdmin) return null;
 
   return (
-    <div className="relative min-h-[100svh] overflow-x-hidden bg-[#F8FAFC] text-slate-950">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+    <div className="dashboard-shell relative min-h-[100svh] overflow-x-hidden bg-[#F8FAFC] text-slate-950">
+      <div className="dashboard-ambient pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -left-40 top-[-12rem] h-[32rem] w-[32rem] rounded-full bg-[#14B8A6]/18 blur-3xl" />
         <div className="absolute right-[-12rem] top-8 h-[34rem] w-[34rem] rounded-full bg-[#F2B84B]/16 blur-3xl" />
         <div className="absolute bottom-[-18rem] left-1/3 h-[36rem] w-[36rem] rounded-full bg-[#0E7490]/10 blur-3xl" />
@@ -74,7 +74,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="fixed left-4 top-4 z-50 flex items-center gap-2 sm:left-6">
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 rounded-2xl border border-white/70 bg-white/78 px-3 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition hover:-translate-y-0.5"
+          className="dashboard-nav-card flex items-center gap-2 rounded-2xl border border-white/70 bg-white/78 px-3 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition hover:-translate-y-0.5"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-bold text-white">
             A
@@ -89,20 +89,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="fixed right-4 top-4 z-50 flex items-center gap-2 sm:right-6">
         <Link
           href="/dashboard/progress"
-          className="hidden rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-[#0E7490] sm:inline-flex"
+          className="dashboard-nav-card hidden rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-[#0E7490] sm:inline-flex"
         >
           Analytics
         </Link>
         {isAdmin ? (
           <Link
             href={ADMIN_ROUTE}
-            className="hidden rounded-2xl border border-amber-300/50 bg-amber-100/70 px-3 py-2 text-xs font-semibold text-amber-800 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 md:inline-flex"
+            className="dashboard-nav-card hidden rounded-2xl border border-amber-300/50 bg-amber-100/70 px-3 py-2 text-xs font-semibold text-amber-800 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 md:inline-flex"
           >
             Ops
           </Link>
         ) : null}
         <ThemeToggle compact />
-        <div className="hidden items-center gap-2 rounded-2xl border border-white/70 bg-white/78 px-2.5 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:flex">
+        <div className="dashboard-nav-card hidden items-center gap-2 rounded-2xl border border-white/70 bg-white/78 px-2.5 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl md:flex">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#0E7490]/10 text-xs font-bold text-[#0E7490]">
             {getInitials(displayName)}
           </span>
@@ -110,7 +110,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
         <button
           onClick={logout}
-          className="rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-rose-500"
+          className="dashboard-nav-card rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-rose-500"
         >
           Log out
         </button>
