@@ -478,7 +478,7 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-105px)] w-full max-w-7xl flex-col">
+    <div className="flex min-h-[calc(100svh-105px)] w-full flex-col">
       <section className="mb-4 overflow-hidden rounded-[2rem] border border-white/60 bg-white/72 p-4 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -537,7 +537,7 @@ export default function StudyPage() {
               </p>
             </div>
           ) : (
-            <div className="mx-auto max-w-3xl space-y-6">
+            <div className="mx-auto w-full max-w-5xl space-y-6">
               {messages.map((message, index) => (
                 <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div
@@ -572,7 +572,7 @@ export default function StudyPage() {
         </div>
 
         <div className="border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto w-full max-w-5xl">
             {hasCoachResponse ? (
               <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
                 {quickActions.map((action) => (

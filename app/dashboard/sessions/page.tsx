@@ -248,7 +248,7 @@ export default function SessionsPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-105px)] w-full max-w-7xl flex-col gap-5">
+    <div className="flex min-h-[calc(100svh-105px)] w-full flex-col gap-5">
       <section className="rounded-[2rem] border border-white/70 bg-white/74 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -294,7 +294,7 @@ export default function SessionsPage() {
       {!filteredSessions.length ? (
         <EmptyState />
       ) : (
-        <section className="grid min-h-[560px] flex-1 gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+        <section className="grid min-h-[560px] flex-1 gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
           <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/74 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
             <div className="border-b border-slate-200/70 px-5 py-4">
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Timeline</p>

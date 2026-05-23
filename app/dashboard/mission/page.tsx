@@ -205,7 +205,7 @@ export default function MissionPage() {
   }
 
   return (
-    <div className="mx-auto grid min-h-[calc(100svh-105px)] w-full max-w-7xl gap-5 lg:grid-cols-[0.85fr_1.15fr]">
+    <div className="grid min-h-[calc(100svh-105px)] w-full gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
       <section className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Autonomous Mission</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">

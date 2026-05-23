@@ -1,6 +1,5 @@
 "use client";
 
-import AgentifiedNotification from "@/components/AgentifiedNotification";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -137,7 +136,7 @@ function HubTile({
   return (
     <Link
       href={href}
-      className={`hub-tile hub-tile--${tone} group relative min-h-[210px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 transition hover:z-10 hover:scale-[1.025] hover:shadow-[0_30px_90px_rgba(15,23,42,0.18)]`}
+      className={`hub-tile hub-tile--${tone} group relative min-h-[230px] overflow-hidden bg-gradient-to-br ${toneClass} p-7`}
     >
       <div className="absolute right-[-3rem] top-[-3rem] h-36 w-36 rounded-full bg-white/32 blur-2xl transition group-hover:scale-125" />
       <p className="relative text-xs font-bold uppercase tracking-[0.22em] opacity-70">{eyebrow}</p>
@@ -160,7 +159,6 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [weakAreas, setWeakAreas] = useState<WeakArea[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-  const [showAgentNotification, setShowAgentNotification] = useState(false);
 
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const firstName = displayName.split(" ")[0] || "Student";
@@ -175,14 +173,6 @@ export default function DashboardPage() {
     if (accuracyValue < 80) return "You are close. Practice weak spots.";
     return "Strong momentum. Move to exam-style practice.";
   }, [accuracyValue, progress.total_questions]);
-
-  useEffect(() => {
-    const seen = localStorage.getItem("agentify-agentified-seen");
-    if (!seen) {
-      setShowAgentNotification(true);
-      localStorage.setItem("agentify-agentified-seen", "true");
-    }
-  }, []);
 
   useEffect(() => {
     if (loading || claimsLoading || !userId) return;
@@ -234,7 +224,7 @@ export default function DashboardPage() {
 
   if (!showOverview) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="w-full">
         <section className="flex min-h-[calc(100svh-118px)] flex-col items-center justify-center gap-8 py-8">
           <div className="max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0E7490]">Learning Hub</p>
@@ -246,14 +236,14 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="relative w-full max-w-5xl">
+          <div className="relative w-full max-w-[1180px] px-1 sm:px-4">
             <div className="hub-center absolute left-1/2 top-1/2 z-20 hidden h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/86 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-2xl md:flex">
               <div>
                 <p className="text-3xl font-semibold text-slate-950">AI</p>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0E7490]">Choose path</p>
               </div>
             </div>
-            <div className="hub-grid grid overflow-hidden rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
+            <div className="hub-grid grid overflow-visible rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
               <HubTile
                 href="/dashboard?workspace=overview"
                 eyebrow="Overview"
@@ -294,15 +284,12 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {showAgentNotification ? (
-          <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />
-        ) : null}
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-5">
+    <div className="w-full space-y-5">
       <section className="rounded-[2rem] border border-white/70 bg-white/74 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -441,9 +428,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {showAgentNotification ? (
-        <AgentifiedNotification onDismiss={() => setShowAgentNotification(false)} />
-      ) : null}
     </div>
   );
 }
