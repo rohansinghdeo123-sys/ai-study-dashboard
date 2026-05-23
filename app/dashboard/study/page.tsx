@@ -13,11 +13,22 @@ import {
 type CoachRole = "user" | "coach";
 type AgentStageId = "drafting" | "reviewing" | "delivering";
 type AgentStageStatus = "pending" | "active" | "done";
+type StudyMode = "coach" | "revision" | "exam" | "history";
+type RevisionType = "summary" | "explain" | "keypoints";
 
 interface CoachMessage {
   role: CoachRole;
   content: string;
   timestamp: string;
+}
+
+interface StudyConversation {
+  id: string;
+  title: string;
+  updatedAt: string;
+  chapter: string;
+  topic: string;
+  messages: CoachMessage[];
 }
 
 interface AgentStageState {
@@ -36,6 +47,51 @@ interface AgentStagePayload {
   title?: string;
   detail?: string;
 }
+
+interface RevisionTool {
+  id: RevisionType;
+  title: string;
+  detail: string;
+  mode: "summary" | "explain" | "keypoints";
+  prompt: (topic: string) => string;
+}
+
+interface ExamQuestion {
+  id: string;
+  question: string;
+  options: string[];
+  correct: string;
+  explanation?: string;
+}
+
+interface ProbableQuestion {
+  id: string;
+  marks: number;
+  question: string;
+}
+
+type SpeechRecognitionEventLike = {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+};
+
+type SpeechRecognitionLike = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
 const CHAPTERS = [
   {
@@ -60,6 +116,100 @@ const CHAPTERS = [
 ];
 
 const STAGE_ORDER: AgentStageId[] = ["drafting", "reviewing", "delivering"];
+
+const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string }> = [
+  { id: "coach", label: "Coach", detail: "Ask and continue doubts" },
+  { id: "revision", label: "Revision", detail: "Summary, explain, key points" },
+  { id: "exam", label: "Exam", detail: "MCQs and probable questions" },
+  { id: "history", label: "History", detail: "Resume previous chats" },
+];
+
+const REVISION_TOOLS: RevisionTool[] = [
+  {
+    id: "summary",
+    title: "Revision Summary",
+    detail: "High-yield notes for quick recall.",
+    mode: "summary",
+    prompt: (topic) => `Create a concise exam-focused revision summary for ${topic}.`,
+  },
+  {
+    id: "explain",
+    title: "Deep Explain",
+    detail: "Simple explanation with examples and mistakes.",
+    mode: "explain",
+    prompt: (topic) => `Explain ${topic} deeply but simply, with examples and common mistakes.`,
+  },
+  {
+    id: "keypoints",
+    title: "Key Points",
+    detail: "Flashcard-style important points.",
+    mode: "keypoints",
+    prompt: (topic) => `Extract the most important exam-relevant key points for ${topic}.`,
+  },
+];
+
+function getHistoryStorageKey(userId?: string) {
+  return `agentify-study-history-${userId || "guest"}`;
+}
+
+function createConversationId() {
+  return `study-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+function titleFromMessages(messages: CoachMessage[]) {
+  const firstUserMessage = messages.find((message) => message.role === "user")?.content.trim();
+  if (!firstUserMessage) return "New study conversation";
+  return firstUserMessage.length > 54 ? `${firstUserMessage.slice(0, 54)}...` : firstUserMessage;
+}
+
+function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
+  if (typeof window === "undefined") return null;
+  const speechWindow = window as Window & typeof globalThis & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null;
+}
+
+function cleanSpeechText(value: string) {
+  return value
+    .replace(/[#*_`>-]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 900)
+    .trim();
+}
+
+function resolveTutorVoice() {
+  if (typeof window === "undefined" || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  const preferred = [
+    "Google UK English Female",
+    "Google US English",
+    "Microsoft Zira",
+    "Microsoft Hazel",
+    "Samantha",
+  ];
+  for (const name of preferred) {
+    const match = voices.find((voice) => voice.name.includes(name));
+    if (match) return match;
+  }
+  return voices.find((voice) => voice.lang.startsWith("en")) || voices[0] || null;
+}
+
+function speakTutorResponse(value: string) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  const speechText = cleanSpeechText(value);
+  if (!speechText) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(speechText);
+  const voice = resolveTutorVoice();
+  if (voice) utterance.voice = voice;
+  utterance.lang = voice?.lang || "en-IN";
+  utterance.rate = 0.94;
+  utterance.pitch = 1.02;
+  utterance.volume = 0.92;
+  window.speechSynthesis.speak(utterance);
+}
 
 function createStages(): AgentStageState[] {
   return [
@@ -280,6 +430,55 @@ function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
   );
 }
 
+function ModeButton({
+  active,
+  label,
+  detail,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-2xl border px-4 py-3 text-left transition ${
+        active
+          ? "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490] shadow-[0_14px_36px_rgba(14,116,144,0.10)]"
+          : "border-slate-200 bg-white/64 text-slate-500 hover:border-[#0E7490]/25 hover:text-slate-900"
+      }`}
+    >
+      <span className="block text-sm font-semibold">{label}</span>
+      <span className="mt-1 block text-[11px] leading-4 opacity-70">{detail}</span>
+    </button>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    if (!value) return;
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1400);
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      disabled={!value}
+      className="rounded-full border border-slate-200 bg-white/75 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 function getTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -292,22 +491,40 @@ export default function StudyPage() {
 
   const [chapter, setChapter] = useState(searchParams.get("chapter") || "hydrocarbon");
   const [topic, setTopic] = useState(initialTopic);
+  const [mode, setMode] = useState<StudyMode>("coach");
   const [coachName, setCoachName] = useState("Aria");
   const [messages, setMessages] = useState<CoachMessage[]>([]);
+  const [conversations, setConversations] = useState<StudyConversation[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState(createConversationId);
   const [input, setInput] = useState("");
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [stages, setStages] = useState(createStages);
   const [showPipeline, setShowPipeline] = useState(false);
   const [error, setError] = useState("");
+  const [revisionContent, setRevisionContent] = useState<Record<RevisionType, string>>({ summary: "", explain: "", keypoints: "" });
+  const [revisionLoading, setRevisionLoading] = useState<Record<RevisionType, boolean>>({ summary: false, explain: false, keypoints: false });
+  const [revisionError, setRevisionError] = useState("");
+  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
+  const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
+  const [examAnswers, setExamAnswers] = useState<Record<string, string>>({});
+  const [examSubmitted, setExamSubmitted] = useState(false);
+  const [examLoading, setExamLoading] = useState(false);
+  const [examSaving, setExamSaving] = useState(false);
+  const [examError, setExamError] = useState("");
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [listening, setListening] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const authBusy = loading || authLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const hasCoachResponse = messages.some((message) => message.role === "coach" && message.content.trim().length > 0);
+  const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
+  const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
 
   const quickActions = useMemo(
     () => [
@@ -334,6 +551,51 @@ export default function StudyPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, showPipeline]);
+
+  useEffect(() => {
+    setSpeechSupported(Boolean(getSpeechRecognitionCtor()) && typeof window !== "undefined" && Boolean(window.speechSynthesis));
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.getVoices();
+    const handleVoicesChanged = () => window.speechSynthesis.getVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", handleVoicesChanged);
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", handleVoicesChanged);
+      window.speechSynthesis.cancel();
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const stored = localStorage.getItem(getHistoryStorageKey(userId));
+      const parsed = stored ? JSON.parse(stored) : [];
+      setConversations(Array.isArray(parsed) ? parsed.slice(0, 40) : []);
+    } catch {
+      setConversations([]);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !messages.length) return;
+    const conversation: StudyConversation = {
+      id: currentConversationId,
+      title: titleFromMessages(messages),
+      updatedAt: new Date().toISOString(),
+      chapter,
+      topic,
+      messages,
+    };
+
+    setConversations((current) => {
+      const next = [
+        conversation,
+        ...current.filter((item) => item.id !== currentConversationId),
+      ].slice(0, 40);
+      localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(next));
+      return next;
+    });
+  }, [chapter, currentConversationId, messages, topic, userId]);
 
   useEffect(() => {
     if (!userId || authBusy) return;
@@ -379,23 +641,26 @@ export default function StudyPage() {
     const stagePayload = parseStagePayload(raw);
     if (stagePayload) {
       handleStagePayload(stagePayload);
-      return;
+      return "";
     }
 
     const payload = stripDataPrefix(raw);
     if (payload === "[DONE]") {
       setShowPipeline(false);
-      return;
+      return "";
     }
 
     const answer = normalizeAnswerPayload(raw);
     if (answer) {
       updateLastCoachMessage(answer);
       setShowPipeline(false);
+      return answer;
     }
+
+    return "";
   };
 
-  const sendMessage = async (override?: string) => {
+  const sendMessage = async (override?: string, options?: { fromVoice?: boolean }) => {
     const prompt = (override ?? input).trim();
     if (!prompt || !userId || authBusy || loadingAnswer) return;
 
@@ -407,6 +672,7 @@ export default function StudyPage() {
     setLoadingAnswer(true);
     setShowPipeline(true);
     setStages(createStages().map((stage) => (stage.id === "drafting" ? { ...stage, status: "active" } : stage)));
+    let finalAnswer = "";
 
     setMessages((current) => [
       ...current,
@@ -433,6 +699,7 @@ export default function StudyPage() {
       if (!res.ok) throw new Error(`Coach failed: ${res.status}`);
       if (!res.body) {
         const text = normalizeAnswerPayload(await res.text());
+        finalAnswer = text || "I could not read the tutor response. Please try again.";
         updateLastCoachMessage(text || "I could not read the tutor response. Please try again.");
         return;
       }
@@ -447,18 +714,203 @@ export default function StudyPage() {
         buffer += decoder.decode(value, { stream: true });
         const events = buffer.split("\n\n");
         buffer = events.pop() || "";
-        events.forEach(processSseEvent);
+        events.forEach((event) => {
+          const answer = processSseEvent(event);
+          if (answer) finalAnswer = answer;
+        });
       }
 
-      if (buffer.trim()) processSseEvent(buffer);
+      if (buffer.trim()) {
+        const answer = processSseEvent(buffer);
+        if (answer) finalAnswer = answer;
+      }
     } catch (caught) {
       if ((caught as Error).name !== "AbortError") {
         setError("The tutor could not connect. Please try again.");
-        updateLastCoachMessage("I could not connect to the tutor service. Please try again in a moment.");
+        finalAnswer = "I could not connect to the tutor service. Please try again in a moment.";
+        updateLastCoachMessage(finalAnswer);
       }
     } finally {
       setLoadingAnswer(false);
       setShowPipeline(false);
+      if (options?.fromVoice && finalAnswer) speakTutorResponse(finalAnswer);
+    }
+  };
+
+  const startNewChat = () => {
+    abortRef.current?.abort();
+    setCurrentConversationId(createConversationId());
+    setMessages([]);
+    setInput("");
+    setError("");
+    setShowPipeline(false);
+    setStages(createStages);
+    setMode("coach");
+  };
+
+  const clearChat = () => {
+    abortRef.current?.abort();
+    if (userId) {
+      setConversations((current) => {
+        const next = current.filter((item) => item.id !== currentConversationId);
+        localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(next));
+        return next;
+      });
+    }
+    setCurrentConversationId(createConversationId());
+    setMessages([]);
+    setInput("");
+    setError("");
+    setShowPipeline(false);
+    setStages(createStages);
+  };
+
+  const resumeConversation = (conversation: StudyConversation) => {
+    setCurrentConversationId(conversation.id);
+    setChapter(conversation.chapter || "hydrocarbon");
+    setTopic(conversation.topic || "alkanes");
+    setMessages(conversation.messages || []);
+    setMode("coach");
+    window.setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
+  };
+
+  const startVoiceInput = () => {
+    if (!speechSupported || loadingAnswer) return;
+    const SpeechRecognition = getSpeechRecognitionCtor();
+    if (!SpeechRecognition) return;
+    recognitionRef.current?.stop();
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-IN";
+    recognition.onresult = (event) => {
+      const transcript = event.results?.[0]?.[0]?.transcript?.trim() || "";
+      setListening(false);
+      if (transcript) void sendMessage(transcript, { fromVoice: true });
+    };
+    recognition.onerror = () => setListening(false);
+    recognition.onend = () => setListening(false);
+    setListening(true);
+    recognition.start();
+  };
+
+  const stopVoiceInput = () => {
+    recognitionRef.current?.stop();
+    setListening(false);
+  };
+
+  const runRevision = async (tool: RevisionTool) => {
+    if (!userId || authBusy) return;
+    setMode("revision");
+    setRevisionError("");
+    setRevisionLoading((current) => ({ ...current, [tool.id]: true }));
+    try {
+      const res = await fetch(`${backendURL}/section-ai`, {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({
+          question: tool.prompt(selectedTopic.label),
+          section_id: topic,
+          session_id: `revision-${userId}-${topic}-${tool.id}`,
+          mode: tool.mode,
+          difficulty: "medium",
+        }),
+      });
+      if (!res.ok) throw new Error(`Revision failed: ${res.status}`);
+      const data = await res.json();
+      setRevisionContent((current) => ({ ...current, [tool.id]: data?.answer || "No revision generated." }));
+    } catch {
+      setRevisionError("Revision could not be generated. Please try again.");
+    } finally {
+      setRevisionLoading((current) => ({ ...current, [tool.id]: false }));
+    }
+  };
+
+  const generateExamPack = async () => {
+    if (!userId || authBusy || examLoading) return;
+    setMode("exam");
+    setExamLoading(true);
+    setExamError("");
+    setExamSubmitted(false);
+    setExamAnswers({});
+    try {
+      const headers = await getAuthHeaders();
+      const [mcqRes, probableRes] = await Promise.all([
+        fetch(`${backendURL}/generate-mcqs`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            topic: selectedTopic.label,
+            section_id: topic,
+            session_id: `exam-${userId}-${topic}-${Date.now()}`,
+            difficulty: "medium",
+            count: 5,
+          }),
+        }),
+        fetch(`${backendURL}/generate-probable-questions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            topic: selectedTopic.label,
+            section_id: topic,
+            session_id: `probable-${userId}-${topic}-${Date.now()}`,
+            difficulty: "medium",
+          }),
+        }),
+      ]);
+      if (!mcqRes.ok || !probableRes.ok) throw new Error("Exam generation failed");
+      const mcqData = await mcqRes.json();
+      const probableData = await probableRes.json();
+      setExamQuestions(Array.isArray(mcqData?.questions) ? mcqData.questions : []);
+      setProbableQuestions(Array.isArray(probableData?.questions) ? probableData.questions : []);
+    } catch {
+      setExamError("Exam pack could not be generated. Please try again.");
+    } finally {
+      setExamLoading(false);
+    }
+  };
+
+  const submitExam = async () => {
+    if (!examQuestions.length || examSubmitted) return;
+    setExamSubmitted(true);
+    if (!userId) return;
+    setExamSaving(true);
+    try {
+      await fetch(`${backendURL}/submit-session`, {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({
+          user_id: userId,
+          topic: selectedTopic.label,
+          subject: "Chemistry",
+          score: examScore,
+          total_questions: examQuestions.length,
+          xp_earned: examScore * 10,
+          time_spent_seconds: 300,
+          focus_score: Math.round((examScore / Math.max(1, examQuestions.length)) * 100),
+          session_type: "study_exam",
+          replay_data: {
+            topic: selectedTopic.label,
+            source: "study_page_exam",
+            questions: examQuestions.map((question) => ({
+              id: question.id,
+              text: question.question,
+              topic: selectedTopic.label,
+              options: question.options,
+              correct_answer: question.correct,
+              user_answer: examAnswers[question.id] || "",
+              is_correct: examAnswers[question.id] === question.correct,
+              ai_explanation: question.explanation || "",
+            })),
+            probable_questions: probableQuestions,
+          },
+        }),
+      });
+    } catch {
+      setExamError("Feedback is ready, but the session could not be saved.");
+    } finally {
+      setExamSaving(false);
     }
   };
 
@@ -469,6 +921,12 @@ export default function StudyPage() {
     }
   };
 
+  const wrongExamQuestions = examSubmitted
+    ? examQuestions.filter((question) => examAnswers[question.id] !== question.correct)
+    : [];
+  const threeMarkQuestions = probableQuestions.filter((question) => question.marks !== 5);
+  const fiveMarkQuestions = probableQuestions.filter((question) => question.marks === 5);
+
   if (authBusy) {
     return (
       <div className="flex min-h-[70svh] items-center justify-center text-sm text-[#0E7490]">
@@ -478,136 +936,521 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="flex min-h-[calc(100svh-105px)] w-full flex-col">
-      <section className="mb-4 overflow-hidden rounded-[2rem] border border-white/60 bg-white/72 p-4 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+    <div className="study-lab-shell flex min-h-[calc(100svh-6.5rem)] w-full flex-col overflow-hidden rounded-[2.2rem] border border-white/50 bg-white/70 shadow-[0_30px_100px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+      <section className="study-lab-header border-b border-white/45 bg-white/64 px-4 py-4 backdrop-blur-2xl sm:px-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Study Lab</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-              Ask {coachName} anything
-            </h1>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+                Ask {coachName} anything
+              </h1>
+              <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
+                {speechSupported ? "Voice ready" : "Text mode"}
+              </span>
+            </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              A calm AI tutor chat for explanations, examples, exam answers, and follow-up doubts.
+              One focused place for doubts, revision sheets, exam practice, history, and spoken tutoring.
             </p>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <select
-              value={chapter}
-              onChange={(event) => {
-                const next = event.target.value;
-                setChapter(next);
-                setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
-              }}
-              className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
-            >
-              {CHAPTERS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
+          <div className="flex flex-col gap-3 lg:min-w-[620px]">
+            <div className="grid gap-2 sm:grid-cols-4">
+              {STUDY_MODES.map((item) => (
+                <ModeButton
+                  key={item.id}
+                  active={mode === item.id}
+                  label={item.label}
+                  detail={item.detail}
+                  onClick={() => setMode(item.id)}
+                />
               ))}
-            </select>
-            <select
-              value={topic}
-              onChange={(event) => setTopic(event.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
-            >
-              {selectedChapter.topics.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
+            </div>
+
+            <div className="flex flex-col gap-2 rounded-3xl border border-slate-200/70 bg-white/58 p-2 sm:flex-row">
+              <div className="flex-1">
+                <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Chapter
+                </label>
+                <select
+                  value={chapter}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setChapter(next);
+                    setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
+                  }}
+                  className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
+                >
+                  {CHAPTERS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Topic
+                </label>
+                <select
+                  value={topic}
+                  onChange={(event) => setTopic(event.target.value)}
+                  className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
+                >
+                  {selectedChapter.topics.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="rounded-2xl border border-slate-200 bg-white/78 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+              >
+                New chat
+              </button>
+              <button
+                type="button"
+                onClick={clearChat}
+                disabled={!messages.length}
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Clear
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="flex min-h-[calc(100svh-285px)] flex-1 flex-col overflow-hidden rounded-[2rem] border border-white/60 bg-white/76 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-        <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-          {messages.length === 0 ? (
-            <div className="flex min-h-[430px] flex-col items-center justify-center text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-xl font-bold text-white shadow-[0_20px_55px_rgba(14,116,144,0.24)]">
-                {coachName[0]}
-              </div>
-              <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">
-                What do you want to understand today, {displayName.split(" ")[0]}?
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-                Start with a doubt, a short phrase, or even an incomplete follow-up. Assistance options will appear after your tutor understands the intent.
-              </p>
-            </div>
-          ) : (
-            <div className="mx-auto w-full max-w-5xl space-y-6">
-              {messages.map((message, index) => (
-                <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                  <div
-                    className={`max-w-[88%] rounded-[1.5rem] px-5 py-4 ${
-                      message.role === "user"
-                        ? "bg-[#0E7490] text-white shadow-[0_16px_40px_rgba(14,116,144,0.20)]"
-                        : "border border-slate-200 bg-white/78 text-slate-800 shadow-[0_16px_45px_rgba(15,23,42,0.08)]"
-                    }`}
-                  >
-                    <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">
-                      <span>{message.role === "user" ? "You" : coachName}</span>
-                      {message.timestamp ? <span>{message.timestamp}</span> : null}
-                    </div>
-                    {message.role === "coach" ? (
-                      message.content ? <CoachAnswer value={message.content} /> : <p className="text-sm text-slate-500">Preparing...</p>
-                    ) : (
-                      <p className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</p>
-                    )}
+      <section className="study-lab-main flex min-h-0 flex-1 flex-col">
+        {mode === "coach" ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+              {messages.length === 0 ? (
+                <div className="study-empty-state mx-auto flex min-h-[52svh] max-w-4xl flex-col items-center justify-center text-center">
+                  <div className="study-coach-avatar flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-xl font-bold text-white shadow-[0_20px_55px_rgba(14,116,144,0.24)]">
+                    {coachName[0]}
+                  </div>
+                  <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
+                    What do you want to understand today, {displayName.split(" ")[0]}?
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+                    Start with a doubt, a short phrase, or even an incomplete follow-up. I will keep the lesson context and show extra help only after your first response.
+                  </p>
+                  <div className="mt-8 grid w-full max-w-2xl gap-3 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => setMode("revision")}
+                      className="rounded-3xl border border-slate-200 bg-white/72 px-4 py-4 text-left text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+                    >
+                      Build revision
+                      <span className="mt-1 block text-xs font-normal text-slate-500">Summary, explain, key points</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode("exam")}
+                      className="rounded-3xl border border-slate-200 bg-white/72 px-4 py-4 text-left text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+                    >
+                      Practice exam
+                      <span className="mt-1 block text-xs font-normal text-slate-500">5 MCQs plus likely theory</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode("history")}
+                      className="rounded-3xl border border-slate-200 bg-white/72 px-4 py-4 text-left text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+                    >
+                      Continue history
+                      <span className="mt-1 block text-xs font-normal text-slate-500">{conversations.length} saved chats</span>
+                    </button>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div className="mx-auto w-full max-w-5xl space-y-6">
+                  {messages.map((message, index) => (
+                    <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`study-message-bubble max-w-[88%] rounded-[1.5rem] px-5 py-4 ${
+                          message.role === "user"
+                            ? "is-user bg-[#0E7490] text-white shadow-[0_16px_40px_rgba(14,116,144,0.20)]"
+                            : "is-coach border border-slate-200 bg-white/92 text-slate-800 shadow-[0_16px_45px_rgba(15,23,42,0.08)]"
+                        }`}
+                      >
+                        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">
+                          <span>{message.role === "user" ? "You" : coachName}</span>
+                          {message.timestamp ? <span>{message.timestamp}</span> : null}
+                        </div>
+                        {message.role === "coach" ? (
+                          message.content ? <CoachAnswer value={message.content} /> : <p className="text-sm text-slate-500">Preparing...</p>
+                        ) : (
+                          <p className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
 
-              {showPipeline ? (
-                <div className="flex justify-start">
-                  <AgentPipeline stages={stages} />
+                  {showPipeline ? (
+                    <div className="flex justify-start">
+                      <AgentPipeline stages={stages} />
+                    </div>
+                  ) : null}
+
+                  <div ref={endRef} />
                 </div>
-              ) : null}
-
-              <div ref={endRef} />
+              )}
             </div>
-          )}
-        </div>
 
-        <div className="border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
-          <div className="mx-auto w-full max-w-5xl">
-            {hasCoachResponse ? (
-              <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-                {quickActions.map((action) => (
+            <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
+              <div className="mx-auto w-full max-w-5xl">
+                {hasCoachResponse ? (
+                  <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.label}
+                        type="button"
+                        onClick={() => setInput(action.prompt)}
+                        className="study-action-chip shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-[#0E7490]/35 hover:text-[#0E7490]"
+                      >
+                        {action.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                <div className="flex items-end gap-2 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:gap-3">
+                  <textarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    rows={1}
+                    placeholder={listening ? "Listening..." : `Message ${coachName}...`}
+                    className="study-textarea max-h-40 min-h-12 flex-1 resize-none rounded-2xl bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  />
                   <button
-                    key={action.label}
-                    onClick={() => setInput(action.prompt)}
-                    className="shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-[#0E7490]/35 hover:text-[#0E7490]"
+                    type="button"
+                    onClick={listening ? stopVoiceInput : startVoiceInput}
+                    disabled={!speechSupported || loadingAnswer}
+                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      listening
+                        ? "bg-emerald-500 text-white"
+                        : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                    } disabled:cursor-not-allowed disabled:opacity-45`}
                   >
-                    {action.label}
+                    {listening ? "Stop" : "Voice"}
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => void sendMessage()}
+                    disabled={loadingAnswer || !input.trim()}
+                    className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {loadingAnswer ? "Thinking" : "Send"}
+                  </button>
+                </div>
+                {!speechSupported ? (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Voice is available in browsers that support speech recognition and speech synthesis.
+                  </p>
+                ) : null}
+                {error ? <p className="mt-2 text-xs text-rose-500">{error}</p> : null}
               </div>
-            ) : null}
-
-            <div className="flex items-end gap-3 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={handleKeyDown}
-                rows={1}
-                placeholder={`Message ${coachName}...`}
-                className="max-h-40 min-h-12 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-              />
-              <button
-                onClick={() => void sendMessage()}
-                disabled={loadingAnswer || !input.trim()}
-                className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                {loadingAnswer ? "Thinking" : "Send"}
-              </button>
             </div>
-            {error ? <p className="mt-2 text-xs text-rose-500">{error}</p> : null}
           </div>
-        </div>
+        ) : null}
+
+        {mode === "revision" ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-3">
+              {REVISION_TOOLS.map((tool) => (
+                <article
+                  key={tool.id}
+                  className="study-content-card flex min-h-[520px] flex-col rounded-[2rem] border border-white/60 bg-white/82 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{tool.id}</p>
+                      <h2 className="mt-2 text-xl font-semibold text-slate-950">{tool.title}</h2>
+                      <p className="mt-2 text-sm leading-6 text-slate-500">{tool.detail}</p>
+                    </div>
+                    <CopyButton value={revisionContent[tool.id]} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void runRevision(tool)}
+                    disabled={revisionLoading[tool.id]}
+                    className="mt-5 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                  >
+                    {revisionLoading[tool.id] ? "Generating..." : `Generate ${tool.title}`}
+                  </button>
+
+                  <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-4">
+                    {revisionContent[tool.id] ? (
+                      <CoachAnswer value={revisionContent[tool.id]} />
+                    ) : (
+                      <div className="flex h-full min-h-[280px] flex-col items-center justify-center text-center">
+                        <p className="text-sm font-semibold text-slate-700">No {tool.title.toLowerCase()} generated yet.</p>
+                        <p className="mt-2 max-w-xs text-xs leading-5 text-slate-500">
+                          Generate it for {selectedTopic.label}. Students can copy it directly into notes.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+            {revisionError ? <p className="mx-auto mt-4 max-w-7xl text-sm text-rose-500">{revisionError}</p> : null}
+          </div>
+        ) : null}
+
+        {mode === "exam" ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto grid max-w-7xl gap-5 xl:grid-cols-[1.45fr_0.55fr]">
+              <section className="study-content-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Exam Lab</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-950">5-question check for {selectedTopic.label}</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                      Generate one focused MCQ set, answer it once, then review feedback, common mistakes, and probable theory questions.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void generateExamPack()}
+                    disabled={examLoading}
+                    className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                  >
+                    {examLoading ? "Generating..." : "Generate exam pack"}
+                  </button>
+                </div>
+
+                {examQuestions.length ? (
+                  <div className="mt-6 space-y-4">
+                    {examQuestions.map((question, index) => {
+                      const selected = examAnswers[question.id];
+                      const correct = examSubmitted && selected === question.correct;
+                      return (
+                        <article key={question.id} className="rounded-3xl border border-slate-200 bg-white/70 p-4">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-sm font-bold text-[#0E7490]">
+                              {index + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-base font-semibold leading-7 text-slate-900">{question.question}</p>
+                              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                {question.options.map((option) => {
+                                  const optionKey = option.trim().slice(0, 1).toUpperCase();
+                                  const isSelected = selected === optionKey;
+                                  const isCorrectOption = examSubmitted && question.correct === optionKey;
+                                  return (
+                                    <button
+                                      key={`${question.id}-${optionKey}`}
+                                      type="button"
+                                      onClick={() => {
+                                        if (!examSubmitted) {
+                                          setExamAnswers((current) => ({ ...current, [question.id]: optionKey }));
+                                        }
+                                      }}
+                                      disabled={examSubmitted}
+                                      className={`rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition ${
+                                        isCorrectOption
+                                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                          : isSelected
+                                          ? "border-[#0E7490]/40 bg-[#0E7490]/10 text-[#0E7490]"
+                                          : "border-slate-200 bg-white/75 text-slate-700 hover:border-[#0E7490]/30"
+                                      }`}
+                                    >
+                                      {option}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {examSubmitted ? (
+                                <div className={`mt-4 rounded-2xl border p-4 ${correct ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                                  <p className={`text-sm font-bold ${correct ? "text-emerald-700" : "text-amber-800"}`}>
+                                    {correct ? "Correct understanding" : `Review needed. Correct answer: ${question.correct}`}
+                                  </p>
+                                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                                    {question.explanation || "Revisit the core definition, compare the options, and notice the exact concept tested in this question."}
+                                  </p>
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-8 flex min-h-[380px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/56 text-center">
+                    <p className="text-lg font-semibold text-slate-900">Your exam pack is not generated yet.</p>
+                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                      Create 5 MCQs from the selected topic, then submit once to unlock feedback and likely theory questions.
+                    </p>
+                  </div>
+                )}
+
+                {examQuestions.length ? (
+                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-slate-500">
+                      Answered {answeredExamCount}/{examQuestions.length}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => void submitExam()}
+                      disabled={examSubmitted || answeredExamCount !== examQuestions.length}
+                      className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      {examSaving ? "Saving..." : examSubmitted ? "Submitted" : "Submit and review"}
+                    </button>
+                  </div>
+                ) : null}
+                {examError ? <p className="mt-3 text-sm text-rose-500">{examError}</p> : null}
+              </section>
+
+              <aside className="space-y-5">
+                <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Score</p>
+                  <div className="mt-4 flex items-end gap-2">
+                    <span className="text-5xl font-semibold text-slate-950">{examSubmitted ? examScore : "-"}</span>
+                    <span className="pb-2 text-sm text-slate-500">/ {examQuestions.length || 5}</span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-500">
+                    {examSubmitted
+                      ? examScore >= 4
+                        ? "Strong. Move to probable theory answers next."
+                        : "Good diagnostic. Revise the weak points and try one more set."
+                      : "Submit all 5 answers to get complete feedback."}
+                  </p>
+                </section>
+
+                {examSubmitted ? (
+                  <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">Common mistakes</p>
+                    {wrongExamQuestions.length ? (
+                      <div className="mt-4 space-y-3">
+                        {wrongExamQuestions.map((question) => (
+                          <div key={`mistake-${question.id}`} className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                            <p className="text-sm font-semibold text-slate-900">{question.id}: option {examAnswers[question.id] || "not answered"}</p>
+                            <p className="mt-1 text-xs leading-5 text-slate-600">
+                              Correct is {question.correct}. Check the exact keyword in the question before choosing.
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-4 text-sm leading-6 text-slate-500">No common mistake detected in this attempt.</p>
+                    )}
+                  </section>
+                ) : null}
+
+                <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Probable questions</p>
+                    <CopyButton
+                      value={probableQuestions.map((question) => `${question.id} (${question.marks} marks): ${question.question}`).join("\n")}
+                    />
+                  </div>
+                  {probableQuestions.length ? (
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">3 marks</p>
+                        <div className="mt-2 space-y-2">
+                          {threeMarkQuestions.map((question) => (
+                            <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm leading-6 text-slate-700">
+                              {question.question}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">5 marks</p>
+                        <div className="mt-2 space-y-2">
+                          {fiveMarkQuestions.map((question) => (
+                            <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm leading-6 text-slate-700">
+                              {question.question}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-6 text-slate-500">
+                      Probable 3-mark and 5-mark questions will appear after generating the exam pack.
+                    </p>
+                  )}
+                </section>
+              </aside>
+            </div>
+          </div>
+        ) : null}
+
+        {mode === "history" ? (
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="mx-auto max-w-6xl">
+              <div className="study-content-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Conversation history</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-950">Continue any previous doubt</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      {conversations.length} saved conversations are stored on this device for quick continuation.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={startNewChat}
+                    className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76]"
+                  >
+                    Start fresh chat
+                  </button>
+                </div>
+
+                <div className="mt-6 grid gap-3">
+                  {conversations.length ? (
+                    conversations.map((conversation) => (
+                      <button
+                        key={conversation.id}
+                        type="button"
+                        onClick={() => resumeConversation(conversation)}
+                        className="rounded-3xl border border-slate-200 bg-white/74 p-4 text-left transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="truncate text-base font-semibold text-slate-900">{conversation.title}</p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
+                              {conversation.chapter} / {conversation.topic}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 text-xs text-slate-500">
+                            <span>{conversation.messages.length} messages</span>
+                            <span>
+                              {new Date(conversation.updatedAt).toLocaleString([], {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/56 text-center">
+                      <p className="text-lg font-semibold text-slate-900">No study history yet.</p>
+                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                        Ask your first question in Coach mode. It will be saved here automatically.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );
