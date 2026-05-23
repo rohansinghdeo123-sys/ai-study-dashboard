@@ -574,47 +574,122 @@ function LineChart({
     return <EmptyState title="NO TREND DATA" detail="Timestamped sessions are required to render this chart." />;
   }
 
-  const width = 100;
-  const height = 56;
-  const padding = { top: 8, right: 4, bottom: 10, left: 6 };
+  const width = 128;
+  const height = 74;
+  const padding = { top: 9, right: 7, bottom: 12, left: 18 };
   const values = series.flatMap((s) => s.data).filter((v) => Number.isFinite(v));
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const maxValue = Math.max(...values, 0);
+  const yMax = Math.max(10, Math.ceil(maxValue / 10) * 10);
   const innerWidth = width - padding.left - padding.right;
   const innerHeight = height - padding.top - padding.bottom;
   const x = (index: number) => padding.left + (labels.length === 1 ? 0 : (index / (labels.length - 1)) * innerWidth);
-  const y = (value: number) => padding.top + innerHeight - ((value - min) / (max - min || 1)) * innerHeight;
-  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => min + (max - min) * p);
+  const y = (value: number) => padding.top + innerHeight - (Math.max(0, value) / yMax) * innerHeight;
+  const baseline = padding.top + innerHeight;
+  const ticks = [1, 0.75, 0.5, 0.25, 0].map((p) => Math.round(yMax * p));
 
   return (
-    <div className="h-[400px]">
-      <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.24em] text-gray-500">
-        <div className="flex items-center gap-4">
+    <div className="relative min-h-[430px] overflow-hidden rounded-[1.7rem] border border-cyan-100/8 bg-[#06101B] px-5 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-80px_120px_rgba(2,6,23,0.45)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(255,170,10,0.06),transparent_24%),linear-gradient(to_right,rgba(148,163,184,0.028)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.022)_1px,transparent_1px)] bg-[size:auto,68px_68px,68px_68px]" />
+      <div className="relative mb-8 flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-slate-500">
+        <div className="flex flex-wrap items-center gap-5">
           {series.map((s) => (
-            <span key={s.label} className="flex items-center gap-2"><span className="h-px w-6" style={{ backgroundColor: s.color }} />{s.label}</span>
+            <span key={s.label} className="flex items-center gap-2">
+              <span className="h-px w-7" style={{ backgroundColor: s.color }} />
+              {s.label}
+            </span>
           ))}
         </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[350px] w-full">
-        {ticks.map((tick) => (
-          <g key={tick}>
-            <line x1={padding.left} y1={y(tick)} x2={width - padding.right} y2={y(tick)} stroke="#1D1D1D" strokeDasharray="1.2 1.4" strokeWidth="0.35" />
-            <text x={padding.left + 0.2} y={y(tick) - 1} fill="#6E7B90" fontSize="2.7" fontFamily="inherit">{Math.round(tick)}{valueSuffix}</text>
-          </g>
-        ))}
-        {series.map((s, idx) => {
-          const path = s.data.map((v, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(v)}`).join(" ");
-          const areaPath = `${path} L ${x(s.data.length - 1)} ${height - padding.bottom} L ${x(0)} ${height - padding.bottom} Z`;
+      <svg viewBox={`0 0 ${width} ${height}`} className="relative h-[330px] w-full overflow-visible">
+        <defs>
+          <linearGradient id="analyticsXpArea" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#FFAA0A" stopOpacity="0.42" />
+            <stop offset="100%" stopColor="#FFAA0A" stopOpacity="0" />
+          </linearGradient>
+          <filter id="analyticsLineGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="0.75" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        {ticks.map((tick) => {
+          const yPos = y(tick);
           return (
-            <g key={s.label}>
-              {idx === 0 && <path d={areaPath} fill={s.color} opacity="0.18" />}
-              <path d={path} fill="none" stroke={s.color} strokeWidth="0.9" />
-              {s.data.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="0.65" fill={s.color} />)}
+            <g key={tick}>
+              <line
+                x1={padding.left}
+                y1={yPos}
+                x2={width - padding.right}
+                y2={yPos}
+                stroke={tick === 0 ? "#2DD4BF" : "#4A3A1C"}
+                strokeDasharray={tick === 0 ? "0" : "1.5 2.4"}
+                strokeOpacity={tick === 0 ? 0.34 : 0.62}
+                strokeWidth={tick === 0 ? 0.42 : 0.32}
+              />
+              <text
+                x={padding.left - 6.4}
+                y={yPos - 1}
+                fill="#8190A6"
+                fontSize="2.9"
+                fontFamily="inherit"
+                fontWeight="600"
+                textAnchor="start"
+              >
+                {Math.round(tick)}
+                {valueSuffix}
+              </text>
             </g>
           );
         })}
+
+        {series.map((s, idx) => {
+          const points = s.data.map((v, i) => ({ x: x(i), y: y(v) }));
+          const path = points.map((point, i) => `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
+          const areaPath = `${path} L ${points[points.length - 1]?.x ?? padding.left} ${baseline} L ${points[0]?.x ?? padding.left} ${baseline} Z`;
+          const strokeWidth = idx === 0 ? 1.25 : 1.1;
+          return (
+            <g key={s.label}>
+              {idx === 0 ? <path d={areaPath} fill="url(#analyticsXpArea)" /> : null}
+              <path
+                d={path}
+                fill="none"
+                stroke={s.color}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={strokeWidth}
+                filter="url(#analyticsLineGlow)"
+              />
+              {points.map((point, i) => (
+                <circle
+                  key={i}
+                  cx={point.x}
+                  cy={point.y}
+                  r={idx === 0 ? 0.95 : 0.82}
+                  fill={s.color}
+                  stroke="#06101B"
+                  strokeWidth="0.42"
+                />
+              ))}
+            </g>
+          );
+        })}
+
         {labels.map((label, i) => (
-          <text key={i} x={x(i)} y={height - 1} fill="#68778E" fontSize="2.5" textAnchor="middle" fontFamily="inherit">{label}</text>
+          <text
+            key={i}
+            x={x(i)}
+            y={height - 2}
+            fill="#718096"
+            fontSize="3"
+            fontFamily="inherit"
+            fontWeight="600"
+            textAnchor="middle"
+          >
+            {label}
+          </text>
         ))}
       </svg>
     </div>
