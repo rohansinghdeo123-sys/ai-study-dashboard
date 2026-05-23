@@ -374,9 +374,9 @@ function CoachAnswer({ value }: { value: string }) {
         return (
           <section key={`${heading || "answer"}-${blockIndex}`} className="space-y-3">
             {heading ? (
-              <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#0E7490]">
+              <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.08em] text-[#0E7490]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
-                {renderInlineChemistry(heading)}
+                {heading}
               </h3>
             ) : null}
             <div className="space-y-3 text-[15.5px] leading-8 text-slate-700">
