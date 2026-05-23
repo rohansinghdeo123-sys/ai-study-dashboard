@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
-// ─── Types (unchanged) ─────────────────────────────────────────────────────
+// Types
 type Session = {
   id: string;
   subject: string;
@@ -66,7 +66,7 @@ const emptyProgress: ProgressSummary = {
   learning_efficiency: 0,
 };
 
-// ─── Utility functions (unchanged) ────────────────────────────────────────
+// Utility functions
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -174,7 +174,7 @@ function toneBadge(tone: Tone) {
   return "border-white/10 bg-white/5 text-gray-400";
 }
 
-// ─── Grouping / chart helpers (unchanged, plus new topic trend) ───────────
+// Grouping and chart helpers
 function groupBySubject(sessions: Session[]) {
   const map = new Map<string, { subject: string; sessions: number; duration: number; xp: number; accuracy: number; focus: number }>();
   for (const session of sessions) {
@@ -316,7 +316,7 @@ function buildHeatmap(sessions: Session[], days = 35) {
   });
 }
 
-// ─── Data hook (unchanged) ────────────────────────────────────────────────
+// Data hook
 function getLeaderboardRows(source: unknown) {
   if (Array.isArray(source)) return source;
   if (!isRecord(source)) return [];
@@ -477,27 +477,40 @@ function useDashboardData() {
   };
 }
 
-// ─── Glass UI components (same as other pages) ────────────────────────────
+// Glass UI components
 function GlassCard({ label, value, tone = "neutral", active = false }: { label: string; value: string; tone?: Tone; active?: boolean }) {
   return (
-    <div className={cn("rounded-lg border border-white/10 bg-[#0E1118]/90 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:border-white/20 hover:bg-[#111520]/90", active && "border-cyan-300/25 bg-cyan-300/10")}>
-      <div className="text-[11px] font-medium text-slate-500">{label}</div>
-      <div className={cn("mt-2 text-2xl font-semibold", toneText(tone))}>{value}</div>
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(6,18,31,0.94),rgba(9,15,27,0.88))] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/24 hover:shadow-[0_28px_90px_rgba(14,116,144,0.20)]",
+        active && "border-[#14B8A6]/40 bg-[linear-gradient(135deg,rgba(8,47,73,0.78),rgba(8,29,43,0.92))]",
+      )}
+    >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#14B8A6]/10 blur-2xl transition group-hover:bg-[#14B8A6]/18" />
+      <div className="relative">
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">{label}</div>
+          <span className={cn("h-1.5 w-1.5 rounded-full", tone === "green" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-400" : "bg-[#14B8A6]")} />
+        </div>
+        <div className={cn("mt-3 text-3xl font-semibold tracking-tight", toneText(tone))}>{value}</div>
+      </div>
     </div>
   );
 }
 
 function GlassPanel({ title, tag, right, className, children }: { title: string; tag?: string; right?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
-    <section className={cn("overflow-hidden rounded-lg border border-white/10 bg-[#0E1118]/90 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl", className)}>
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3">
+    <section className={cn("overflow-hidden rounded-3xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(7,16,28,0.94),rgba(10,14,24,0.90))] shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-2xl", className)}>
+      <div className="flex items-center justify-between border-b border-cyan-100/10 bg-white/[0.035] px-5 py-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-slate-200">{title.replace(/_/g, " ")}</span>
-          {tag && <span className="rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 uppercase font-mono">{tag}</span>}
+          <span className="h-2 w-2 rounded-full bg-[#14B8A6] shadow-[0_0_18px_rgba(20,184,166,0.8)]" />
+          <span className="text-sm font-bold uppercase tracking-[0.12em] text-slate-100">{title.replace(/_/g, " ")}</span>
+          {tag && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-amber-300">{tag}</span>}
         </div>
         {right}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }
@@ -512,19 +525,19 @@ function TonePill({ children, tone = "neutral" }: { children: React.ReactNode; t
 
 function Rail({ value, tone = "neutral" }: { value: number; tone?: Tone }) {
   const width = Math.max(0, Math.min(100, value));
-  const bg = tone === "green" ? "bg-emerald-500" : tone === "blue" ? "bg-[#0E7490]" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-500" : "bg-gray-400";
+  const bg = tone === "green" ? "bg-emerald-400" : tone === "blue" ? "bg-[#14B8A6]" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-400" : "bg-gray-400";
   return (
-    <div className="h-1.5 w-full rounded-full bg-white/5">
-      <div className={cn("h-full rounded-full transition-all duration-500", bg)} style={{ width: `${width}%` }} />
+    <div className="h-2 w-full overflow-hidden rounded-full bg-white/7">
+      <div className={cn("h-full rounded-full shadow-[0_0_22px_currentColor] transition-all duration-700", bg)} style={{ width: `${width}%` }} />
     </div>
   );
 }
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="flex min-h-[200px] flex-col items-center justify-center px-6 text-center">
-      <div className="text-[10px] uppercase tracking-[0.34em] text-gray-500 font-mono">{title}</div>
-      <p className="mt-4 max-w-md text-sm text-gray-400">{detail}</p>
+    <div className="flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-cyan-100/12 bg-white/[0.025] px-6 text-center">
+      <div className="text-[10px] font-bold uppercase tracking-[0.34em] text-cyan-200/45">{title}</div>
+      <p className="mt-4 max-w-md text-sm leading-6 text-slate-400">{detail}</p>
     </div>
   );
 }
@@ -538,7 +551,7 @@ function TrendRangeToggle({ range, setRange }: { range: TrendRange; setRange: (v
           onClick={() => setRange(item)}
           className={cn(
             "rounded-md border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] transition-all font-mono",
-            item === range ? "border-amber-400/40 bg-amber-400/10 text-amber-400" : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white"
+            item === range ? "border-amber-400/40 bg-amber-400/10 text-amber-300" : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white"
           )}
         >
           {item}
@@ -608,7 +621,7 @@ function LineChart({
   );
 }
 
-// ─── CSV Export helper ─────────────────────────────────────────────────────
+// CSV export helper
 function downloadCSV(sessions: Session[]) {
   const headers = ["id", "subject", "topic", "duration", "questions", "correct", "accuracy", "xp", "focusScore", "date"];
   const rows = sessions.map((s) => [
@@ -633,7 +646,7 @@ function downloadCSV(sessions: Session[]) {
   URL.revokeObjectURL(url);
 }
 
-// ─── Main Analytics Page Component ─────────────────────────────────────────
+// Main Analytics page component
 export default function ProgressPage() {
   const { userId, currentDisplayName, sessions, progress, leaderboard, loading, error } = useDashboardData();
   const [range, setRange] = useState<TrendRange>("14d");
@@ -650,7 +663,7 @@ export default function ProgressPage() {
 
   const subjects = useMemo(() => groupBySubject(sessions), [sessions]);
   const topics = useMemo(() => groupByTopic(sessions), [sessions]);
-  const bestSubject = subjects[0]?.subject ?? "—";
+  const bestSubject = subjects[0]?.subject ?? "-";
   const worstTopic = topics.length ? topics[topics.length - 1] : null;
 
   const daily = useMemo(() => buildDailySeries(sessions, 14), [sessions]);
@@ -661,6 +674,11 @@ export default function ProgressPage() {
   const trendXp = range === "14d" ? daily.map((d) => d.xp) : weekly.map((w) => w.xp);
   const trendFocus = range === "14d" ? daily.map((d) => d.focus) : weekly.map((w) => w.focus);
   const trendAccuracy = range === "14d" ? daily.map((d) => d.accuracy) : weekly.map((w) => w.accuracy);
+  const avgFocus = progress.focus_score || average(sessions, (session) => session.focusScore);
+  const readinessScore = Math.round(
+    Math.min(100, (avgAccuracy * 0.45) + (avgFocus * 0.25) + (Math.min(progress.streak * 12, 100) * 0.15) + (Math.min(progress.total_tests * 10, 100) * 0.15)),
+  );
+  const readinessTone = getScoreTone(readinessScore);
 
   const weeklyLabels = weekly.map((w) => w.label);
   const weeklyDurations = weekly.map((w) => w.duration);
@@ -685,9 +703,9 @@ export default function ProgressPage() {
       }
     }
     if (worstTopic && worstTopic.accuracy < 60) {
-      list.push({ type: "negative", message: `Accuracy on ${worstTopic.topic} is ${worstTopic.accuracy}% – focused revision recommended.` });
+      list.push({ type: "negative", message: `Accuracy on ${worstTopic.topic} is ${worstTopic.accuracy}% - focused revision recommended.` });
     } else if (worstTopic) {
-      list.push({ type: "positive", message: `Your weakest topic (${worstTopic.topic}) is at ${worstTopic.accuracy}% – keep improving.` });
+      list.push({ type: "positive", message: `Your weakest topic (${worstTopic.topic}) is at ${worstTopic.accuracy}% - keep improving.` });
     }
     if (progress.streak >= 5) {
       list.push({ type: "positive", message: `You have a ${progress.streak}-day streak! Keep the momentum.` });
@@ -698,7 +716,7 @@ export default function ProgressPage() {
       list.push({ type: progress.consistency_index >= 60 ? "positive" : "neutral", message: `Study consistency: ${progress.consistency_index}% (${consistencyLabel}).` });
     }
     if (progress.learning_efficiency > 0) {
-      list.push({ type: progress.learning_efficiency >= 70 ? "positive" : "neutral", message: `Learning efficiency: ${progress.learning_efficiency}% – ${progress.learning_efficiency >= 70 ? "excellent" : "room to grow"}.` });
+      list.push({ type: progress.learning_efficiency >= 70 ? "positive" : "neutral", message: `Learning efficiency: ${progress.learning_efficiency}% - ${progress.learning_efficiency >= 70 ? "excellent" : "room to grow"}.` });
     }
     if (!list.length) {
       list.push({ type: "neutral", message: "Complete more sessions to unlock predictive insights." });
@@ -749,6 +767,14 @@ export default function ProgressPage() {
         trend: getTopicTrend(sessions, t.topic, t.subject),
       }));
   }, [topics, sessions]);
+  const priorityCommand = weakTopics[0]
+    ? `Revise ${weakTopics[0].topic} next`
+    : sessions.length
+    ? "Take one timed exam set"
+    : "Start first tracked session";
+  const latestSession = useMemo(() => {
+    return [...sessions].sort((a, b) => (getSessionDate(b)?.getTime() ?? 0) - (getSessionDate(a)?.getTime() ?? 0))[0] ?? null;
+  }, [sessions]);
 
   const handleReviseTopic = useCallback((topic: string) => {
     router.push(`/dashboard/study?chapter=hydrocarbon&topic=${topic}`);
@@ -756,36 +782,96 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh] font-mono text-[#0E7490] animate-pulse">
-        LOADING ANALYTICS TERMINAL...
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="rounded-3xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(7,16,28,0.96),rgba(10,14,24,0.92))] px-6 py-5 text-sm font-bold uppercase tracking-[0.22em] text-[#14B8A6] shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
+          Loading analytics terminal...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 text-slate-200">
-      <div className="rounded-lg border border-white/10 bg-[#0E1118]/90 px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Analytics Intelligence</div>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Mastery, momentum, and weak topics</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              A student-friendly performance view with actionable AI signals.
-            </p>
-            {error && (
-              <p className="mt-2 text-xs font-medium text-amber-300">
-                {error}
+    <div className="relative -mx-1 overflow-hidden rounded-[2.2rem] border border-cyan-100/10 bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.16),transparent_30%),radial-gradient(circle_at_88%_4%,rgba(242,184,75,0.14),transparent_28%),linear-gradient(135deg,#05111D_0%,#070B13_50%,#0D1420_100%)] p-4 text-slate-200 shadow-[0_34px_110px_rgba(0,0,0,0.34)] sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.045)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60" />
+      <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
+
+      <div className="relative space-y-6">
+        <section className="overflow-hidden rounded-[2rem] border border-cyan-100/12 bg-[linear-gradient(135deg,rgba(8,20,34,0.92),rgba(7,12,22,0.82))] shadow-[0_28px_90px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+          <div className="grid gap-0 xl:grid-cols-[minmax(0,1.25fr)_420px]">
+            <div className="p-6 sm:p-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <TonePill tone="blue">Analytics Terminal</TonePill>
+                <TonePill tone={error ? "amber" : "green"}>{error ? "Degraded" : "Live sync"}</TonePill>
+                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Learner: {currentDisplayName}
+                </span>
+              </div>
+              <h1 className="mt-6 max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Learning intelligence command center
+              </h1>
+              <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
+                Track mastery, rank, weak topics, consistency, and next best study action from one terminal-grade view.
               </p>
-            )}
+              {error ? <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">{error}</p> : null}
+
+              <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Priority command</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{priorityCommand}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Tracked sessions</p>
+                  <p className="mt-2 text-2xl font-semibold text-[#14B8A6]">{sessions.length}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Latest topic</p>
+                  <p className="mt-2 truncate text-sm font-semibold text-white">{latestSession?.topic || "No session yet"}</p>
+                </div>
+                <button
+                  onClick={handleExportCSV}
+                  className="rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16"
+                >
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-[#67E8F9]">Export</span>
+                  <span className="mt-2 block text-sm font-semibold text-white">Download CSV</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t border-cyan-100/10 bg-white/[0.025] p-6 xl:border-l xl:border-t-0">
+              <div className="rounded-[2rem] border border-cyan-100/12 bg-black/20 p-5">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Readiness score</p>
+                  <TonePill tone={readinessTone}>{readinessScore >= 70 ? "Stable" : "Needs work"}</TonePill>
+                </div>
+                <div className="mt-6 flex items-end gap-3">
+                  <span className={cn("text-7xl font-semibold tracking-tight", toneText(readinessTone))}>{readinessScore}</span>
+                  <span className="pb-3 text-sm font-semibold text-slate-500">/ 100</span>
+                </div>
+                <div className="mt-5">
+                  <Rail value={readinessScore} tone={readinessTone} />
+                </div>
+                <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                    <span className="block text-slate-500">Accuracy</span>
+                    <span className="mt-1 block text-lg font-semibold text-white">{avgAccuracy}%</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                    <span className="block text-slate-500">Focus</span>
+                    <span className="mt-1 block text-lg font-semibold text-white">{avgFocus}</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                    <span className="block text-slate-500">Rank</span>
+                    <span className="mt-1 block text-lg font-semibold text-white">#{currentRank.rank}</span>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                    <span className="block text-slate-500">Next XP</span>
+                    <span className="mt-1 block text-lg font-semibold text-white">{xpToNext}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={handleExportCSV}
-            className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-cyan-300/30 hover:bg-cyan-300/10 hover:text-cyan-100"
-          >
-            Export CSV
-          </button>
-        </div>
-      </div>
+        </section>
 
       {/* Top stat cards */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -803,7 +889,7 @@ export default function ProgressPage() {
           title="PERFORMANCE HISTORY"
           right={
             <div className="flex items-center gap-4">
-              <span className="text-[10px] uppercase tracking-[0.24em] text-emerald-400 font-mono">● LIVE</span>
+              <span className="text-[10px] uppercase tracking-[0.24em] text-emerald-400 font-mono">LIVE</span>
               <TrendRangeToggle range={range} setRange={setRange} />
             </div>
           }
@@ -961,7 +1047,7 @@ export default function ProgressPage() {
                     <span className="text-xs text-gray-400">{topic.sessions} sessions</span>
                     {topic.trend !== 0 && (
                       <span className={cn("text-xs", topic.trend > 0 ? "text-emerald-400" : "text-red-400")}>
-                        {topic.trend > 0 ? "↑ improving" : "↓ declining"}
+                        {topic.trend > 0 ? "up improving" : "down declining"}
                       </span>
                     )}
                   </div>
@@ -1007,7 +1093,7 @@ export default function ProgressPage() {
                 <div key={subj.subject} className="flex items-center justify-between border-b border-white/5 pb-3 last:border-0">
                   <div>
                     <div className="text-sm font-bold text-white uppercase">{subj.subject}</div>
-                    <div className="text-[10px] text-gray-400">{subj.sessions} sessions · {formatMinutes(subj.duration)}</div>
+                    <div className="text-[10px] text-gray-400">{subj.sessions} sessions / {formatMinutes(subj.duration)}</div>
                   </div>
                   <div className="text-right">
                     <div className={cn("text-lg font-bold", toneText(getScoreTone(subj.accuracy)))}>{subj.accuracy}%</div>
@@ -1070,7 +1156,7 @@ export default function ProgressPage() {
                       <div className="text-right text-gray-300">{topic.sessions}</div>
                       <div className="text-right text-gray-300">{formatMinutes(topic.duration)}</div>
                       <div className="text-right text-gray-400">
-                        {trend === 1 ? "↑" : trend === -1 ? "↓" : "→"}
+                        {trend === 1 ? "up" : trend === -1 ? "down" : "flat"}
                       </div>
                     </div>
                   );
@@ -1082,6 +1168,7 @@ export default function ProgressPage() {
           )}
         </GlassPanel>
       </div>
+    </div>
     </div>
   );
 }
