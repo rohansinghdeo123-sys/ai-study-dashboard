@@ -365,26 +365,27 @@ function CoachAnswer({ value }: { value: string }) {
   if (!blocks.length) return null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {blocks.map((block, blockIndex) => {
         const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
         const heading = lines[0]?.endsWith(":") && lines[0].length <= 72 ? lines[0].replace(/:$/, "") : null;
         const body = heading ? lines.slice(1) : lines;
 
         return (
-          <section key={`${heading || "answer"}-${blockIndex}`} className="space-y-2">
+          <section key={`${heading || "answer"}-${blockIndex}`} className="space-y-3">
             {heading ? (
-              <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[#0E7490]">
+              <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#0E7490]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
                 {renderInlineChemistry(heading)}
               </h3>
             ) : null}
-            <div className="space-y-2 text-[15px] leading-7 text-slate-700">
+            <div className="space-y-3 text-[15.5px] leading-8 text-slate-700">
               {body.map((line, lineIndex) => {
                 const bullet = line.match(/^[-*]\s+(.*)$/);
                 if (bullet) {
                   return (
-                    <div key={lineIndex} className="flex gap-2">
-                      <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-[#14B8A6]" />
+                    <div key={lineIndex} className="flex gap-3">
+                      <span className="mt-3.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#14B8A6] shadow-[0_0_0_4px_rgba(20,184,166,0.10)]" />
                       <p className="min-w-0">{renderInlineChemistry(bullet[1])}</p>
                     </div>
                   );
@@ -401,31 +402,183 @@ function CoachAnswer({ value }: { value: string }) {
 
 function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
   return (
-    <div className="w-full max-w-2xl rounded-3xl border border-white/60 bg-white/78 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-      <div className="grid gap-2 sm:grid-cols-3">
+    <div className="w-full rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,254,255,0.76))] p-4 shadow-[0_22px_70px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0E7490]">Agent workflow</p>
+          <p className="mt-1 text-sm text-slate-500">Drafting, reviewing, and preparing your final tutor response.</p>
+        </div>
+        <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">
+          Live
+        </span>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
         {stages.map((stage) => {
           const active = stage.status === "active";
           const done = stage.status === "done";
           return (
             <div
               key={stage.id}
-              className={`rounded-2xl border p-3 transition ${
+              className={`relative overflow-hidden rounded-3xl border p-4 transition ${
                 active
-                  ? "border-[#0E7490]/25 bg-[#0E7490]/10"
+                  ? "scale-[1.015] border-[#0E7490]/30 bg-[#0E7490]/10 shadow-[0_18px_45px_rgba(14,116,144,0.14)]"
                   : done
-                  ? "border-emerald-400/25 bg-emerald-400/10"
-                  : "border-slate-200/80 bg-white/55"
+                  ? "border-emerald-400/30 bg-emerald-400/10"
+                  : "border-slate-200/90 bg-white/70"
               }`}
             >
+              {active ? <span className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#14B8A6] to-transparent" /> : null}
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">{stage.title}</p>
-                <span className={`h-2 w-2 rounded-full ${done ? "bg-emerald-400" : active ? "animate-pulse bg-[#0E7490]" : "bg-slate-300"}`} />
+                <p className="text-sm font-black text-slate-950">{stage.title}</p>
+                <span className={`h-2.5 w-2.5 rounded-full ${done ? "bg-emerald-400" : active ? "animate-pulse bg-[#0E7490]" : "bg-slate-300"}`} />
               </div>
-              <p className="mt-1 text-[11px] text-slate-500">{stage.agent}</p>
+              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">{stage.agent}</p>
+              <p className="mt-3 text-xs leading-5 text-slate-500">{stage.detail}</p>
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function StarterPromptCard({
+  label,
+  title,
+  detail,
+  onClick,
+}: {
+  label: string;
+  title: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group rounded-[1.7rem] border border-slate-200/80 bg-white/76 p-4 text-left shadow-[0_18px_45px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#0E7490]/28 hover:bg-white hover:shadow-[0_24px_70px_rgba(14,116,144,0.13)]"
+    >
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E7490]">{label}</span>
+      <span className="mt-3 block text-base font-black tracking-tight text-slate-950">{title}</span>
+      <span className="mt-2 block text-xs leading-5 text-slate-500">{detail}</span>
+    </button>
+  );
+}
+
+function StudentPromptCard({ content, timestamp }: { content: string; timestamp: string }) {
+  return (
+    <div className="flex justify-end">
+      <article className="max-w-[780px] rounded-[1.7rem] rounded-tr-md bg-[linear-gradient(135deg,#0E7490,#0F8F9F)] px-5 py-4 text-white shadow-[0_24px_65px_rgba(14,116,144,0.22)]">
+        <div className="mb-2 flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/70">
+          <span>You</span>
+          {timestamp ? <span>{timestamp}</span> : null}
+        </div>
+        <p className="whitespace-pre-wrap text-[15px] leading-7">{content}</p>
+      </article>
+    </div>
+  );
+}
+
+function TutorActionDock({
+  answer,
+  topicLabel,
+  onPrompt,
+}: {
+  answer: string;
+  topicLabel: string;
+  onPrompt: (prompt: string) => void;
+}) {
+  const actions = [
+    {
+      label: "Simplify",
+      prompt: `Explain ${topicLabel} more simply, like I am learning it for the first time.`,
+    },
+    {
+      label: "Example",
+      prompt: `Give me one real-life example for ${topicLabel} and connect it step by step.`,
+    },
+    {
+      label: "Practice",
+      prompt: `Ask me one practice question on ${topicLabel}, wait for my answer, then evaluate it.`,
+    },
+    {
+      label: "Exam answer",
+      prompt: `Write an exam-ready answer for ${topicLabel} with marks-style structure.`,
+    },
+    {
+      label: "Mistake check",
+      prompt: `What mistake might I make in ${topicLabel}, and how do I avoid it?`,
+    },
+  ];
+
+  return (
+    <div className="mt-6 border-t border-slate-200/80 pt-4">
+      <div className="flex flex-wrap items-center gap-2">
+        {actions.map((action) => (
+          <button
+            key={action.label}
+            type="button"
+            onClick={() => onPrompt(action.prompt)}
+            className="rounded-full border border-slate-200 bg-white/78 px-3.5 py-2 text-xs font-bold text-slate-600 transition hover:-translate-y-0.5 hover:border-[#0E7490]/30 hover:text-[#0E7490] hover:shadow-[0_12px_32px_rgba(14,116,144,0.10)]"
+          >
+            {action.label}
+          </button>
+        ))}
+        <CopyButton value={answer} />
+      </div>
+    </div>
+  );
+}
+
+function TutorResponseCard({
+  coachName,
+  content,
+  timestamp,
+  topicLabel,
+  stages,
+  onPrompt,
+}: {
+  coachName: string;
+  content: string;
+  timestamp: string;
+  topicLabel: string;
+  stages: AgentStageState[];
+  onPrompt: (prompt: string) => void;
+}) {
+  const pending = !content.trim();
+
+  return (
+    <div className="flex justify-start">
+      <article className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/92 shadow-[0_26px_85px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+        <header className="flex flex-col gap-4 border-b border-slate-200/75 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(236,254,255,0.72))] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)]">
+              {coachName[0]}
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-black tracking-tight text-slate-950">{coachName}</p>
+                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
+                  Tutor
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">
+                {pending ? "Preparing a reviewed response" : "Reviewed subject answer"} {timestamp ? `at ${timestamp}` : ""}
+              </p>
+            </div>
+          </div>
+          <div className="flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-2 text-[11px] font-bold text-slate-500">
+            <span className="h-2 w-2 rounded-full bg-[#14B8A6]" />
+            {topicLabel}
+          </div>
+        </header>
+
+        <div className="px-5 py-5 sm:px-7 sm:py-7">
+          {pending ? <AgentPipeline stages={stages} /> : <CoachAnswer value={content} />}
+          {!pending ? <TutorActionDock answer={content} topicLabel={topicLabel} onPrompt={onPrompt} /> : null}
+        </div>
+      </article>
     </div>
   );
 }
@@ -522,27 +675,35 @@ export default function StudyPage() {
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
-  const hasCoachResponse = messages.some((message) => message.role === "coach" && message.content.trim().length > 0);
+  const hasPendingCoachMessage = messages.some((message) => message.role === "coach" && !message.content.trim());
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
 
-  const quickActions = useMemo(
+  const starterPrompts = useMemo(
     () => [
       {
-        label: "Need simpler explanation?",
-        prompt: `Explain ${selectedTopic.label} in a simpler way with a very easy real-life example.`,
+        label: "Explain",
+        title: `Teach me ${selectedTopic.label}`,
+        detail: "Start with a simple concept explanation and example.",
+        prompt: `Teach me ${selectedTopic.label} from the basics with one simple example.`,
       },
       {
-        label: "Show live example",
-        prompt: `Show a live example of ${selectedTopic.label} and connect every step to the concept.`,
+        label: "Exam",
+        title: "Write answer format",
+        detail: "Get a clean, marks-ready answer for school exams.",
+        prompt: `Write an exam-ready answer on ${selectedTopic.label} with definition, points, example, and common mistake.`,
       },
       {
-        label: "Practice this concept",
-        prompt: `Give me one practice question on ${selectedTopic.label}, wait for my answer, then check it.`,
+        label: "Practice",
+        title: "Ask one question",
+        detail: "Let the tutor test you and review your answer.",
+        prompt: `Ask me one intelligent practice question on ${selectedTopic.label}, wait for my answer, then evaluate it.`,
       },
       {
-        label: "Common mistake",
-        prompt: `What common mistake do students make in ${selectedTopic.label}, and how can I avoid it?`,
+        label: "Plan",
+        title: "Create mini plan",
+        detail: "Turn this topic into a short study path.",
+        prompt: `Create a simple 20-minute study plan for ${selectedTopic.label}.`,
       },
     ],
     [selectedTopic.label],
@@ -1030,67 +1191,76 @@ export default function StudyPage() {
             <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               {messages.length === 0 ? (
                 <div className="study-empty-state mx-auto flex min-h-[52svh] max-w-4xl flex-col items-center justify-center text-center">
-                  <div className="study-coach-avatar flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-xl font-bold text-white shadow-[0_20px_55px_rgba(14,116,144,0.24)]">
+                  <div className="study-coach-avatar flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-xl font-black text-white shadow-[0_20px_55px_rgba(14,116,144,0.24)]">
                     {coachName[0]}
                   </div>
-                  <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-                    What do you want to understand today, {displayName.split(" ")[0]}?
-                  </h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-                    Start with a doubt, a short phrase, or even an incomplete follow-up. I will keep the lesson context and show extra help only after your first response.
+                  <p className="mt-5 text-xs font-black uppercase tracking-[0.24em] text-[#0E7490]">
+                    Private AI tutor
                   </p>
-                  <div className="mt-8 grid w-full max-w-2xl gap-3 sm:grid-cols-3">
+                  <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                    Ask one doubt. Learn it clearly.
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
+                    Hi {displayName.split(" ")[0]}, start naturally with a question, phrase, or follow-up. {coachName} will answer like a subject expert and keep the conversation connected.
+                  </p>
+                  <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
+                    {starterPrompts.map((starter) => (
+                      <StarterPromptCard
+                        key={starter.label}
+                        label={starter.label}
+                        title={starter.title}
+                        detail={starter.detail}
+                        onClick={() => setInput(starter.prompt)}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <button
                       type="button"
                       onClick={() => setMode("revision")}
-                      className="rounded-3xl border border-slate-200 bg-white/72 px-4 py-4 text-left text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+                      className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
                     >
-                      Build revision
-                      <span className="mt-1 block text-xs font-normal text-slate-500">Summary, explain, key points</span>
+                      Revision tools
                     </button>
                     <button
                       type="button"
                       onClick={() => setMode("exam")}
-                      className="rounded-3xl border border-slate-200 bg-white/72 px-4 py-4 text-left text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+                      className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
                     >
-                      Practice exam
-                      <span className="mt-1 block text-xs font-normal text-slate-500">5 MCQs plus likely theory</span>
+                      Exam practice
                     </button>
                     <button
                       type="button"
                       onClick={() => setMode("history")}
-                      className="rounded-3xl border border-slate-200 bg-white/72 px-4 py-4 text-left text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+                      className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
                     >
-                      Continue history
-                      <span className="mt-1 block text-xs font-normal text-slate-500">{conversations.length} saved chats</span>
+                      History ({conversations.length})
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="mx-auto w-full max-w-5xl space-y-6">
                   {messages.map((message, index) => (
-                    <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                      <div
-                        className={`study-message-bubble max-w-[88%] rounded-[1.5rem] px-5 py-4 ${
-                          message.role === "user"
-                            ? "is-user bg-[#0E7490] text-white shadow-[0_16px_40px_rgba(14,116,144,0.20)]"
-                            : "is-coach border border-slate-200 bg-white/92 text-slate-800 shadow-[0_16px_45px_rgba(15,23,42,0.08)]"
-                        }`}
-                      >
-                        <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] opacity-70">
-                          <span>{message.role === "user" ? "You" : coachName}</span>
-                          {message.timestamp ? <span>{message.timestamp}</span> : null}
-                        </div>
-                        {message.role === "coach" ? (
-                          message.content ? <CoachAnswer value={message.content} /> : <p className="text-sm text-slate-500">Preparing...</p>
-                        ) : (
-                          <p className="whitespace-pre-wrap text-[15px] leading-7">{message.content}</p>
-                        )}
-                      </div>
-                    </div>
+                    message.role === "user" ? (
+                      <StudentPromptCard
+                        key={`${message.role}-${index}`}
+                        content={message.content}
+                        timestamp={message.timestamp}
+                      />
+                    ) : (
+                      <TutorResponseCard
+                        key={`${message.role}-${index}`}
+                        coachName={coachName}
+                        content={message.content}
+                        timestamp={message.timestamp}
+                        topicLabel={selectedTopic.label}
+                        stages={stages}
+                        onPrompt={setInput}
+                      />
+                    )
                   ))}
 
-                  {showPipeline ? (
+                  {showPipeline && !hasPendingCoachMessage ? (
                     <div className="flex justify-start">
                       <AgentPipeline stages={stages} />
                     </div>
@@ -1103,22 +1273,27 @@ export default function StudyPage() {
 
             <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
               <div className="mx-auto w-full max-w-5xl">
-                {hasCoachResponse ? (
-                  <div className="mb-3 flex gap-2 overflow-x-auto pb-1">
-                    {quickActions.map((action) => (
-                      <button
-                        key={action.label}
-                        type="button"
-                        onClick={() => setInput(action.prompt)}
-                        className="study-action-chip shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-[#0E7490]/35 hover:text-[#0E7490]"
-                      >
-                        {action.label}
-                      </button>
-                    ))}
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                      Chapter: <span className="text-slate-800">{selectedChapter.label}</span>
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                      Topic: <span className="text-slate-800">{selectedTopic.label}</span>
+                    </span>
                   </div>
-                ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-600">
+                      {speechSupported ? "Voice ready" : "Text ready"}
+                    </span>
+                    <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                      {conversations.length} saved
+                    </span>
+                  </div>
+                </div>
 
-                <div className="flex items-end gap-2 rounded-[1.5rem] border border-slate-200 bg-white p-2 shadow-[0_18px_55px_rgba(15,23,42,0.08)] sm:gap-3">
+                <div className="rounded-[1.8rem] border border-slate-200 bg-white p-2 shadow-[0_22px_70px_rgba(15,23,42,0.10)]">
+                  <div className="flex items-end gap-2 sm:gap-3">
                   <textarea
                     ref={inputRef}
                     value={input}
@@ -1148,6 +1323,7 @@ export default function StudyPage() {
                   >
                     {loadingAnswer ? "Thinking" : "Send"}
                   </button>
+                  </div>
                 </div>
                 {!speechSupported ? (
                   <p className="mt-2 text-xs text-slate-500">
