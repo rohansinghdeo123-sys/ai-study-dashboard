@@ -574,40 +574,52 @@ function LineChart({
     return <EmptyState title="NO TREND DATA" detail="Timestamped sessions are required to render this chart." />;
   }
 
-  const width = 128;
-  const height = 74;
-  const padding = { top: 9, right: 7, bottom: 12, left: 18 };
-  const values = series.flatMap((s) => s.data).filter((v) => Number.isFinite(v));
+  const velocitySeries = series[0];
+  const width = 120;
+  const height = 66;
+  const padding = { top: 7, right: 5, bottom: 10, left: 16 };
+  const values = velocitySeries.data.filter((v) => Number.isFinite(v));
   const maxValue = Math.max(...values, 0);
-  const yMax = Math.max(10, Math.ceil(maxValue / 10) * 10);
+  const yMax = Math.max(100, Math.ceil(maxValue / 25) * 25);
   const innerWidth = width - padding.left - padding.right;
   const innerHeight = height - padding.top - padding.bottom;
   const x = (index: number) => padding.left + (labels.length === 1 ? 0 : (index / (labels.length - 1)) * innerWidth);
   const y = (value: number) => padding.top + innerHeight - (Math.max(0, value) / yMax) * innerHeight;
   const baseline = padding.top + innerHeight;
   const ticks = [1, 0.75, 0.5, 0.25, 0].map((p) => Math.round(yMax * p));
+  const points = velocitySeries.data.map((v, i) => ({ x: x(i), y: y(v) }));
+  const path = points.reduce((currentPath, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`;
+    const previous = points[index - 1];
+    const controlX = (previous.x + point.x) / 2;
+    return `${currentPath} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
+  }, "");
+  const areaPath = `${path} L ${points[points.length - 1]?.x ?? padding.left} ${baseline} L ${points[0]?.x ?? padding.left} ${baseline} Z`;
 
   return (
-    <div className="relative min-h-[430px] overflow-hidden rounded-[1.7rem] border border-cyan-100/8 bg-[#06101B] px-5 py-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-80px_120px_rgba(2,6,23,0.45)]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_48%,rgba(255,170,10,0.06),transparent_24%),linear-gradient(to_right,rgba(148,163,184,0.028)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.022)_1px,transparent_1px)] bg-[size:auto,68px_68px,68px_68px]" />
-      <div className="relative mb-8 flex items-center justify-between text-[10px] uppercase tracking-[0.28em] text-slate-500">
-        <div className="flex flex-wrap items-center gap-5">
-          {series.map((s) => (
-            <span key={s.label} className="flex items-center gap-2">
-              <span className="h-px w-7" style={{ backgroundColor: s.color }} />
-              {s.label}
-            </span>
-          ))}
+    <div className="relative min-h-[430px] overflow-hidden rounded-[1.6rem] border border-[#1A2C3C] bg-[#050A0D] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_22px_80px_rgba(0,0,0,0.30)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(20,184,166,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(20,184,166,0.038)_1px,transparent_1px)] bg-[size:64px_64px] opacity-65" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_36%,rgba(255,170,10,0.075),transparent_26%),linear-gradient(180deg,rgba(5,10,13,0)_0%,rgba(5,10,13,0.88)_100%)]" />
+
+      <div className="relative mb-7 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.28em] text-slate-400">
+          <span className="h-px w-8 bg-[#FFAA0A]" />
+          <span>XP Velocity</span>
+        </div>
+        <div className="rounded-md border border-emerald-400/20 bg-emerald-400/7 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-300">
+          Live feed
         </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="relative h-[330px] w-full overflow-visible">
+
+      <svg viewBox={`0 0 ${width} ${height}`} className="relative h-[335px] w-full overflow-visible">
         <defs>
           <linearGradient id="analyticsXpArea" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#FFAA0A" stopOpacity="0.42" />
+            <stop offset="0%" stopColor="#FFAA0A" stopOpacity="0.46" />
+            <stop offset="48%" stopColor="#FFAA0A" stopOpacity="0.18" />
             <stop offset="100%" stopColor="#FFAA0A" stopOpacity="0" />
           </linearGradient>
-          <filter id="analyticsLineGlow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="0.75" result="coloredBlur" />
+          <filter id="analyticsLineGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="1.45" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -624,9 +636,9 @@ function LineChart({
                 y1={yPos}
                 x2={width - padding.right}
                 y2={yPos}
-                stroke={tick === 0 ? "#2DD4BF" : "#4A3A1C"}
+                stroke={tick === 0 ? "#1A2C3C" : "#5A3F13"}
                 strokeDasharray={tick === 0 ? "0" : "1.5 2.4"}
-                strokeOpacity={tick === 0 ? 0.34 : 0.62}
+                strokeOpacity={tick === 0 ? 0.72 : 0.58}
                 strokeWidth={tick === 0 ? 0.42 : 0.32}
               />
               <text
@@ -645,37 +657,26 @@ function LineChart({
           );
         })}
 
-        {series.map((s, idx) => {
-          const points = s.data.map((v, i) => ({ x: x(i), y: y(v) }));
-          const path = points.map((point, i) => `${i === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
-          const areaPath = `${path} L ${points[points.length - 1]?.x ?? padding.left} ${baseline} L ${points[0]?.x ?? padding.left} ${baseline} Z`;
-          const strokeWidth = idx === 0 ? 1.25 : 1.1;
-          return (
-            <g key={s.label}>
-              {idx === 0 ? <path d={areaPath} fill="url(#analyticsXpArea)" /> : null}
-              <path
-                d={path}
-                fill="none"
-                stroke={s.color}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={strokeWidth}
-                filter="url(#analyticsLineGlow)"
-              />
-              {points.map((point, i) => (
-                <circle
-                  key={i}
-                  cx={point.x}
-                  cy={point.y}
-                  r={idx === 0 ? 0.95 : 0.82}
-                  fill={s.color}
-                  stroke="#06101B"
-                  strokeWidth="0.42"
-                />
-              ))}
-            </g>
-          );
-        })}
+        <path d={areaPath} fill="url(#analyticsXpArea)" />
+        <path
+          d={path}
+          fill="none"
+          stroke="#FFAA0A"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="0.92"
+          opacity="0.24"
+          transform="translate(0, 0.7)"
+        />
+        <path
+          d={path}
+          fill="none"
+          stroke="#FFAA0A"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="0.95"
+          filter="url(#analyticsLineGlow)"
+        />
 
         {labels.map((label, i) => (
           <text
@@ -747,8 +748,6 @@ export default function ProgressPage() {
 
   const trendLabels = range === "14d" ? daily.map((d) => d.label) : weekly.map((w) => w.label);
   const trendXp = range === "14d" ? daily.map((d) => d.xp) : weekly.map((w) => w.xp);
-  const trendFocus = range === "14d" ? daily.map((d) => d.focus) : weekly.map((w) => w.focus);
-  const trendAccuracy = range === "14d" ? daily.map((d) => d.accuracy) : weekly.map((w) => w.accuracy);
   const avgFocus = progress.focus_score || average(sessions, (session) => session.focusScore);
   const readinessScore = Math.round(
     Math.min(100, (avgAccuracy * 0.45) + (avgFocus * 0.25) + (Math.min(progress.streak * 12, 100) * 0.15) + (Math.min(progress.total_tests * 10, 100) * 0.15)),
@@ -961,7 +960,7 @@ export default function ProgressPage() {
       {/* Row 1: Chart + side widgets (predictive, cohort, export + consistency/efficiency)*/}
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_540px]">
         <GlassPanel
-          title="PERFORMANCE HISTORY"
+          title="PERFORMANCE_HISTORY // XP_VELOCITY"
           right={
             <div className="flex items-center gap-4">
               <span className="text-[10px] uppercase tracking-[0.24em] text-emerald-400 font-mono">LIVE</span>
@@ -972,9 +971,7 @@ export default function ProgressPage() {
           <LineChart
             labels={trendLabels}
             series={[
-              { label: "xp", color: "#FFAA0A", data: trendXp },
-              { label: "focus", color: "#73A8FF", data: trendFocus },
-              { label: "accuracy", color: "#7CFF8A", data: trendAccuracy },
+              { label: "xp_velocity", color: "#FFAA0A", data: trendXp },
             ]}
             valueSuffix=""
           />
