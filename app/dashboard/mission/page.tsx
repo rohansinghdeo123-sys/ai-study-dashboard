@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { AlertState, AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -198,9 +199,7 @@ export default function MissionPage() {
 
   if (authBusy) {
     return (
-      <div className="flex min-h-[70svh] items-center justify-center text-sm text-[#0E7490]">
-        Preparing Mission...
-      </div>
+      <LoadingState title="Preparing Mission..." detail="Checking your profile and getting the mission builder ready." />
     );
   }
 
@@ -247,12 +246,13 @@ export default function MissionPage() {
         <button
           onClick={startMission}
           disabled={loadingMission || !userId}
-          className="mt-5 w-full rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] px-5 py-4 text-sm font-semibold text-white shadow-[0_20px_55px_rgba(14,116,144,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] px-5 py-4 text-sm font-semibold text-white shadow-[0_20px_55px_rgba(14,116,144,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loadingMission ? "Building mission..." : mission ? "Refresh mission" : "Start mission"}
+          <AppIcon name={loadingMission ? "clock" : "mission"} />
+          <span>{loadingMission ? "Building mission..." : mission ? "Refresh mission" : "Start mission"}</span>
         </button>
 
-        {error ? <p className="mt-3 text-sm text-rose-500">{error}</p> : null}
+        {error ? <div className="mt-3"><AlertState message={error} /></div> : null}
 
         <div className="mt-6 rounded-3xl border border-slate-200 bg-white/60 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Guidance</p>
@@ -266,17 +266,11 @@ export default function MissionPage() {
 
       <section className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         {!mission ? (
-          <div className="flex min-h-[calc(100svh-255px)] flex-col items-center justify-center text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[1.6rem] bg-[#0E7490]/10 text-2xl font-bold text-[#0E7490]">
-              M
-            </div>
-            <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">
-              Start with a tiny win
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-              Students improve faster when the next action is obvious. This mission gives only one diagnostic question, then adapts.
-            </p>
-          </div>
+          <EmptyState
+            icon="mission"
+            title="Start with a tiny win"
+            detail="Students improve faster when the next action is obvious. This mission gives only one diagnostic question, then adapts."
+          />
         ) : (
           <div className="space-y-5">
             <div className="rounded-3xl border border-slate-200 bg-white/65 p-5">
@@ -337,9 +331,10 @@ export default function MissionPage() {
                 <button
                   onClick={submitAnswer}
                   disabled={!selectedAnswer || submitted}
-                  className="mt-5 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {submitted ? saving ? "Saving..." : "Submitted" : "Check answer"}
+                  <AppIcon name={submitted ? "check" : "send"} />
+                  <span>{submitted ? saving ? "Saving..." : "Submitted" : "Check answer"}</span>
                 </button>
                 {submitted && question.explanation ? (
                   <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">

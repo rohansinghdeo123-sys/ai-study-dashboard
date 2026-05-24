@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { LoadingState } from "@/components/ui/Polished";
 import { useRouter } from "next/navigation";
 
 // Types
@@ -482,15 +483,15 @@ function GlassCard({ label, value, tone = "neutral", active = false }: { label: 
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(6,18,31,0.94),rgba(9,15,27,0.88))] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/24 hover:shadow-[0_28px_90px_rgba(14,116,144,0.20)]",
-        active && "border-[#14B8A6]/40 bg-[linear-gradient(135deg,rgba(8,47,73,0.78),rgba(8,29,43,0.92))]",
+        "group relative overflow-hidden rounded-2xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(8,18,31,0.86),rgba(9,15,27,0.80))] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200/20 hover:bg-white/[0.055]",
+        active && "border-[#14B8A6]/36 bg-[linear-gradient(135deg,rgba(8,47,73,0.58),rgba(8,29,43,0.78))]",
       )}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
-      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-[#14B8A6]/10 blur-2xl transition group-hover:bg-[#14B8A6]/18" />
+      <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#14B8A6]/7 blur-2xl transition group-hover:bg-[#14B8A6]/10" />
       <div className="relative">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">{label}</div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</div>
           <span className={cn("h-1.5 w-1.5 rounded-full", tone === "green" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-400" : "bg-[#14B8A6]")} />
         </div>
         <div className={cn("mt-3 text-3xl font-semibold tracking-tight", toneText(tone))}>{value}</div>
@@ -501,8 +502,8 @@ function GlassCard({ label, value, tone = "neutral", active = false }: { label: 
 
 function GlassPanel({ title, tag, right, className, children }: { title: string; tag?: string; right?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
-    <section className={cn("overflow-hidden rounded-3xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(7,16,28,0.94),rgba(10,14,24,0.90))] shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-2xl", className)}>
-      <div className="flex items-center justify-between border-b border-cyan-100/10 bg-white/[0.035] px-5 py-4">
+    <section className={cn("overflow-hidden rounded-2xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(8,18,31,0.88),rgba(10,14,24,0.82))] shadow-[0_18px_54px_rgba(0,0,0,0.20)] backdrop-blur-2xl", className)}>
+      <div className="flex items-center justify-between border-b border-cyan-100/10 bg-white/[0.025] px-5 py-4">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#14B8A6] shadow-[0_0_18px_rgba(20,184,166,0.8)]" />
           <span className="text-sm font-bold uppercase tracking-[0.12em] text-slate-100">{title.replace(/_/g, " ")}</span>
@@ -517,7 +518,7 @@ function GlassPanel({ title, tag, right, className, children }: { title: string;
 
 function TonePill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
   return (
-    <span className={cn("inline-flex items-center rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] font-mono", toneBadge(tone))}>
+    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]", toneBadge(tone))}>
       {children}
     </span>
   );
@@ -597,17 +598,17 @@ function LineChart({
   const areaPath = `${path} L ${points[points.length - 1]?.x ?? padding.left} ${baseline} L ${points[0]?.x ?? padding.left} ${baseline} Z`;
 
   return (
-    <div className="relative min-h-[430px] overflow-hidden rounded-[1.6rem] border border-[#1A2C3C] bg-[#050A0D] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_22px_80px_rgba(0,0,0,0.30)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(20,184,166,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(20,184,166,0.038)_1px,transparent_1px)] bg-[size:64px_64px] opacity-65" />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_36%,rgba(255,170,10,0.075),transparent_26%),linear-gradient(180deg,rgba(5,10,13,0)_0%,rgba(5,10,13,0.88)_100%)]" />
+    <div className="relative min-h-[430px] overflow-hidden rounded-[1.6rem] border border-[#1A2C3C] bg-[#050A0D] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_56px_rgba(0,0,0,0.24)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(20,184,166,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(20,184,166,0.03)_1px,transparent_1px)] bg-[size:64px_64px] opacity-45" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_36%,rgba(255,170,10,0.045),transparent_26%),linear-gradient(180deg,rgba(5,10,13,0)_0%,rgba(5,10,13,0.84)_100%)]" />
 
       <div className="relative mb-7 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.28em] text-slate-400">
           <span className="h-px w-8 bg-[#FFAA0A]" />
           <span>XP Velocity</span>
         </div>
-        <div className="rounded-md border border-emerald-400/20 bg-emerald-400/7 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-emerald-300">
-          Live feed
+        <div className="rounded-full border border-emerald-400/20 bg-emerald-400/7 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-300">
+          Live
         </div>
       </div>
 
@@ -856,17 +857,13 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="rounded-3xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(7,16,28,0.96),rgba(10,14,24,0.92))] px-6 py-5 text-sm font-bold uppercase tracking-[0.22em] text-[#14B8A6] shadow-[0_28px_90px_rgba(0,0,0,0.24)]">
-          Loading analytics terminal...
-        </div>
-      </div>
+      <LoadingState title="Loading analytics..." detail="Reading sessions, weak topics, XP trends, and leaderboard data." />
     );
   }
 
   return (
-    <div className="relative -mx-1 overflow-hidden rounded-[2.2rem] border border-cyan-100/10 bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.16),transparent_30%),radial-gradient(circle_at_88%_4%,rgba(242,184,75,0.14),transparent_28%),linear-gradient(135deg,#05111D_0%,#070B13_50%,#0D1420_100%)] p-4 text-slate-200 shadow-[0_34px_110px_rgba(0,0,0,0.34)] sm:p-6">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.055)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.045)_1px,transparent_1px)] bg-[size:64px_64px] opacity-60" />
+    <div className="relative -mx-1 overflow-hidden rounded-[2.2rem] border border-cyan-100/10 bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.10),transparent_30%),radial-gradient(circle_at_88%_4%,rgba(242,184,75,0.09),transparent_28%),linear-gradient(135deg,#06111D_0%,#080D16_50%,#0D1420_100%)] p-4 text-slate-200 shadow-[0_26px_80px_rgba(0,0,0,0.28)] sm:p-6">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.035)_1px,transparent_1px)] bg-[size:64px_64px] opacity-45" />
       <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
 
       <div className="relative space-y-6">
@@ -874,38 +871,38 @@ export default function ProgressPage() {
           <div className="grid gap-0 xl:grid-cols-[minmax(0,1.25fr)_420px]">
             <div className="p-6 sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
-                <TonePill tone="blue">Analytics Terminal</TonePill>
+                <TonePill tone="blue">Analytics</TonePill>
                 <TonePill tone={error ? "amber" : "green"}>{error ? "Degraded" : "Live sync"}</TonePill>
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
                   Learner: {currentDisplayName}
                 </span>
               </div>
               <h1 className="mt-6 max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Learning intelligence command center
+                Learning intelligence
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
-                Track mastery, rank, weak topics, consistency, and next best study action from one terminal-grade view.
+                Track mastery, rank, weak topics, consistency, and the next best study action from one calm view.
               </p>
               {error ? <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">{error}</p> : null}
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Priority command</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Priority action</p>
                   <p className="mt-2 text-sm font-semibold text-white">{priorityCommand}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Tracked sessions</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Tracked sessions</p>
                   <p className="mt-2 text-2xl font-semibold text-[#14B8A6]">{sessions.length}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Latest topic</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Latest topic</p>
                   <p className="mt-2 truncate text-sm font-semibold text-white">{latestSession?.topic || "No session yet"}</p>
                 </div>
                 <button
                   onClick={handleExportCSV}
                   className="rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16"
                 >
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.22em] text-[#67E8F9]">Export</span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#67E8F9]">Export</span>
                   <span className="mt-2 block text-sm font-semibold text-white">Download CSV</span>
                 </button>
               </div>
@@ -914,7 +911,7 @@ export default function ProgressPage() {
             <div className="border-t border-cyan-100/10 bg-white/[0.025] p-6 xl:border-l xl:border-t-0">
               <div className="rounded-[2rem] border border-cyan-100/12 bg-black/20 p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-500">Readiness score</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Readiness score</p>
                   <TonePill tone={readinessTone}>{readinessScore >= 70 ? "Stable" : "Needs work"}</TonePill>
                 </div>
                 <div className="mt-6 flex items-end gap-3">

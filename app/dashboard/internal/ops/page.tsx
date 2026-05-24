@@ -3,6 +3,7 @@
 import { useAuth } from "@/context/AuthContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
+import { AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 
 // ─── Types (unchanged) ─────────────────────────────────────────────────────
 interface AgentStatus {
@@ -292,7 +293,7 @@ function GlassCard({
     neutral: "text-gray-300",
   };
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0E1118]/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.14)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-white/20 hover:bg-[#111520]/90">
+    <div className="rounded-xl border border-white/10 bg-[#0E1118]/72 p-4 shadow-[0_12px_34px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-white/18 hover:bg-[#111520]/78">
       <div className="text-[11px] font-medium text-slate-500">{label}</div>
       <div className={cn("mt-2 text-2xl font-semibold tracking-tight", colorMap[tone])}>{value}</div>
       {sub ? <div className="mt-1 text-[10px] text-gray-600">{sub}</div> : null}
@@ -316,17 +317,17 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0E1118]/86 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl",
+        "flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_16px_44px_rgba(0,0,0,0.16)] backdrop-blur-xl",
         className,
       )}
     >
-      <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-white/[0.025] px-4 py-3">
+      <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-white/[0.02] px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-slate-200">
             {title.replace(/_/g, " ")}
           </span>
           {tag && (
-            <span className="rounded-md border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold text-amber-400 uppercase font-mono">
+            <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-400">
               {tag}
             </span>
           )}
@@ -809,9 +810,7 @@ export default function InternalOpsPage() {
 
   if (loading || claimsLoading) {
     return (
-      <div className="flex min-h-[70vh] items-center justify-center bg-[#0A0A0F] text-sm uppercase tracking-wider text-[#0E7490] animate-pulse">
-        VERIFYING ADMIN SESSION...
-      </div>
+      <LoadingState title="Verifying admin session..." detail="Preparing the agent operations workspace." />
     );
   }
 
@@ -845,7 +844,7 @@ export default function InternalOpsPage() {
         <GlassCard label="Status" value={connected ? "LIVE" : "DISCONNECTED"} sub={authError || undefined} tone={connected ? "green" : "red"} />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/88 shadow-[0_24px_70px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_18px_54px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -905,7 +904,11 @@ export default function InternalOpsPage() {
           <GlassPanel title="Agent Fleet" tag="LIVE" right={<StatusBadge value={`${agents.length} agents`} tone="blue" />}>
             <div className="space-y-2 h-full overflow-y-auto pr-1">
               {agents.length === 0 ? (
-                <div className="py-8 text-center text-xs text-gray-600">No agents registered</div>
+                <EmptyState
+                  icon="mission"
+                  title="No agents registered"
+                  detail="Agent health, latency, and quality signals will appear here once the backend reports active agents."
+                />
               ) : (
                 agents.map((agent) => (
                   <div key={agent.agent_id} className="space-y-2">
@@ -987,12 +990,16 @@ export default function InternalOpsPage() {
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "!rounded-md !px-3 !text-[10px] !font-bold !uppercase !tracking-wider",
+                    "!inline-flex !items-center !gap-1.5 !rounded-md !px-3 !text-[10px] !font-bold !uppercase !tracking-wider",
                     activeTab === tab ? "!bg-white/10 !text-white" : "!text-gray-500 hover:!text-gray-300",
                   )}
                   onClick={() => setActiveTab(tab)}
                 >
-                  {tab}
+                  <AppIcon
+                    name={tab === "logs" ? "analytics" : tab === "chat" ? "study" : tab === "pipeline" ? "mission" : "dashboard"}
+                    className="h-3.5 w-3.5"
+                  />
+                  <span>{tab}</span>
                 </Button>
               ))}
             </div>
@@ -1051,7 +1058,11 @@ export default function InternalOpsPage() {
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-1 text-xs">
                   {filteredEvents.length === 0 ? (
-                    <div className="py-12 text-center text-gray-600">NO EVENTS</div>
+                    <EmptyState
+                      icon="analytics"
+                      title="No events yet"
+                      detail="Live logs will appear here when agents begin sending events."
+                    />
                   ) : (
                     [...filteredEvents].reverse().map((event, idx) => (
                       <div key={event.version || idx} className="flex items-start gap-2 px-2 py-1 rounded hover:bg-white/5">
@@ -1071,7 +1082,11 @@ export default function InternalOpsPage() {
             {activeTab === "chat" && (
               <div className="flex flex-col h-full overflow-hidden">
                 {!selectedAgent ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-gray-600">SELECT AN AGENT FROM THE REGISTRY</div>
+                  <EmptyState
+                    icon="study"
+                    title="Select an agent"
+                    detail="Choose an agent from the registry to inspect messages and send commands."
+                  />
                 ) : (
                   <>
                     <div className="flex items-center justify-between mb-3 text-xs">
@@ -1128,12 +1143,13 @@ export default function InternalOpsPage() {
                         size="sm"
                         onClick={toggleListening}
                         disabled={!recognitionRef.current}
-                        className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490]"}
+                        className={cn("!inline-flex !items-center !gap-1.5", isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490]")}
                       >
-                        Mic
+                        <AppIcon name={isListening ? "x" : "mic"} className="h-3.5 w-3.5" />
+                        <span>Mic</span>
                       </Button>
                       <Button variant="primary" size="sm" onClick={sendChatMessage} disabled={chatLoading || !chatInput.trim()}>
-                        SEND
+                        <span className="inline-flex items-center gap-1.5"><AppIcon name="send" className="h-3.5 w-3.5" />SEND</span>
                       </Button>
                     </div>
                   </>
@@ -1145,9 +1161,17 @@ export default function InternalOpsPage() {
             {activeTab === "pipeline" && (
               <div className="flex flex-col h-full overflow-hidden">
                 {!selectedAgent ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-gray-600">SELECT AN AGENT TO VIEW PIPELINE</div>
+                  <EmptyState
+                    icon="mission"
+                    title="Select an agent"
+                    detail="Pipeline steps will appear after you choose an agent."
+                  />
                 ) : pipelineEvents.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-sm text-gray-600">NO PIPELINE DATA</div>
+                  <EmptyState
+                    icon="clock"
+                    title="No pipeline data"
+                    detail="Task starts, tool calls, completions, and errors will appear here."
+                  />
                 ) : (
                   <div className="flex-1 overflow-y-auto space-y-1 pr-2">
                     {pipelineEvents.map((event, idx) => {
@@ -1214,7 +1238,11 @@ export default function InternalOpsPage() {
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-3 pr-2">
                   {meetingMessages.length === 0 ? (
-                    <div className="flex-1 flex items-center justify-center text-sm text-gray-600">SELECT AGENTS AND START THE MEETING</div>
+                    <EmptyState
+                      icon="dashboard"
+                      title="Start a meeting"
+                      detail="Select one or more agents, then broadcast a prompt to compare their responses."
+                    />
                   ) : (
                     meetingMessages.map((msg, i) => {
                       const isAdmin = msg.role === "admin";
@@ -1256,9 +1284,10 @@ export default function InternalOpsPage() {
                     size="sm"
                     onClick={toggleListening}
                     disabled={!recognitionRef.current}
-                    className={isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490]"}
+                    className={cn("!inline-flex !items-center !gap-1.5", isListening ? "!border-red-400/40 !bg-red-400/10 !text-red-400" : "!border-[#0E7490]/20 !bg-[#0E7490]/10 !text-[#0E7490]")}
                   >
-                    Mic
+                    <AppIcon name={isListening ? "x" : "mic"} className="h-3.5 w-3.5" />
+                    <span>Mic</span>
                   </Button>
                   <Button
                     variant="primary"
@@ -1266,7 +1295,7 @@ export default function InternalOpsPage() {
                     onClick={sendMeetingMessage}
                     disabled={meetingAgentIds.length === 0 || !meetingInput.trim() || Object.values(meetingLoading).some(Boolean)}
                   >
-                    BROADCAST
+                    <span className="inline-flex items-center gap-1.5"><AppIcon name="send" className="h-3.5 w-3.5" />BROADCAST</span>
                   </Button>
                 </div>
               </div>

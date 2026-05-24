@@ -1,6 +1,14 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import {
+  AlertState,
+  AppIcon,
+  EmptyState,
+  IconButton,
+  LoadingState,
+  type AppIconName,
+} from "@/components/ui/Polished";
 import { useSearchParams } from "next/navigation";
 import {
   useEffect,
@@ -117,11 +125,11 @@ const CHAPTERS = [
 
 const STAGE_ORDER: AgentStageId[] = ["drafting", "reviewing", "delivering"];
 
-const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string }> = [
-  { id: "coach", label: "Coach", detail: "Ask and continue doubts" },
-  { id: "revision", label: "Revision", detail: "Summary, explain, key points" },
-  { id: "exam", label: "Exam", detail: "MCQs and probable questions" },
-  { id: "history", label: "History", detail: "Resume previous chats" },
+const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
+  { id: "coach", label: "Coach", detail: "Ask and continue doubts", icon: "study" },
+  { id: "revision", label: "Revision", detail: "Summary, explain, key points", icon: "book" },
+  { id: "exam", label: "Exam", detail: "MCQs and probable questions", icon: "check" },
+  { id: "history", label: "History", detail: "Resume previous chats", icon: "history" },
 ];
 
 const REVISION_TOOLS: RevisionTool[] = [
@@ -587,25 +595,33 @@ function ModeButton({
   active,
   label,
   detail,
+  icon,
   onClick,
 }: {
   active: boolean;
   label: string;
   detail: string;
+  icon: AppIconName;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl border px-4 py-3 text-left transition ${
+      title={detail}
+      className={`study-mode-button flex min-h-[92px] items-start gap-3 rounded-2xl border px-3 py-3 text-left transition ${
         active
           ? "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490] shadow-[0_14px_36px_rgba(14,116,144,0.10)]"
           : "border-slate-200 bg-white/64 text-slate-500 hover:border-[#0E7490]/25 hover:text-slate-900"
       }`}
     >
-      <span className="block text-sm font-semibold">{label}</span>
-      <span className="mt-1 block text-[11px] leading-4 opacity-70">{detail}</span>
+      <span className={`study-mode-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
+        <AppIcon name={icon} />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{label}</span>
+        <span className="mt-1 block text-[11px] leading-4 opacity-75">{detail}</span>
+      </span>
     </button>
   );
 }
@@ -625,9 +641,11 @@ function CopyButton({ value }: { value: string }) {
       type="button"
       onClick={copy}
       disabled={!value}
-      className="rounded-full border border-slate-200 bg-white/75 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-40"
+      title={copied ? "Copied" : "Copy to clipboard"}
+      className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/75 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-40"
     >
-      {copied ? "Copied" : "Copy"}
+      <AppIcon name={copied ? "check" : "copy"} className="h-3.5 w-3.5" />
+      <span>{copied ? "Copied" : "Copy"}</span>
     </button>
   );
 }
@@ -1090,9 +1108,7 @@ export default function StudyPage() {
 
   if (authBusy) {
     return (
-      <div className="flex min-h-[70svh] items-center justify-center text-sm text-[#0E7490]">
-        Opening your study room...
-      </div>
+      <LoadingState title="Opening your study room..." detail="Preparing tutor, chapter, topic, and voice tools." />
     );
   }
 
@@ -1123,6 +1139,7 @@ export default function StudyPage() {
                   active={mode === item.id}
                   label={item.label}
                   detail={item.detail}
+                  icon={item.icon}
                   onClick={() => setMode(item.id)}
                 />
               ))}
@@ -1165,21 +1182,23 @@ export default function StudyPage() {
                   ))}
                 </select>
               </div>
-              <button
-                type="button"
+              <IconButton
+                label="Start a new chat"
+                icon="plus"
                 onClick={startNewChat}
-                className="rounded-2xl border border-slate-200 bg-white/78 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                className="min-h-[48px] bg-white/78 px-4 py-3 text-slate-700"
               >
                 New chat
-              </button>
-              <button
-                type="button"
+              </IconButton>
+              <IconButton
+                label="Clear current chat"
+                icon="trash"
                 onClick={clearChat}
                 disabled={!messages.length}
-                className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-600 transition hover:border-rose-300 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-45"
+                className="min-h-[48px] border-rose-200 bg-rose-50 px-4 py-3 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
               >
                 Clear
-              </button>
+              </IconButton>
             </div>
           </div>
         </div>
@@ -1215,27 +1234,30 @@ export default function StudyPage() {
                     ))}
                   </div>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <button
-                      type="button"
+                    <IconButton
+                      label="Open revision tools"
+                      icon="book"
                       onClick={() => setMode("revision")}
-                      className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                      className="min-h-9 rounded-full bg-white/70 px-4 py-2 text-xs"
                     >
                       Revision tools
-                    </button>
-                    <button
-                      type="button"
+                    </IconButton>
+                    <IconButton
+                      label="Open exam practice"
+                      icon="check"
                       onClick={() => setMode("exam")}
-                      className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                      className="min-h-9 rounded-full bg-white/70 px-4 py-2 text-xs"
                     >
                       Exam practice
-                    </button>
-                    <button
-                      type="button"
+                    </IconButton>
+                    <IconButton
+                      label="Open study history"
+                      icon="history"
                       onClick={() => setMode("history")}
-                      className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                      className="min-h-9 rounded-full bg-white/70 px-4 py-2 text-xs"
                     >
                       History ({conversations.length})
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
               ) : (
@@ -1307,21 +1329,25 @@ export default function StudyPage() {
                     type="button"
                     onClick={listening ? stopVoiceInput : startVoiceInput}
                     disabled={!speechSupported || loadingAnswer}
-                    className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    title={listening ? "Stop voice input" : "Start voice input"}
+                    className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                       listening
                         ? "bg-emerald-500 text-white"
                         : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
                     } disabled:cursor-not-allowed disabled:opacity-45`}
                   >
-                    {listening ? "Stop" : "Voice"}
+                    <AppIcon name={listening ? "x" : "mic"} />
+                    <span>{listening ? "Stop" : "Voice"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => void sendMessage()}
                     disabled={loadingAnswer || !input.trim()}
-                    className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
+                    title="Send message"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
                   >
-                    {loadingAnswer ? "Thinking" : "Send"}
+                    <AppIcon name="send" />
+                    <span>{loadingAnswer ? "Thinking" : "Send"}</span>
                   </button>
                   </div>
                 </div>
@@ -1330,7 +1356,7 @@ export default function StudyPage() {
                     Voice is available in browsers that support speech recognition and speech synthesis.
                   </p>
                 ) : null}
-                {error ? <p className="mt-2 text-xs text-rose-500">{error}</p> : null}
+                {error ? <div className="mt-2"><AlertState message={error} /></div> : null}
               </div>
             </div>
           </div>
@@ -1356,27 +1382,27 @@ export default function StudyPage() {
                     type="button"
                     onClick={() => void runRevision(tool)}
                     disabled={revisionLoading[tool.id]}
-                    className="mt-5 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
                   >
-                    {revisionLoading[tool.id] ? "Generating..." : `Generate ${tool.title}`}
+                    <AppIcon name="spark" />
+                    <span>{revisionLoading[tool.id] ? "Generating..." : `Generate ${tool.title}`}</span>
                   </button>
 
                   <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-4">
                     {revisionContent[tool.id] ? (
                       <CoachAnswer value={revisionContent[tool.id]} />
                     ) : (
-                      <div className="flex h-full min-h-[280px] flex-col items-center justify-center text-center">
-                        <p className="text-sm font-semibold text-slate-700">No {tool.title.toLowerCase()} generated yet.</p>
-                        <p className="mt-2 max-w-xs text-xs leading-5 text-slate-500">
-                          Generate it for {selectedTopic.label}. Students can copy it directly into notes.
-                        </p>
-                      </div>
+                      <EmptyState
+                        icon="book"
+                        title={`No ${tool.title.toLowerCase()} yet`}
+                        detail={`Generate it for ${selectedTopic.label}. Students can copy it directly into notes.`}
+                      />
                     )}
                   </div>
                 </article>
               ))}
             </div>
-            {revisionError ? <p className="mx-auto mt-4 max-w-7xl text-sm text-rose-500">{revisionError}</p> : null}
+            {revisionError ? <div className="mx-auto mt-4 max-w-7xl"><AlertState message={revisionError} /></div> : null}
           </div>
         ) : null}
 
@@ -1396,9 +1422,10 @@ export default function StudyPage() {
                     type="button"
                     onClick={() => void generateExamPack()}
                     disabled={examLoading}
-                    className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
                   >
-                    {examLoading ? "Generating..." : "Generate exam pack"}
+                    <AppIcon name="spark" />
+                    <span>{examLoading ? "Generating..." : "Generate exam pack"}</span>
                   </button>
                 </div>
 
@@ -1460,11 +1487,12 @@ export default function StudyPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="mt-8 flex min-h-[380px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/56 text-center">
-                    <p className="text-lg font-semibold text-slate-900">Your exam pack is not generated yet.</p>
-                    <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                      Create 5 MCQs from the selected topic, then submit once to unlock feedback and likely theory questions.
-                    </p>
+                  <div className="mt-8">
+                    <EmptyState
+                      icon="check"
+                      title="Your exam pack is not generated yet"
+                      detail="Create 5 MCQs from the selected topic, then submit once to unlock feedback and likely theory questions."
+                    />
                   </div>
                 )}
 
@@ -1477,13 +1505,14 @@ export default function StudyPage() {
                       type="button"
                       onClick={() => void submitExam()}
                       disabled={examSubmitted || answeredExamCount !== examQuestions.length}
-                      className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
                     >
-                      {examSaving ? "Saving..." : examSubmitted ? "Submitted" : "Submit and review"}
+                      <AppIcon name={examSubmitted ? "check" : "send"} />
+                      <span>{examSaving ? "Saving..." : examSubmitted ? "Submitted" : "Submit and review"}</span>
                     </button>
                   </div>
                 ) : null}
-                {examError ? <p className="mt-3 text-sm text-rose-500">{examError}</p> : null}
+                {examError ? <div className="mt-3"><AlertState message={examError} /></div> : null}
               </section>
 
               <aside className="space-y-5">
@@ -1575,13 +1604,14 @@ export default function StudyPage() {
                       {conversations.length} saved conversations are stored on this device for quick continuation.
                     </p>
                   </div>
-                  <button
-                    type="button"
+                  <IconButton
+                    label="Start fresh study chat"
+                    icon="plus"
                     onClick={startNewChat}
-                    className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76]"
+                    className="border-[#0E7490] bg-[#0E7490] px-5 py-3 text-white hover:border-[#0B5F76] hover:bg-[#0B5F76] hover:text-white"
                   >
                     Start fresh chat
-                  </button>
+                  </IconButton>
                 </div>
 
                 <div className="mt-6 grid gap-3">
@@ -1615,12 +1645,11 @@ export default function StudyPage() {
                       </button>
                     ))
                   ) : (
-                    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/56 text-center">
-                      <p className="text-lg font-semibold text-slate-900">No study history yet.</p>
-                      <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                        Ask your first question in Coach mode. It will be saved here automatically.
-                      </p>
-                    </div>
+                    <EmptyState
+                      icon="history"
+                      title="No study history yet"
+                      detail="Ask your first question in Coach mode. It will be saved here automatically."
+                    />
                   )}
                 </div>
               </div>

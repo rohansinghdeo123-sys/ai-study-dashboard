@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, type ComponentType } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
 
 
-const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as any;
+const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as ComponentType<Record<string, unknown>>;
 
 import {
   LineChart,
@@ -26,12 +26,51 @@ interface MCQQuestion {
   explanation: string;
 }
 
+interface TopicAccuracy {
+  topic: string;
+  accuracy: number;
+}
+
+interface AnalyticsData {
+  summary: {
+    total_topics: number;
+    avg_accuracy: number;
+  };
+  topic_accuracy: TopicAccuracy[];
+  weak_topics: string[];
+  insights: string[];
+  recommendations: string[];
+  next_action: string;
+}
+
+interface AgentApiResponse {
+  response?: unknown;
+  answer?: unknown;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getQuestions(value: unknown): MCQQuestion[] {
+  if (!isRecord(value) || !Array.isArray(value.questions)) return [];
+  return value.questions.filter((question): question is MCQQuestion => {
+    if (!isRecord(question)) return false;
+    return (
+      typeof question.question === "string" &&
+      Array.isArray(question.options) &&
+      typeof question.correct === "string" &&
+      typeof question.explanation === "string"
+    );
+  });
+}
+
 /* ================================================================
    SUB-COMPONENTS — Revision / Practice / Exam
    ================================================================ */
 
 /* ---------- REVISION: structured study notes ---------- */
-function RevisionView({ data }: { data: any }) {
+function RevisionView({ data }: { data: unknown }) {
   const lines = formatTextLines(data);
 
   return (
@@ -404,7 +443,7 @@ function ExamView({ questions }: { questions: MCQQuestion[] }) {
 }
 
 /* ---------- TEXT FALLBACK: plain text response ---------- */
-function TextFallbackView({ data }: { data: any }) {
+function TextFallbackView({ data }: { data: unknown }) {
   const lines = formatTextLines(data);
 
   return (
@@ -431,7 +470,7 @@ function TextFallbackView({ data }: { data: any }) {
 /* ================================================================
    HELPER: shared text formatter
    ================================================================ */
-function formatTextLines(text: any): string[] {
+function formatTextLines(text: unknown): string[] {
   if (!text) return [];
   const safeText =
     typeof text === "string" ? text : JSON.stringify(text, null, 2);
@@ -448,10 +487,10 @@ export default function AnalyticsPage() {
   const { user, loading: authLoading, getAuthHeaders } = useAuth();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const [agentResponse, setAgentResponse] = useState<any>(null);
+  const [agentResponse, setAgentResponse] = useState<unknown>(null);
   const [loadingAgent, setLoadingAgent] = useState(false);
   const [currentMode, setCurrentMode] = useState<string | null>(null);
 
@@ -470,7 +509,7 @@ export default function AnalyticsPage() {
         headers: await getAuthHeaders(),
       });
       if (!res.ok) return;
-      const data = await res.json();
+      const data = (await res.json()) as AnalyticsData;
       if (active) setAnalytics(data);
     }
 
@@ -486,7 +525,7 @@ export default function AnalyticsPage() {
 
   const filteredData = selectedTopic
     ? analytics.topic_accuracy.filter(
-        (t: any) => t.topic === selectedTopic
+        (t: TopicAccuracy) => t.topic === selectedTopic
       )
     : analytics.topic_accuracy;
 
@@ -508,11 +547,10 @@ export default function AnalyticsPage() {
         }),
       });
 
-      const data = await res.json();
+      const data = (await res.json()) as AgentApiResponse;
 
       let raw =
-        data?.response?.data ||
-        data?.response?.plan ||
+        (isRecord(data.response) ? data.response.data || data.response.plan : null) ||
         data?.response ||
         data?.answer ||
         "";
@@ -520,7 +558,7 @@ export default function AnalyticsPage() {
       if (typeof raw === "string") {
         try { raw = JSON.parse(raw); } catch {}
       }
-      if (raw?.data && typeof raw.data === "string") {
+      if (isRecord(raw) && raw.data && typeof raw.data === "string") {
         try { raw = JSON.parse(raw.data); } catch {}
       }
 
@@ -537,25 +575,23 @@ export default function AnalyticsPage() {
   const renderAgentResponse = () => {
     if (!agentResponse) return null;
 
-    const hasQuestions =
-      typeof agentResponse === "object" &&
-      Array.isArray(agentResponse?.questions) &&
-      agentResponse.questions.length > 0;
+    const questions = getQuestions(agentResponse);
+    const hasQuestions = questions.length > 0;
 
     // PRACTICE — show MCQs with answers pre-revealed
     if (currentMode === "exam" && hasQuestions) {
-      return <PracticeView questions={agentResponse.questions} />;
+      return <PracticeView questions={questions} />;
     }
 
     // EXAM (test) — interactive click-to-answer
     if (currentMode === "test" && hasQuestions) {
-      return <ExamView questions={agentResponse.questions} />;
+      return <ExamView questions={questions} />;
     }
 
     // REVISION — structured notes
     if (currentMode === "revision") {
       const textData =
-        typeof agentResponse === "object"
+        isRecord(agentResponse)
           ? agentResponse.data || agentResponse
           : agentResponse;
       return <RevisionView data={textData} />;
@@ -563,12 +599,12 @@ export default function AnalyticsPage() {
 
     // FALLBACK — if backend returns questions for an unexpected mode
     if (hasQuestions) {
-      return <PracticeView questions={agentResponse.questions} />;
+      return <PracticeView questions={questions} />;
     }
 
     // FALLBACK — plain text
     const textData =
-      typeof agentResponse === "object"
+      isRecord(agentResponse)
         ? agentResponse.data || agentResponse
         : agentResponse;
     return <TextFallbackView data={textData} />;
@@ -645,9 +681,9 @@ export default function AnalyticsPage() {
                 <Plot
                   data={[
                     {
-                      z: filteredData.map((t: any) => [t.accuracy]),
+                      z: filteredData.map((t: TopicAccuracy) => [t.accuracy]),
                       x: ["Accuracy"],
-                      y: filteredData.map((t: any) => t.topic),
+                      y: filteredData.map((t: TopicAccuracy) => t.topic),
                       type: "heatmap",
                       colorscale: "RdYlGn",
                     },
@@ -668,7 +704,7 @@ export default function AnalyticsPage() {
               <h3 className="text-sm text-gray-400 mb-2">Accuracy Trend</h3>
               <ResponsiveContainer width="100%" height="85%">
                 <LineChart
-                  data={filteredData.map((item: any) => ({
+                  data={filteredData.map((item: TopicAccuracy) => ({
                     name: item.topic,
                     accuracy: item.accuracy,
                   }))}
@@ -691,7 +727,7 @@ export default function AnalyticsPage() {
           <div className="bg-gray-900 border border-gray-700 p-4 rounded-xl">
             <h3 className="text-sm text-gray-400 mb-3">Select Topic</h3>
             <div className="flex gap-3 flex-wrap">
-              {analytics.topic_accuracy.map((t: any, idx: number) => (
+              {analytics.topic_accuracy.map((t: TopicAccuracy, idx: number) => (
                 <button
                   key={idx}
                   onClick={() => setSelectedTopic(t.topic)}
@@ -840,8 +876,8 @@ export default function AnalyticsPage() {
                 <Plot
                   data={[
                     {
-                      x: filteredData.map((_: any, i: number) => i),
-                      y: filteredData.map((t: any) => t.accuracy),
+                      x: filteredData.map((_: TopicAccuracy, i: number) => i),
+                      y: filteredData.map((t: TopicAccuracy) => t.accuracy),
                       mode: "markers",
                       type: "scatter",
                       marker: { color: "#3b82f6", size: 6 },
@@ -874,8 +910,8 @@ export default function AnalyticsPage() {
                 <Plot
                   data={[
                     {
-                      x: filteredData.map((_: any, i: number) => i),
-                      y: filteredData.map((t: any) => t.accuracy),
+                      x: filteredData.map((_: TopicAccuracy, i: number) => i),
+                      y: filteredData.map((t: TopicAccuracy) => t.accuracy),
                       type: "histogram2dcontour",
                       colorscale: "Viridis",
                       ncontours: 20,

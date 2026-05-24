@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { AlertState, EmptyState as PolishedEmptyState, LoadingState } from "@/components/ui/Polished";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -151,23 +152,21 @@ function AccuracyRail({ value }: { value: number }) {
 
 function EmptyState() {
   return (
-    <div className="flex min-h-[440px] flex-col items-center justify-center rounded-[2rem] border border-white/70 bg-white/70 p-8 text-center shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-      <div className="flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[#0E7490]/10 text-2xl font-bold text-[#0E7490]">
-        S
-      </div>
-      <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950">No sessions yet</h2>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-        Complete one Study Lab conversation or Autonomous Mission. Your replay, score, XP, and weak signals will appear here.
-      </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
+    <PolishedEmptyState
+      icon="history"
+      title="No sessions yet"
+      detail="Complete one Study Lab conversation or Autonomous Mission. Your replay, score, XP, and weak signals will appear here."
+      action={
+        <>
         <Link href="/dashboard/study" className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]">
           Ask tutor
         </Link>
         <Link href="/dashboard/mission" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
           Start mission
         </Link>
-      </div>
-    </div>
+        </>
+      }
+    />
   );
 }
 
@@ -241,9 +240,7 @@ export default function SessionsPage() {
 
   if (loading || claimsLoading) {
     return (
-      <div className="flex min-h-[70svh] items-center justify-center text-sm text-[#0E7490]">
-        Loading sessions...
-      </div>
+      <LoadingState title="Loading sessions..." detail="Collecting your replays, scores, XP, and saved practice history." />
     );
   }
 
@@ -288,7 +285,7 @@ export default function SessionsPage() {
       </section>
 
       {error ? (
-        <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</p>
+        <AlertState message={error} />
       ) : null}
 
       {!filteredSessions.length ? (

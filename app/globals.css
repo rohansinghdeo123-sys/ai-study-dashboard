@@ -319,6 +319,45 @@ body {
   animation: slide-up var(--transition-base) ease-out;
 }
 
+.polished-app-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.polished-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(148,163,184,0.18);
+}
+
+.polished-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  animation: polished-shimmer 1.35s ease-in-out infinite;
+}
+
+@keyframes polished-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.polished-empty-state {
+  box-shadow: 0 18px 54px rgba(15,23,42,0.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .polished-skeleton::after {
+    animation: none !important;
+  }
+}
+
 /* ── Scrollbar (theme-aware) ───────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -1297,6 +1336,21 @@ body {
 [data-theme="dark"] .dashboard-shell .student-guide-info {
   background: rgba(14,116,144,0.14) !important;
   border-color: rgba(20,184,166,0.24) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .polished-empty-state,
+[data-theme="dark"] .dashboard-shell .polished-loading-card {
+  background: rgba(255,255,255,0.055) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  box-shadow: 0 18px 54px rgba(0,0,0,0.24) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .polished-skeleton {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .polished-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent) !important;
 }
 
 [data-theme="dark"] .dashboard-shell [class*="bg-white"],

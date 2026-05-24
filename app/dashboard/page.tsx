@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { LoadingState } from "@/components/ui/Polished";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -283,9 +284,7 @@ export default function DashboardPage() {
 
   if (loading || claimsLoading) {
     return (
-      <div className="flex min-h-[70svh] items-center justify-center text-sm text-[#0E7490]">
-        Preparing dashboard...
-      </div>
+      <LoadingState title="Preparing dashboard..." detail="Loading your hub, progress signals, and next best study move." />
     );
   }
 
@@ -373,7 +372,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Dashboard workspace</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Learning command center</h1>
+            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Learning overview</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
               A focused overview of progress, weak areas, rankings, and the next best study move.
             </p>
