@@ -1254,6 +1254,15 @@ body {
   transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), background 220ms ease, border-color 220ms ease;
 }
 
+.dashboard-shell .hub-center {
+  mix-blend-mode: normal;
+}
+
+.dashboard-shell .hub-tile:nth-child(1) .hub-tile-action,
+.dashboard-shell .hub-tile:nth-child(3) .hub-tile-icon {
+  margin-right: clamp(4.75rem, 7vw, 6.5rem);
+}
+
 .dashboard-shell .hub-tile:nth-child(1) {
   border-top-left-radius: 3rem;
 }
@@ -1500,6 +1509,11 @@ body {
 
   .dashboard-shell .hub-tile:nth-child(4) {
     border-radius: 0 0 3rem 3rem !important;
+  }
+
+  .dashboard-shell .hub-tile:nth-child(1) .hub-tile-action,
+  .dashboard-shell .hub-tile:nth-child(3) .hub-tile-icon {
+    margin-right: 0;
   }
 
   .dashboard-hero-card,

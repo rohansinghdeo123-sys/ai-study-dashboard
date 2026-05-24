@@ -23,6 +23,10 @@ type AgentStageId = "drafting" | "reviewing" | "delivering";
 type AgentStageStatus = "pending" | "active" | "done";
 type StudyMode = "coach" | "revision" | "exam" | "history";
 type RevisionType = "summary" | "explain" | "keypoints";
+type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" | "curiosity";
+type LearningLevel = "beginner" | "intermediate" | "advanced";
+type EmotionalState = "steady" | "confused" | "anxious" | "curious" | "confident";
+type LearningSpeed = "slow" | "balanced" | "fast";
 
 interface CoachMessage {
   role: CoachRole;
@@ -62,6 +66,19 @@ interface RevisionTool {
   detail: string;
   mode: "summary" | "explain" | "keypoints";
   prompt: (topic: string) => string;
+}
+
+interface MentorProfile {
+  intent: LearningIntent;
+  level: LearningLevel;
+  emotion: EmotionalState;
+  confidence: number;
+  speed: LearningSpeed;
+  curiosityDepth: number;
+  answerStyle: string;
+  nextMove: string;
+  shouldTest: boolean;
+  weakSignals: string[];
 }
 
 interface ExamQuestion {
@@ -156,6 +173,121 @@ const REVISION_TOOLS: RevisionTool[] = [
   },
 ];
 
+function createDefaultMentorProfile(): MentorProfile {
+  return {
+    intent: "concept",
+    level: "intermediate",
+    emotion: "steady",
+    confidence: 68,
+    speed: "balanced",
+    curiosityDepth: 45,
+    answerStyle: "structured explanation",
+    nextMove: "explain, check understanding, then suggest practice",
+    shouldTest: false,
+    weakSignals: [],
+  };
+}
+
+function hasAny(value: string, words: string[]) {
+  return words.some((word) => value.includes(word));
+}
+
+function inferMentorProfile(prompt: string, history: CoachMessage[]): MentorProfile {
+  const lower = prompt.toLowerCase();
+  const recentText = history.slice(-8).map((message) => message.content).join(" ").toLowerCase();
+  const combined = `${recentText} ${lower}`;
+
+  const intent: LearningIntent = hasAny(lower, ["exam", "mcq", "marks", "test", "paper", "answer format", "important question"])
+    ? "exam"
+    : hasAny(lower, ["revise", "revision", "summary", "formula", "key point", "quick notes"])
+      ? "revision"
+      : hasAny(lower, ["practice", "quiz", "ask me", "question me"])
+        ? "practice"
+        : hasAny(lower, ["plan", "schedule", "roadmap", "timetable"])
+          ? "planning"
+          : hasAny(lower, ["why", "how", "real life", "application", "deeper"])
+            ? "curiosity"
+            : "concept";
+
+  const level: LearningLevel = hasAny(lower, ["basic", "basics", "simple", "first time", "beginner", "meaning", "what is"])
+    ? "beginner"
+    : hasAny(lower, ["advanced", "deep", "edge case", "mechanism", "real-world", "application"])
+      ? "advanced"
+      : intent === "exam"
+        ? "intermediate"
+        : "intermediate";
+
+  const emotion: EmotionalState = hasAny(combined, ["confused", "stuck", "don't understand", "dont understand", "not clear", "again"])
+    ? "confused"
+    : hasAny(combined, ["worried", "scared", "panic", "exam tomorrow", "stress"])
+      ? "anxious"
+      : hasAny(lower, ["why", "how", "curious", "deeper"])
+        ? "curious"
+        : hasAny(lower, ["i know", "i understand", "got it", "easy"])
+          ? "confident"
+          : "steady";
+
+  const speed: LearningSpeed = hasAny(lower, ["quick", "short", "fast", "brief"])
+    ? "fast"
+    : hasAny(lower, ["slow", "step by step", "slowly", "detail"])
+      ? "slow"
+      : "balanced";
+
+  const weakSignals = [
+    hasAny(combined, ["confused", "stuck", "not clear"]) ? "confusion" : "",
+    hasAny(combined, ["wrong", "mistake", "incorrect"]) ? "mistake pattern" : "",
+    hasAny(combined, ["again", "repeat", "re-explain"]) ? "needs reinforcement" : "",
+  ].filter(Boolean);
+
+  const confidence = emotion === "confused" ? 38 : emotion === "anxious" ? 45 : emotion === "confident" ? 82 : 66;
+  const curiosityDepth = level === "advanced" || intent === "curiosity" ? 78 : level === "beginner" ? 35 : 55;
+  const answerStyle =
+    intent === "exam"
+      ? "exam strategy, traps, and marks-ready structure"
+      : intent === "revision"
+        ? "quick recall notes with formulas and checkpoints"
+        : level === "beginner"
+          ? "simple explanation with analogy and one check question"
+          : level === "advanced"
+            ? "deep explanation with applications and edge cases"
+            : "structured concept breakdown with examples";
+
+  const nextMove =
+    emotion === "confused"
+      ? "slow down, simplify, then ask a tiny check question"
+      : intent === "practice"
+        ? "test understanding and review the answer"
+        : intent === "exam"
+          ? "teach scoring pattern and common traps"
+          : "explain, connect, and decide whether to test";
+
+  return {
+    intent,
+    level,
+    emotion,
+    confidence,
+    speed,
+    curiosityDepth,
+    answerStyle,
+    nextMove,
+    shouldTest: emotion === "confused" || intent === "practice" || intent === "exam",
+    weakSignals,
+  };
+}
+
+function buildMentorDirective(profile: MentorProfile) {
+  return [
+    "Act as a world-class private school tutor, not a static chatbot.",
+    `Detected intent: ${profile.intent}. Student level: ${profile.level}. Emotional state: ${profile.emotion}.`,
+    `Use this style: ${profile.answerStyle}. Learning speed: ${profile.speed}.`,
+    `Next move: ${profile.nextMove}.`,
+    "Adapt every follow-up using the conversation context. If the student seems confused, simplify and ask one small check question.",
+    "If exam intent is detected, include scoring points, common traps, and time-saving structure.",
+    "If curiosity is high, add one real-world connection after the core answer.",
+    "End with one useful next step, not generic motivation.",
+  ].join(" ");
+}
+
 function getHistoryStorageKey(userId?: string) {
   return `agentify-study-history-${userId || "guest"}`;
 }
@@ -223,23 +355,23 @@ function createStages(): AgentStageState[] {
   return [
     {
       id: "drafting",
-      agent: "Draft Agent",
-      title: "Drafting",
-      detail: "Understanding your question and lesson context.",
+      agent: "Intent Mapper",
+      title: "Reading intent",
+      detail: "Understanding your question, level, emotion, and lesson context.",
       status: "pending",
     },
     {
       id: "reviewing",
-      agent: "Subject Reviewer",
-      title: "Reviewing",
-      detail: "Checking clarity, accuracy, and examples.",
+      agent: "Strategy Tutor",
+      title: "Choosing strategy",
+      detail: "Selecting the best teaching style, depth, and examples.",
       status: "pending",
     },
     {
       id: "delivering",
-      agent: "Final Tutor",
-      title: "Delivering",
-      detail: "Preparing the final answer for you.",
+      agent: "Adaptive Mentor",
+      title: "Teaching",
+      detail: "Preparing a personalized explanation and next step.",
       status: "pending",
     },
   ];
@@ -626,6 +758,26 @@ function ModeButton({
   );
 }
 
+function MentorInsightBar({ profile }: { profile: MentorProfile }) {
+  return (
+    <div className="study-mentor-intelligence mt-4 flex flex-wrap gap-2">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0E7490]/18 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold capitalize text-[#0E7490]">
+        <AppIcon name="spark" className="h-3.5 w-3.5" />
+        {profile.intent} mode
+      </span>
+      <span className="rounded-full border border-slate-200 bg-white/66 px-3 py-1.5 text-[11px] font-bold capitalize text-slate-500">
+        Level: {profile.level}
+      </span>
+      <span className="rounded-full border border-slate-200 bg-white/66 px-3 py-1.5 text-[11px] font-bold capitalize text-slate-500">
+        State: {profile.emotion}
+      </span>
+      <span className="rounded-full border border-slate-200 bg-white/66 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+        Confidence {profile.confidence}%
+      </span>
+    </div>
+  );
+}
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -670,6 +822,7 @@ export default function StudyPage() {
   const [input, setInput] = useState("");
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [stages, setStages] = useState(createStages);
+  const [mentorProfile, setMentorProfile] = useState<MentorProfile>(createDefaultMentorProfile);
   const [showPipeline, setShowPipeline] = useState(false);
   const [error, setError] = useState("");
   const [revisionContent, setRevisionContent] = useState<Record<RevisionType, string>>({ summary: "", explain: "", keypoints: "" });
@@ -842,6 +995,7 @@ export default function StudyPage() {
   const sendMessage = async (override?: string, options?: { fromVoice?: boolean }) => {
     const prompt = (override ?? input).trim();
     if (!prompt || !userId || authBusy || loadingAnswer) return;
+    const adaptiveProfile = inferMentorProfile(prompt, messages);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -849,6 +1003,7 @@ export default function StudyPage() {
     setInput("");
     setError("");
     setLoadingAnswer(true);
+    setMentorProfile(adaptiveProfile);
     setShowPipeline(true);
     setStages(createStages().map((stage) => (stage.id === "drafting" ? { ...stage, status: "active" } : stage)));
     let finalAnswer = "";
@@ -868,10 +1023,30 @@ export default function StudyPage() {
           user_id: userId,
           message: prompt,
           mode: "coach",
-          intent: "study_advice",
+          intent: adaptiveProfile.intent,
           subject: "Chemistry",
           topic,
           session_id: `coach-${userId}`,
+          mentor_directive: buildMentorDirective(adaptiveProfile),
+          student_state: {
+            knowledge_level: adaptiveProfile.level,
+            emotional_state: adaptiveProfile.emotion,
+            confidence: adaptiveProfile.confidence,
+            learning_speed: adaptiveProfile.speed,
+            curiosity_depth: adaptiveProfile.curiosityDepth,
+          },
+          adaptive_strategy: {
+            answer_style: adaptiveProfile.answerStyle,
+            next_move: adaptiveProfile.nextMove,
+            should_test: adaptiveProfile.shouldTest,
+            weak_signals: adaptiveProfile.weakSignals,
+          },
+          learning_context: {
+            chapter,
+            topic,
+            recent_messages: messages.slice(-6),
+            saved_conversations: conversations.length,
+          },
         }),
       });
 
@@ -1127,8 +1302,9 @@ export default function StudyPage() {
               </span>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              One focused place for doubts, revision sheets, exam practice, history, and spoken tutoring.
+              One focused place for doubts, revision sheets, exam practice, history, and adaptive tutoring.
             </p>
+            <MentorInsightBar profile={mentorProfile} />
           </div>
 
           <div className="flex flex-col gap-3 lg:min-w-[620px]">
@@ -1222,6 +1398,19 @@ export default function StudyPage() {
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
                     Hi {displayName.split(" ")[0]}, start naturally with a question, phrase, or follow-up. {coachName} will answer like a subject expert and keep the conversation connected.
                   </p>
+                  <div className="mt-5 max-w-2xl rounded-3xl border border-[#0E7490]/14 bg-white/58 p-4 text-left shadow-[0_14px_38px_rgba(15,23,42,0.06)]">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-[#0E7490]">
+                        <AppIcon name="spark" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Adaptive tutor engine</p>
+                        <p className="mt-1 text-sm leading-6 text-slate-500">
+                          I will infer whether you need basics, revision, exam strategy, deeper reasoning, or a quick check question as the conversation evolves.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
                     {starterPrompts.map((starter) => (
                       <StarterPromptCard
@@ -1305,6 +1494,12 @@ export default function StudyPage() {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <span
+                      title={mentorProfile.nextMove}
+                      className="max-w-full truncate rounded-full border border-[#0E7490]/20 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490] sm:max-w-[420px]"
+                    >
+                      Strategy: {mentorProfile.nextMove}
+                    </span>
                     <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-600">
                       {speechSupported ? "Voice ready" : "Text ready"}
                     </span>

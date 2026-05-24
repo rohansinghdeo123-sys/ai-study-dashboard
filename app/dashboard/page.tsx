@@ -192,13 +192,13 @@ function HubTile({
       className={`hub-tile hub-tile--${tone} group relative min-h-[238px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 sm:p-7`}
     >
       <div className="absolute right-[-3.5rem] top-[-3.5rem] h-36 w-36 rounded-full bg-white/28 blur-2xl transition duration-500 group-hover:scale-110" />
-      <div className="relative flex h-full flex-col">
+      <div className="relative z-20 flex h-full flex-col">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">{eyebrow}</p>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
           </div>
-          <span className="hub-tile-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/50 bg-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+          <span className="hub-tile-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/50 bg-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
             <HubIcon name={icon} />
           </span>
         </div>
@@ -207,7 +207,7 @@ function HubTile({
         <div className="mt-auto pt-7">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-xs font-semibold opacity-[0.68]">{helper}</span>
-            <span className="hub-tile-action inline-flex w-fit items-center rounded-full border border-white/50 bg-white/35 px-4 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-xl">
+            <span className="hub-tile-action inline-flex w-fit items-center rounded-full border border-white/60 bg-white/48 px-4 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
               {action}
             </span>
           </div>
@@ -303,10 +303,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="relative w-full max-w-[1180px] px-1 sm:px-4">
-            <div className="hub-center absolute left-1/2 top-1/2 z-20 hidden h-40 w-40 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/86 text-center shadow-[0_24px_80px_rgba(15,23,42,0.16)] backdrop-blur-2xl md:flex">
+            <div className="hub-center pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/72 text-center shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl md:flex">
               <div>
-                <p className="text-3xl font-semibold text-slate-950">AI</p>
-                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#0E7490]">Choose path</p>
+                <p className="text-2xl font-semibold text-slate-950">AI</p>
+                <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#0E7490]">Choose</p>
               </div>
             </div>
             <div className="hub-grid grid overflow-visible rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
