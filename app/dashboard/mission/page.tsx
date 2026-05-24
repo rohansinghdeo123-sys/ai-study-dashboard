@@ -39,6 +39,17 @@ interface AutonomousMission {
   priority?: string;
   mastery_band?: string;
   estimated_minutes?: number;
+  mission_goal?: string;
+  prerequisite_check?: {
+    status?: string;
+    question?: string;
+    action?: string;
+  };
+  high_priority_concepts?: string[];
+  fast_revision_strategy?: string[];
+  weakness_detection_points?: string[];
+  final_confidence_check?: string[];
+  fast_track_strategy?: string[];
   objective: string;
   why: string;
   steps: string[];
@@ -54,6 +65,15 @@ interface AutonomousMission {
       adaptive_roadmap?: MissionRoadmapStep[];
     };
   };
+}
+
+interface MissionProfile {
+  currentKnowledge: string;
+  learningGoal: string;
+  availableMinutes: string;
+  examTarget: string;
+  preferredStyle: string;
+  prerequisiteConfidence: string;
 }
 
 const CHAPTERS = [
@@ -78,6 +98,41 @@ const CHAPTERS = [
   },
 ];
 
+const KNOWLEDGE_OPTIONS = [
+  { label: "New to this", value: "new" },
+  { label: "Weak basics", value: "weak_basics" },
+  { label: "Some idea", value: "some_idea" },
+  { label: "Know basics", value: "know_basics" },
+];
+
+const GOAL_OPTIONS = [
+  { label: "Deep understanding", value: "deep_understanding" },
+  { label: "Exam scoring", value: "exam" },
+  { label: "Quick revision", value: "quick_revision" },
+  { label: "Fast track", value: "fast_track" },
+];
+
+const EXAM_OPTIONS = [
+  { label: "School exam", value: "school_exam" },
+  { label: "Boards", value: "boards" },
+  { label: "JEE", value: "jee" },
+  { label: "NEET", value: "neet" },
+  { label: "Quick revision", value: "quick_revision" },
+];
+
+const STYLE_OPTIONS = [
+  { label: "Examples first", value: "examples_first" },
+  { label: "Short explanations", value: "short_explanations" },
+  { label: "Conceptual detail", value: "conceptual_detail" },
+  { label: "Visual intuition", value: "visual_intuition" },
+];
+
+const PREREQ_OPTIONS = [
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+];
+
 function formatLabel(value?: string | number) {
   if (value === undefined || value === null || value === "") return "Not set";
   return String(value).replace(/_/g, " ");
@@ -85,6 +140,35 @@ function formatLabel(value?: string | number) {
 
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
+}
+
+function ProfileSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: Array<{ label: string; value: string }>;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
+      >
+        {options.map((item) => (
+          <option key={item.value} value={item.value}>
+            {item.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
 }
 
 function buildReport(mission: AutonomousMission, correct: boolean) {
@@ -107,6 +191,14 @@ export default function MissionPage() {
 
   const [chapter, setChapter] = useState(searchParams.get("chapter") || "hydrocarbon");
   const [topic, setTopic] = useState(searchParams.get("topic") || "alkanes");
+  const [profile, setProfile] = useState<MissionProfile>({
+    currentKnowledge: "some_idea",
+    learningGoal: "exam",
+    availableMinutes: "45",
+    examTarget: "school_exam",
+    preferredStyle: "examples_first",
+    prerequisiteConfidence: "medium",
+  });
   const [mission, setMission] = useState<AutonomousMission | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -120,6 +212,11 @@ export default function MissionPage() {
   const plan = mission?.study_plan || mission?.result?.data?.study_plan || [];
   const question = mission?.diagnostic_question || mission?.result?.data?.questions?.[0] || null;
   const roadmap = mission?.adaptive_roadmap || mission?.result?.data?.adaptive_roadmap || [];
+  const highPriority = mission?.high_priority_concepts || [];
+  const fastRevision = mission?.fast_revision_strategy || [];
+  const weaknessPoints = mission?.weakness_detection_points || [];
+  const confidenceCheck = mission?.final_confidence_check || [];
+  const fastTrack = mission?.fast_track_strategy || [];
   const isCorrect = Boolean(question && selectedAnswer === question.correct);
   const report = useMemo(() => (mission && submitted ? buildReport(mission, isCorrect) : null), [isCorrect, mission, submitted]);
 
@@ -138,6 +235,12 @@ export default function MissionPage() {
           current_topic: topic,
           current_chapter: chapter,
           subject: "Chemistry",
+          current_knowledge: profile.currentKnowledge,
+          learning_goal: profile.learningGoal,
+          available_minutes: Number(profile.availableMinutes) || undefined,
+          exam_target: profile.examTarget,
+          preferred_style: profile.preferredStyle,
+          prerequisite_confidence: profile.prerequisiteConfidence,
         }),
       });
 
@@ -208,10 +311,10 @@ export default function MissionPage() {
       <section className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Autonomous Mission</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
-          One clear plan. One smart question.
+          Fastest path to finish a topic.
         </h1>
         <p className="mt-3 text-sm leading-6 text-slate-500">
-          This workspace keeps the mission small and motivating: understand the topic, answer one diagnostic, then follow the adaptive roadmap.
+          Select the topic, answer a few quick profile questions, then get a time-optimized roadmap with checkpoints and a final confidence signal.
         </p>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
@@ -243,6 +346,53 @@ export default function MissionPage() {
           </select>
         </div>
 
+        <div className="mt-5 rounded-3xl border border-slate-200 bg-white/60 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Adaptive profile</p>
+          <div className="mt-4 grid gap-3">
+            <ProfileSelect
+              label="Current knowledge"
+              value={profile.currentKnowledge}
+              options={KNOWLEDGE_OPTIONS}
+              onChange={(value) => setProfile((current) => ({ ...current, currentKnowledge: value }))}
+            />
+            <ProfileSelect
+              label="Mission goal"
+              value={profile.learningGoal}
+              options={GOAL_OPTIONS}
+              onChange={(value) => setProfile((current) => ({ ...current, learningGoal: value }))}
+            />
+            <label className="block">
+              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Available time</span>
+              <input
+                type="number"
+                min={10}
+                max={240}
+                value={profile.availableMinutes}
+                onChange={(event) => setProfile((current) => ({ ...current, availableMinutes: event.target.value }))}
+                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
+              />
+            </label>
+            <ProfileSelect
+              label="Exam target"
+              value={profile.examTarget}
+              options={EXAM_OPTIONS}
+              onChange={(value) => setProfile((current) => ({ ...current, examTarget: value }))}
+            />
+            <ProfileSelect
+              label="Preferred style"
+              value={profile.preferredStyle}
+              options={STYLE_OPTIONS}
+              onChange={(value) => setProfile((current) => ({ ...current, preferredStyle: value }))}
+            />
+            <ProfileSelect
+              label="Prerequisite confidence"
+              value={profile.prerequisiteConfidence}
+              options={PREREQ_OPTIONS}
+              onChange={(value) => setProfile((current) => ({ ...current, prerequisiteConfidence: value }))}
+            />
+          </div>
+        </div>
+
         <button
           onClick={startMission}
           disabled={loadingMission || !userId}
@@ -257,9 +407,9 @@ export default function MissionPage() {
         <div className="mt-6 rounded-3xl border border-slate-200 bg-white/60 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Guidance</p>
           <div className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-            <p>1. Read the plan slowly.</p>
-            <p>2. Answer the diagnostic honestly.</p>
-            <p>3. Follow the personalized next step.</p>
+            <p>1. Set your time and exam target honestly.</p>
+            <p>2. Follow the timed roadmap without extra theory.</p>
+            <p>3. Use the final confidence check to decide if the topic is complete.</p>
           </div>
         </div>
       </section>
@@ -268,8 +418,8 @@ export default function MissionPage() {
         {!mission ? (
           <EmptyState
             icon="mission"
-            title="Start with a tiny win"
-            detail="Students improve faster when the next action is obvious. This mission gives only one diagnostic question, then adapts."
+            title="Create your mission"
+            detail="The planner will remove unnecessary theory, prioritize high-yield concepts, and build the shortest useful route for your topic."
           />
         ) : (
           <div className="space-y-5">
@@ -281,9 +431,36 @@ export default function MissionPage() {
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-slate-950">{mission.objective}</h2>
                   <p className="mt-2 text-sm leading-6 text-slate-500">{mission.why}</p>
+                  {mission.mission_goal ? (
+                    <p className="mt-3 rounded-2xl bg-[#0E7490]/10 px-4 py-3 text-sm font-semibold leading-6 text-[#0E7490]">
+                      {mission.mission_goal}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="rounded-2xl bg-[#0E7490]/10 px-4 py-3 text-sm font-semibold text-[#0E7490]">
                   {mission.estimated_minutes || 15} min
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-3xl border border-slate-200 bg-white/65 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Prerequisite check</p>
+                <h3 className="mt-3 text-base font-semibold text-slate-950">
+                  {mission.prerequisite_check?.status ? formatLabel(mission.prerequisite_check.status) : "Ready check"}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-500">{mission.prerequisite_check?.question}</p>
+                <p className="mt-3 text-sm font-semibold leading-6 text-[#0E7490]">{mission.prerequisite_check?.action}</p>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white/65 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Fast-track strategy</p>
+                <div className="mt-3 space-y-2">
+                  {fastTrack.map((item) => (
+                    <div key={item} className="flex gap-2 text-sm leading-6 text-slate-600">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#F2B84B]" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -299,6 +476,42 @@ export default function MissionPage() {
                   <p className="mt-3 text-sm leading-6 text-slate-500">{step.detail}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-3">
+              <div className="rounded-3xl border border-slate-200 bg-white/65 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">High priority concepts</p>
+                <div className="mt-3 space-y-2">
+                  {highPriority.map((item) => (
+                    <div key={item} className="flex gap-2 text-sm leading-6 text-slate-600">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#14B8A6]" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white/65 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Fast revision</p>
+                <div className="mt-3 space-y-2">
+                  {fastRevision.map((item) => (
+                    <div key={item} className="flex gap-2 text-sm leading-6 text-slate-600">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#0E7490]" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-3xl border border-slate-200 bg-white/65 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Weakness detection</p>
+                <div className="mt-3 space-y-2">
+                  {weaknessPoints.map((item) => (
+                    <div key={item} className="flex gap-2 text-sm leading-6 text-slate-600">
+                      <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {question ? (
@@ -368,6 +581,19 @@ export default function MissionPage() {
                     <div key={item.condition} className="rounded-2xl border border-slate-200 bg-white/60 p-4">
                       <p className="text-sm font-semibold text-slate-900">{item.condition}</p>
                       <p className="mt-1 text-sm leading-6 text-slate-500">{item.next_step}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {confidenceCheck.length ? (
+              <div className="rounded-3xl border border-[#14B8A6]/20 bg-[#14B8A6]/10 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0E7490]">Final confidence check</p>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {confidenceCheck.map((item) => (
+                    <div key={item} className="rounded-2xl border border-white/60 bg-white/55 p-4 text-sm font-semibold leading-6 text-slate-700">
+                      {item}
                     </div>
                   ))}
                 </div>
