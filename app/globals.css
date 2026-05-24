@@ -1158,10 +1158,10 @@ body {
   position: relative;
   transform: translate3d(0,0,0) scale(1);
   transition:
-    transform 520ms cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 520ms cubic-bezier(0.16, 1, 0.3, 1),
-    filter 520ms cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 520ms cubic-bezier(0.16, 1, 0.3, 1);
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform;
 }
 
@@ -1170,9 +1170,22 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  border: 1px solid rgba(255,255,255,0.62);
-  opacity: 0;
-  transition: opacity 420ms ease;
+  border: 1px solid rgba(255,255,255,0.54);
+  opacity: 0.42;
+  transition: opacity 220ms ease, border-color 220ms ease;
+}
+
+.dashboard-shell .hub-tile-icon svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.dashboard-shell .hub-tile-action,
+.dashboard-shell .hub-tile-icon {
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), background 220ms ease, border-color 220ms ease;
 }
 
 .dashboard-shell .hub-tile:nth-child(1) {
@@ -1193,17 +1206,28 @@ body {
 
 .dashboard-shell .hub-tile:hover {
   z-index: 30;
-  transform: translate3d(0,-12px,0) scale(1.035) rotate(0.25deg);
-  box-shadow: 0 34px 95px rgba(15,23,42,0.20), 0 0 0 1px rgba(20,184,166,0.16);
-  filter: saturate(1.05) brightness(1.02);
+  transform: translate3d(0,-4px,0) scale(1.01);
+  box-shadow: 0 22px 62px rgba(15,23,42,0.15), 0 0 0 1px rgba(14,116,144,0.10);
+  filter: saturate(1.03) brightness(1.01);
 }
 
 .dashboard-shell .hub-tile:hover::after {
+  border-color: rgba(255,255,255,0.82);
   opacity: 1;
 }
 
+.dashboard-shell .hub-tile:hover .hub-tile-action,
+.dashboard-shell .hub-tile:hover .hub-tile-icon {
+  border-color: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.48);
+}
+
+.dashboard-shell .hub-tile:active {
+  transform: translate3d(0,-1px,0) scale(0.998);
+}
+
 [data-theme="dark"] .dashboard-shell .hub-tile:hover {
-  box-shadow: 0 36px 110px rgba(0,0,0,0.46), 0 0 0 1px rgba(20,184,166,0.22), 0 0 44px rgba(14,116,144,0.16);
+  box-shadow: 0 24px 72px rgba(0,0,0,0.36), 0 0 0 1px rgba(20,184,166,0.18), 0 0 24px rgba(14,116,144,0.10);
 }
 
 [data-theme="dark"] .dashboard-shell {
@@ -1246,6 +1270,33 @@ body {
 [data-theme="dark"] .dashboard-shell .theme-toggle-button:hover {
   border-color: rgba(20,184,166,0.36) !important;
   color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .dashboard-shell .student-guide-panel {
+  background: rgba(7,17,31,0.96) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  box-shadow: 0 34px 120px rgba(0,0,0,0.46) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .student-guide-header {
+  background: rgba(7,17,31,0.88) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .student-guide-card {
+  background: rgba(255,255,255,0.055) !important;
+  border-color: rgba(255,255,255,0.10) !important;
+  box-shadow: 0 18px 54px rgba(0,0,0,0.24) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .student-guide-soft-card {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.09) !important;
+}
+
+[data-theme="dark"] .dashboard-shell .student-guide-info {
+  background: rgba(14,116,144,0.14) !important;
+  border-color: rgba(20,184,166,0.24) !important;
 }
 
 [data-theme="dark"] .dashboard-shell [class*="bg-white"],
@@ -1314,6 +1365,11 @@ body {
   color: #F8FAFC !important;
 }
 
+[data-theme="dark"] .dashboard-shell .hub-tile--mission {
+  background: linear-gradient(135deg, #07111F 0%, #0B302D 54%, #0F6157 100%) !important;
+  color: #D8F6EF !important;
+}
+
 [data-theme="dark"] .dashboard-shell .hub-tile--gold {
   background: linear-gradient(135deg, #17110A 0%, #2A210F 52%, #4A3512 100%) !important;
   color: #FFE8AE !important;
@@ -1351,6 +1407,10 @@ body {
 
   .dashboard-shell .hub-tile {
     border-radius: 0 !important;
+  }
+
+  .dashboard-shell .hub-tile:hover {
+    transform: none;
   }
 
   .dashboard-shell .hub-tile:nth-child(1) {

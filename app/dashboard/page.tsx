@@ -113,38 +113,105 @@ function MetricCard({ label, value, helper }: { label: string; value: string | n
   );
 }
 
+type HubIconName = "dashboard" | "study" | "mission" | "sessions";
+
+function HubIcon({ name }: { name: HubIconName }) {
+  if (name === "dashboard") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+        <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h4A1.5 1.5 0 0 1 11 5.5v4A1.5 1.5 0 0 1 9.5 11h-4A1.5 1.5 0 0 1 4 9.5v-4Z" />
+        <path d="M13 5.5A1.5 1.5 0 0 1 14.5 4h4A1.5 1.5 0 0 1 20 5.5v4a1.5 1.5 0 0 1-1.5 1.5h-4A1.5 1.5 0 0 1 13 9.5v-4Z" />
+        <path d="M4 14.5A1.5 1.5 0 0 1 5.5 13h4a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 9.5 20h-4A1.5 1.5 0 0 1 4 18.5v-4Z" />
+        <path d="M13 14.5a1.5 1.5 0 0 1 1.5-1.5h4a1.5 1.5 0 0 1 1.5 1.5v4a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5v-4Z" />
+      </svg>
+    );
+  }
+
+  if (name === "study") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+        <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6A2.5 2.5 0 0 1 16.5 15H12l-4.5 4v-4A2.5 2.5 0 0 1 5 12.5v-6Z" />
+        <path d="M8 8h8M8 11h5" />
+      </svg>
+    );
+  }
+
+  if (name === "mission") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+        <path d="M12 21a9 9 0 1 0-9-9" />
+        <path d="M12 17a5 5 0 1 0-5-5" />
+        <path d="M12 13a1 1 0 1 0-1-1" />
+        <path d="M4 20 12 12M4 20h4M4 20v-4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
+      <path d="M12 8v5l3 2" />
+      <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
+      <path d="M4.5 5.5v4h4" />
+    </svg>
+  );
+}
+
 function HubTile({
   href,
   eyebrow,
   title,
   description,
+  helper,
+  action,
+  icon,
   tone,
 }: {
   href: string;
   eyebrow: string;
   title: string;
   description: string;
-  tone: "teal" | "gold" | "study";
+  helper: string;
+  action: string;
+  icon: HubIconName;
+  tone: "teal" | "gold" | "study" | "mission";
 }) {
   const toneClass =
     tone === "gold"
-      ? "from-[#FFF4D8] to-[#FFE8AE] text-[#7A4B00]"
-      : tone === "study"
+      ? "from-[#FFF8E7] via-[#FFF0C8] to-[#FFE3A3] text-[#744900]"
+      : tone === "mission"
+        ? "from-[#ECFDF5] via-[#E5FAF3] to-[#CDEFE5] text-[#075F54]"
+        : tone === "study"
         ? "from-[#F1FBFF] via-[#E7F8F6] to-[#C9F0EC] text-[#0B5363]"
-        : "from-[#E6FFFB] to-[#D8F6EF] text-[#0E5264]";
+        : "from-[#EAFDFC] via-[#DFF8F3] to-[#D5F0EA] text-[#0E5264]";
 
   return (
     <Link
       href={href}
-      className={`hub-tile hub-tile--${tone} group relative min-h-[230px] overflow-hidden bg-gradient-to-br ${toneClass} p-7`}
+      aria-label={`${title}: ${description}`}
+      className={`hub-tile hub-tile--${tone} group relative min-h-[238px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 sm:p-7`}
     >
-      <div className="absolute right-[-3rem] top-[-3rem] h-36 w-36 rounded-full bg-white/32 blur-2xl transition group-hover:scale-125" />
-      <p className="relative text-xs font-bold uppercase tracking-[0.22em] opacity-70">{eyebrow}</p>
-      <h2 className="relative mt-5 text-2xl font-semibold tracking-tight">{title}</h2>
-      <p className="relative mt-3 max-w-sm text-sm leading-6 opacity-75">{description}</p>
-      <span className="relative mt-8 inline-flex rounded-full bg-white/32 px-4 py-2 text-sm font-semibold backdrop-blur-xl">
-        Open
-      </span>
+      <div className="absolute right-[-3.5rem] top-[-3.5rem] h-36 w-36 rounded-full bg-white/28 blur-2xl transition duration-500 group-hover:scale-110" />
+      <div className="relative flex h-full flex-col">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">{eyebrow}</p>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
+          </div>
+          <span className="hub-tile-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/50 bg-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+            <HubIcon name={icon} />
+          </span>
+        </div>
+
+        <p className="mt-4 max-w-sm text-sm leading-6 opacity-[0.78]">{description}</p>
+        <div className="mt-auto pt-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs font-semibold opacity-[0.68]">{helper}</span>
+            <span className="hub-tile-action inline-flex w-fit items-center rounded-full border border-white/50 bg-white/35 px-4 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] backdrop-blur-xl">
+              {action}
+            </span>
+          </div>
+        </div>
+      </div>
     </Link>
   );
 }
@@ -232,7 +299,7 @@ export default function DashboardPage() {
               Good to see you, {firstName}
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-500">
-              Choose one section from the hub. Each opens as a full-window learning workspace.
+              Pick one section from the hub. Each card opens a focused learning space, and the Guide button explains the whole app.
             </p>
           </div>
 
@@ -248,29 +315,41 @@ export default function DashboardPage() {
                 href="/dashboard?workspace=overview"
                 eyebrow="Overview"
                 title="Dashboard"
-                description="Your simple home base, focus signal, weak areas, and quick progress."
+                description="Check your level, XP, accuracy, streak, weak areas, and today's best next step."
+                helper="Best for a quick check-in"
+                action="View progress"
+                icon="dashboard"
                 tone="teal"
               />
               <HubTile
                 href="/dashboard/study"
                 eyebrow="Ask"
                 title="Study Page"
-                description="A clean full-window AI tutor chat for doubts, examples, and follow-ups."
+                description="Ask doubts, get examples, create revision notes, and practice exam-style questions."
+                helper="Best when you are stuck"
+                action="Ask a doubt"
+                icon="study"
                 tone="study"
-              />
-              <HubTile
-                href="/dashboard/sessions"
-                eyebrow="Review"
-                title="Sessions"
-                description="Replay previous attempts and understand what improved or needs repair."
-                tone="gold"
               />
               <HubTile
                 href="/dashboard/mission"
                 eyebrow="Improve"
                 title="Autonomous Mission"
-                description="A guided plan, one chapter-based MCQ, adaptive roadmap, and final report."
-                tone="teal"
+                description="Choose a chapter and let AgentifyAI plan, quiz, explain, and guide your next move."
+                helper="Best for guided study"
+                action="Start mission"
+                icon="mission"
+                tone="mission"
+              />
+              <HubTile
+                href="/dashboard/sessions"
+                eyebrow="Review"
+                title="Sessions"
+                description="Replay past attempts, review answers, and learn from mistakes before the next test."
+                helper="Best after practice"
+                action="Review work"
+                icon="sessions"
+                tone="gold"
               />
             </div>
           </div>

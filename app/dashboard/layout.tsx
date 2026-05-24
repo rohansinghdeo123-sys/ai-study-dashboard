@@ -1,6 +1,7 @@
 "use client";
 
 import ThemeToggle from "@/components/ThemeToggle";
+import StudentGuide from "@/components/StudentGuide";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -87,6 +88,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
 
       <div className="fixed right-4 top-4 z-50 flex items-center gap-2 sm:right-6">
+        <StudentGuide isAdmin={isAdmin} />
         <Link
           href="/dashboard/progress"
           className="dashboard-nav-card hidden rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-[#0E7490] sm:inline-flex"
