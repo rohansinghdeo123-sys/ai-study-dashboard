@@ -303,12 +303,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="relative w-full max-w-[1180px] px-1 sm:px-4">
-            <div className="hub-center pointer-events-none absolute left-1/2 top-1/2 z-10 hidden h-28 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-white/72 text-center shadow-[0_18px_50px_rgba(15,23,42,0.10)] backdrop-blur-2xl md:flex">
-              <div>
-                <p className="text-2xl font-semibold text-slate-950">AI</p>
-                <p className="mt-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#0E7490]">Choose</p>
-              </div>
-            </div>
             <div className="hub-grid grid overflow-visible rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2">
               <HubTile
                 href="/dashboard?workspace=overview"

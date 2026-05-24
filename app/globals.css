@@ -1254,15 +1254,6 @@ body {
   transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), background 220ms ease, border-color 220ms ease;
 }
 
-.dashboard-shell .hub-center {
-  mix-blend-mode: normal;
-}
-
-.dashboard-shell .hub-tile:nth-child(1) .hub-tile-action,
-.dashboard-shell .hub-tile:nth-child(3) .hub-tile-icon {
-  margin-right: clamp(4.75rem, 7vw, 6.5rem);
-}
-
 .dashboard-shell .hub-tile:nth-child(1) {
   border-top-left-radius: 3rem;
 }
@@ -1435,16 +1426,6 @@ body {
   box-shadow: 0 40px 140px rgba(0,0,0,0.42) !important;
 }
 
-[data-theme="dark"] .dashboard-shell .hub-center {
-  background: rgba(248,250,252,0.93) !important;
-  border-color: rgba(255,255,255,0.18) !important;
-  color: #020617 !important;
-}
-
-[data-theme="dark"] .dashboard-shell .hub-center * {
-  color: inherit !important;
-}
-
 [data-theme="dark"] .dashboard-shell .hub-tile--teal {
   background: linear-gradient(135deg, #07111F 0%, #0B2632 54%, #0E5264 100%) !important;
   color: #D8F6EF !important;
@@ -1467,6 +1448,102 @@ body {
 
 [data-theme="dark"] .dashboard-shell .hub-tile * {
   color: inherit !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(20,184,166,0.13), transparent 30%),
+    radial-gradient(circle at 88% 4%, rgba(242,184,75,0.14), transparent 28%),
+    linear-gradient(135deg, rgba(248,250,252,0.96) 0%, rgba(239,253,250,0.88) 48%, rgba(255,248,230,0.84) 100%) !important;
+  border-color: rgba(14,116,144,0.14) !important;
+  color: #0F172A !important;
+  box-shadow: 0 26px 80px rgba(15,23,42,0.10) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell > .absolute:first-child {
+  background-image:
+    linear-gradient(to right, rgba(14,116,144,0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14,116,144,0.045) 1px, transparent 1px) !important;
+  opacity: 0.42 !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-hero-panel,
+[data-theme="light"] .dashboard-shell .progress-glass-card,
+[data-theme="light"] .dashboard-shell .progress-glass-panel,
+[data-theme="light"] .dashboard-shell .progress-chart-frame,
+[data-theme="light"] .dashboard-shell .progress-readiness-card,
+[data-theme="light"] .dashboard-shell .progress-mini-card {
+  background: rgba(255,255,255,0.78) !important;
+  border-color: rgba(15,23,42,0.10) !important;
+  color: #0F172A !important;
+  box-shadow: 0 18px 54px rgba(15,23,42,0.08) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-hero-panel {
+  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(240,253,250,0.72)) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-readiness-pane,
+[data-theme="light"] .dashboard-shell .progress-panel-header {
+  background: rgba(248,250,252,0.82) !important;
+  border-color: rgba(15,23,42,0.10) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-chart-grid {
+  background-image:
+    linear-gradient(to right, rgba(14,116,144,0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(14,116,144,0.06) 1px, transparent 1px) !important;
+  opacity: 0.58 !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-chart-wash {
+  background:
+    radial-gradient(circle at 58% 36%, rgba(255,170,10,0.10), transparent 26%),
+    linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.82) 100%) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-empty-state {
+  background: rgba(255,255,255,0.62) !important;
+  border-color: rgba(14,116,144,0.18) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-rail {
+  background: rgba(15,23,42,0.08) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="border-white"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="border-cyan-100"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="border-[#1A2C3C]"] {
+  border-color: rgba(15,23,42,0.10) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="bg-white/"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="bg-black/"] {
+  background-color: rgba(255,255,255,0.64) !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-white"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-slate-100"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-slate-200"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-gray-200"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-gray-300"] {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-slate-400"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-gray-400"] {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-slate-500"],
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="text-gray-500"] {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .dashboard-shell .progress-analytics-shell table,
+[data-theme="light"] .dashboard-shell .progress-analytics-shell tr,
+[data-theme="light"] .dashboard-shell .progress-analytics-shell [class*="hover:bg-white"]:hover {
+  background-color: rgba(14,116,144,0.055) !important;
 }
 
 /* ============================================================
@@ -1509,11 +1586,6 @@ body {
 
   .dashboard-shell .hub-tile:nth-child(4) {
     border-radius: 0 0 3rem 3rem !important;
-  }
-
-  .dashboard-shell .hub-tile:nth-child(1) .hub-tile-action,
-  .dashboard-shell .hub-tile:nth-child(3) .hub-tile-icon {
-    margin-right: 0;
   }
 
   .dashboard-hero-card,
