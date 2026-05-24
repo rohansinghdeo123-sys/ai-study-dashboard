@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
+import { AlertState, AppIcon, LoadingState, type AppIconName } from "@/components/ui/Polished";
 
 // ─── Utility functions (unchanged) ────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
@@ -50,7 +51,7 @@ function getErrorMessage(error: unknown) {
 }
 
 // ─── Terminal sub‑components (unchanged) ──────────────────────────────────
-function TerminalBadge({
+function LoginBadge({
   children,
   tone = "blue",
 }: {
@@ -60,8 +61,7 @@ function TerminalBadge({
   return (
     <span
       className={cn(
-        "inline-flex border px-2 py-1 text-[9px] font-bold uppercase tracking-[0.22em]",
-        "font-mono",
+        "login-trust-pill inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em]",
         tone === "orange" && "border-amber-600/30 bg-amber-600/10 text-amber-500",
         tone === "green" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
         tone === "blue" && "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]",
@@ -78,43 +78,43 @@ function TerminalBadge({
 function MetricTile({
   label,
   value,
+  icon,
   active = false,
 }: {
   label: string;
   value: string;
+  icon: AppIconName;
   active?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 transition-colors duration-300",
+        "login-signal-card rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 transition-colors duration-300",
         active && "border-cyan-300/25 bg-cyan-300/10",
       )}
     >
-      <div className="text-[11px] text-slate-500">{label}</div>
-      <div
-        className={cn(
-          "mt-2 text-sm font-semibold",
-          active ? "text-cyan-100" : "text-slate-200",
-        )}
-      >
-        {value}
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[11px] text-slate-500">{label}</div>
+        <span className={cn("flex h-7 w-7 items-center justify-center rounded-xl", active ? "bg-cyan-300/15 text-cyan-100" : "bg-white/[0.055] text-slate-400")}>
+          <AppIcon name={icon} className="h-3.5 w-3.5" />
+        </span>
       </div>
+      <div className={cn("mt-2 text-sm font-semibold", active ? "text-cyan-100" : "text-slate-200")}>{value}</div>
     </div>
   );
 }
 
 const missionSteps = [
-  ["01", "Plan", "Build the study path"],
-  ["02", "Teach", "Explain the concept"],
-  ["03", "Test", "Generate practice"],
-  ["04", "Revise", "Fix weak points"],
+  { step: "01", title: "Plan", detail: "Pick a chapter path", icon: "mission" as AppIconName },
+  { step: "02", title: "Teach", detail: "Explain in simple words", icon: "study" as AppIconName },
+  { step: "03", title: "Test", detail: "Practice exam questions", icon: "check" as AppIconName },
+  { step: "04", title: "Revise", detail: "Fix weak points", icon: "book" as AppIconName },
 ];
 
 const platformSignals = [
-  ["6", "agents online"],
-  ["24/7", "study memory"],
-  ["1", "private learner profile"],
+  { value: "4", label: "student spaces", icon: "dashboard" as AppIconName },
+  { value: "24/7", label: "study help", icon: "clock" as AppIconName },
+  { value: "1", label: "private profile", icon: "home" as AppIconName },
 ];
 
 // ─── Particle background (unchanged) ───────────────────────────────────────
@@ -274,11 +274,7 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#07080D] text-cyan-200">
-        <div className="rounded-lg border border-white/10 bg-white/[0.04] px-4 py-3 text-sm shadow-2xl shadow-black/20">
-          Preparing secure sign in...
-        </div>
-      </div>
+      <LoadingState title="Preparing secure sign in..." detail="Opening your private AgentifyAI study workspace." />
     );
   }
 
@@ -320,7 +316,10 @@ export default function LoginPage() {
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle compact />
-              <TerminalBadge tone="green">Ready</TerminalBadge>
+              <LoginBadge tone="green">
+                <AppIcon name="check" className="h-3 w-3" />
+                Ready
+              </LoginBadge>
             </div>
           </header>
 
@@ -330,21 +329,21 @@ export default function LoginPage() {
             <div className="max-w-3xl">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs font-medium text-slate-400 shadow-[0_14px_34px_rgba(0,0,0,0.12)] backdrop-blur-xl">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.8)]" />
-                AI tutoring, revision, testing, and progress in one place
+                Built for school students who want clear next steps
               </div>
 
               <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-white md:text-7xl">
-                Your autonomous AI study command center.
+                Your AI study companion for school.
               </h1>
 
               <p className="mt-6 max-w-2xl text-base leading-8 text-slate-400 md:text-lg">
-                AgentifyAI gives every learner a private AI coach that can plan a mission, explain a topic, test understanding, and guide the next best study action.
+                AgentifyAI helps every learner ask doubts, revise chapters, practice questions, and understand what to do next without feeling lost.
               </p>
             </div>
 
             <div className="mt-8 grid max-w-3xl grid-cols-3 gap-3">
-              {platformSignals.map(([value, label]) => (
-                <MetricTile key={label} label={label} value={value} active={value === "6"} />
+              {platformSignals.map((item) => (
+                <MetricTile key={item.label} label={item.label} value={item.value} icon={item.icon} active={item.value === "4"} />
               ))}
             </div>
 
@@ -355,26 +354,30 @@ export default function LoginPage() {
                     Autonomous Mission
                   </div>
                   <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">
-                    One goal becomes a guided study workflow.
+                    One chapter becomes a guided study path.
                   </h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-                    The coach turns a student request into a plan, explanation, quiz, revision loop, and progress signal.
+                    The app keeps the journey simple: choose a topic, learn it, test it, then revise the exact weak point.
                   </p>
                 </div>
-                <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
-                  Live preview
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold text-emerald-200">
+                  <AppIcon name="spark" className="h-3.5 w-3.5" />
+                  Student flow
                 </div>
               </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-4">
-                {missionSteps.map(([step, title, detail], index) => (
-                  <div key={title} className="login-mission-step rounded-2xl border border-white/10 bg-black/20 p-4">
+                {missionSteps.map((item, index) => (
+                  <div key={item.title} className="login-mission-step rounded-2xl border border-white/10 bg-black/20 p-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold text-slate-500">{step}</span>
+                      <span className="text-[10px] font-semibold text-slate-500">{item.step}</span>
                       <span className={cn("h-2 w-2 rounded-full", index === 0 ? "bg-cyan-300" : index === 3 ? "bg-amber-300" : "bg-emerald-300")} />
                     </div>
-                    <div className="mt-4 text-sm font-semibold text-white">{title}</div>
-                    <div className="mt-1 text-xs leading-5 text-slate-500">{detail}</div>
+                    <div className="mt-4 flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.055] text-cyan-100">
+                      <AppIcon name={item.icon} />
+                    </div>
+                    <div className="mt-4 text-sm font-semibold text-white">{item.title}</div>
+                    <div className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</div>
                   </div>
                 ))}
               </div>
@@ -385,13 +388,18 @@ export default function LoginPage() {
                 <div>
                   <div className="text-sm font-semibold text-white">Learning Passport</div>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Dashboard, sessions, analytics, and Study Lab sync into one private profile.
+                    Dashboard, Study Page, Missions, and Sessions stay connected in one private profile.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {["Coach ready", "Memory sync", "Secure auth"].map((item) => (
-                    <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-400">
-                      {item}
+                  {[
+                    { label: "Tutor ready", icon: "study" as AppIconName },
+                    { label: "History sync", icon: "history" as AppIconName },
+                    { label: "Secure login", icon: "check" as AppIconName },
+                  ].map((item) => (
+                    <span key={item.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-400">
+                      <AppIcon name={item.icon} className="h-3 w-3" />
+                      {item.label}
                     </span>
                   ))}
                 </div>
@@ -418,10 +426,12 @@ export default function LoginPage() {
                   <>
                     <div className="mb-8">
                       <div className="flex items-center justify-between gap-4">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+                        <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-200/80">
+                          <AppIcon name="home" className="h-3.5 w-3.5" />
                           Account access
                         </div>
-                        <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-medium text-emerald-200">
+                          <AppIcon name="check" className="h-3 w-3" />
                           Secure
                         </span>
                       </div>
@@ -429,12 +439,17 @@ export default function LoginPage() {
                         Sign in to AgentifyAI
                       </h2>
                       <p className="mt-2 text-sm leading-6 text-slate-400">
-                        Continue to your private dashboard, Study Lab, sessions, and autonomous missions.
+                        Continue to your private learning hub. Use Google for the fastest sign in, or phone OTP when you prefer mobile access.
                       </p>
                       <div className="mt-4 grid grid-cols-3 gap-2">
-                        {["Private", "Adaptive", "Mission ready"].map((item) => (
-                          <span key={item} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
-                            {item}
+                        {[
+                          { label: "Private", icon: "home" as AppIconName },
+                          { label: "Adaptive", icon: "spark" as AppIconName },
+                          { label: "Ready", icon: "check" as AppIconName },
+                        ].map((item) => (
+                          <span key={item.label} className="inline-flex items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                            <AppIcon name={item.icon} className="h-3 w-3" />
+                            {item.label}
                           </span>
                         ))}
                       </div>
@@ -444,7 +459,7 @@ export default function LoginPage() {
                     <Button
                       variant="secondary"
                       size="lg"
-                      className="login-google-button w-full"
+                      className="login-google-button w-full !justify-center !gap-3"
                       onClick={handleGoogleLogin}
                     >
                       <svg
@@ -470,7 +485,7 @@ export default function LoginPage() {
 
                     <div className="space-y-3">
                       <label className="block">
-                        <span className="mb-2 block text-[9px] uppercase tracking-[0.22em] text-[#6B6B6B] font-mono">
+                        <span className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#6B6B6B]">
                           Mobile Number
                         </span>
                         <div className="relative">
@@ -479,7 +494,7 @@ export default function LoginPage() {
                             onChange={(event) => setPhoneNumber(event.target.value)}
                             placeholder="+91 98765 43210"
                             disabled={otpSent}
-                            className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#0E7490] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-medium text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#0E7490] disabled:cursor-not-allowed disabled:opacity-60"
                           />
                           {!phoneNumber && !otpSent && (
                             <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-[#0E7490]">
@@ -502,7 +517,7 @@ export default function LoginPage() {
                       ) : (
                         <>
                           <label className="block">
-                            <span className="mb-2 block text-[9px] uppercase tracking-[0.22em] text-[#6B6B6B] font-mono">
+                            <span className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#6B6B6B]">
                               Verification Code
                             </span>
                             <div className="relative">
@@ -510,7 +525,7 @@ export default function LoginPage() {
                                 value={otp}
                                 onChange={(event) => setOtp(event.target.value)}
                                 placeholder="ENTER OTP"
-                                className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 font-mono text-sm text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-emerald-400"
+                                className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-medium text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-emerald-400"
                               />
                               {!otp && (
                                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-emerald-400">
@@ -546,31 +561,32 @@ export default function LoginPage() {
                       )}
                     </div>
 
-                    {authError && (
-                      <div
-                        className={cn(
-                          "mt-4 border border-red-500/30 bg-red-500/10 px-4 py-3 font-mono text-[11px] font-bold uppercase tracking-[0.14em] text-red-400",
-                          shake && "animate-shake",
-                        )}
-                      >
-                        {authError}
+                    {authError ? (
+                      <div className={cn("mt-4", shake && "animate-shake")}>
+                        <AlertState message={authError.replace(/_/g, " ")} />
                       </div>
-                    )}
+                    ) : null}
 
                     <div className="login-provider-card mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
-                      <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em]">
-                        <span className="text-[#6B6B6B] font-mono">Provider</span>
-                        <span className="text-emerald-400 font-mono">Firebase Auth</span>
+                      <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.14em]">
+                        <span className="inline-flex items-center gap-1.5 text-[#6B6B6B]">
+                          <AppIcon name="dashboard" className="h-3 w-3" />
+                          Provider
+                        </span>
+                        <span className="text-emerald-400">Firebase Auth</span>
                       </div>
-                      <div className="mt-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em]">
-                        <span className="text-[#6B6B6B] font-mono">Status</span>
-                        <span className="text-[#0E7490] font-mono">OTP Enabled</span>
+                      <div className="mt-3 flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.14em]">
+                        <span className="inline-flex items-center gap-1.5 text-[#6B6B6B]">
+                          <AppIcon name="clock" className="h-3 w-3" />
+                          Status
+                        </span>
+                        <span className="text-[#0E7490]">OTP Enabled</span>
                       </div>
                     </div>
                   </>
                 )}
 
-                <p className="mt-5 text-center text-[10px] uppercase tracking-[0.18em] text-[#6B6B6B] font-mono">
+                <p className="mt-5 text-center text-[10px] uppercase tracking-[0.14em] text-[#6B6B6B]">
                   By continuing, you agree to our Terms and Privacy Policy
                 </p>
 

@@ -950,16 +950,37 @@ body {
   transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
 }
 
+.login-signal-card {
+  box-shadow: 0 14px 34px rgba(0,0,0,0.12);
+}
+
+.login-signal-card,
+.login-trust-pill {
+  backdrop-filter: blur(18px);
+}
+
+.login-signal-card,
+.login-google-button,
+.login-input,
+.login-provider-card {
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
 .login-mission-step:hover {
   transform: translateY(-2px);
   border-color: rgba(20,184,166,0.24) !important;
   background: rgba(255,255,255,0.055) !important;
 }
 
-.login-google-button,
-.login-input,
-.login-provider-card {
-  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+.login-signal-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(20,184,166,0.22) !important;
+  background: rgba(255,255,255,0.06) !important;
+}
+
+.login-google-button {
+  border-radius: 18px !important;
+  min-height: 52px;
 }
 
 .login-google-button:hover,
@@ -1023,10 +1044,16 @@ body {
 }
 
 [data-theme="light"] .login-mission-step,
+[data-theme="light"] .login-signal-card,
+[data-theme="light"] .login-trust-pill,
 [data-theme="light"] .login-provider-card,
 [data-theme="light"] .login-input {
   border-color: rgba(92,101,123,0.14) !important;
   background: rgba(255,255,255,0.78) !important;
+}
+
+[data-theme="light"] .login-signal-card:hover {
+  background: rgba(255,255,255,0.92) !important;
 }
 
 [data-theme="light"] .login-mission-card {
