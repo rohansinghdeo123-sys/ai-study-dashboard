@@ -724,33 +724,31 @@ function StudentPromptCard({ content, timestamp }: { content: string; timestamp:
 
 function TutorActionDock({
   answer,
-  topicLabel,
   onPrompt,
 }: {
   answer: string;
-  topicLabel: string;
   onPrompt: (prompt: string) => void;
 }) {
   const actions = [
     {
       label: "Simplify",
-      prompt: `Explain ${topicLabel} more simply, like I am learning it for the first time.`,
+      prompt: "Explain the previous answer more simply, like I am learning it for the first time.",
     },
     {
       label: "Example",
-      prompt: `Give me one real-life example for ${topicLabel} and connect it step by step.`,
+      prompt: "Give me one real-life example connected to the concept we just discussed, step by step.",
     },
     {
       label: "Practice",
-      prompt: `Ask me one practice question on ${topicLabel}, wait for my answer, then evaluate it.`,
+      prompt: "Ask me one practice question from the concept we just discussed, wait for my answer, then evaluate it.",
     },
     {
       label: "Exam answer",
-      prompt: `Write an exam-ready answer for ${topicLabel} with marks-style structure.`,
+      prompt: "Turn the previous answer into an exam-ready answer with marks-style structure.",
     },
     {
       label: "Mistake check",
-      prompt: `What mistake might I make in ${topicLabel}, and how do I avoid it?`,
+      prompt: "What mistake might I make in this concept, and how do I avoid it?",
     },
   ];
 
@@ -811,20 +809,9 @@ function TutorResponseCard({
           {pending ? (
             <AgentPipeline stages={stages} />
           ) : (
-            <article className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white/94 shadow-[0_24px_78px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
-              <div className="border-b border-slate-200/70 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(236,254,255,0.58))] px-5 py-3.5">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#0E7490]">Reviewed answer</p>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-600">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    Ready
-                  </span>
-                </div>
-              </div>
-              <div className="px-5 py-5 sm:px-7 sm:py-7">
-                <CoachAnswer value={content} />
-                <TutorActionDock answer={content} topicLabel={topicLabel} onPrompt={onPrompt} />
-              </div>
+            <article className="rounded-[1.35rem] border border-slate-200/70 bg-white/86 px-5 py-5 shadow-[0_18px_58px_rgba(15,23,42,0.07)] backdrop-blur-2xl sm:px-7 sm:py-7">
+              <CoachAnswer value={content} />
+              <TutorActionDock answer={content} onPrompt={onPrompt} />
             </article>
           )}
         </div>
@@ -851,18 +838,18 @@ function ModeButton({
       type="button"
       onClick={onClick}
       title={detail}
-      className={`study-mode-button flex min-h-[92px] items-start gap-3 rounded-2xl border px-3 py-3 text-left transition ${
+      className={`study-mode-button flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
         active
           ? "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490] shadow-[0_14px_36px_rgba(14,116,144,0.10)]"
           : "border-slate-200 bg-white/64 text-slate-500 hover:border-[#0E7490]/25 hover:text-slate-900"
       }`}
     >
-      <span className={`study-mode-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
+      <span className={`study-mode-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
         <AppIcon name={icon} />
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold">{label}</span>
-        <span className="mt-1 block text-[11px] leading-4 opacity-75">{detail}</span>
+        <span className="mt-0.5 hidden text-[11px] leading-4 opacity-75 xl:block">{detail}</span>
       </span>
     </button>
   );
@@ -959,35 +946,36 @@ export default function StudyPage() {
   const hasPendingCoachMessage = messages.some((message) => message.role === "coach" && !message.content.trim());
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
+  const needsTopicPicker = mode === "revision" || mode === "exam";
 
   const starterPrompts = useMemo(
     () => [
       {
         label: "Explain",
-        title: `Teach me ${selectedTopic.label}`,
-        detail: "Start with a simple concept explanation and example.",
-        prompt: `Teach me ${selectedTopic.label} from the basics with one simple example.`,
+        title: "Teach any concept",
+        detail: "Start with a topic from any subject and ask for a simple explanation.",
+        prompt: "Teach me photosynthesis from the basics with one simple example.",
       },
       {
         label: "Exam",
         title: "Write answer format",
         detail: "Get a clean, marks-ready answer for school exams.",
-        prompt: `Write an exam-ready answer on ${selectedTopic.label} with definition, points, example, and common mistake.`,
+        prompt: "Write an exam-ready answer on Newton's laws with definition, points, example, and common mistake.",
       },
       {
         label: "Practice",
         title: "Ask one question",
         detail: "Let the tutor test you and review your answer.",
-        prompt: `Ask me one intelligent practice question on ${selectedTopic.label}, wait for my answer, then evaluate it.`,
+        prompt: "Ask me one intelligent practice question on quadratic equations, wait for my answer, then evaluate it.",
       },
       {
         label: "Plan",
         title: "Create mini plan",
-        detail: "Turn this topic into a short study path.",
-        prompt: `Create a simple 20-minute study plan for ${selectedTopic.label}.`,
+        detail: "Turn any topic into a short study path.",
+        prompt: "Create a simple 20-minute study plan for the French Revolution.",
       },
     ],
-    [selectedTopic.label],
+    [],
   );
 
   useEffect(() => {
@@ -1024,8 +1012,8 @@ export default function StudyPage() {
       id: currentConversationId,
       title: titleFromMessages(messages),
       updatedAt: new Date().toISOString(),
-      chapter,
-      topic,
+      chapter: "Open tutor",
+      topic: "Any subject",
       messages,
     };
 
@@ -1134,8 +1122,6 @@ export default function StudyPage() {
           message: prompt,
           mode: "coach",
           intent: adaptiveProfile.intent,
-          subject: "Chemistry",
-          topic,
           session_id: `coach-${userId}`,
           mentor_directive: buildMentorDirective(adaptiveProfile),
           student_state: {
@@ -1152,8 +1138,7 @@ export default function StudyPage() {
             weak_signals: adaptiveProfile.weakSignals,
           },
           learning_context: {
-            chapter,
-            topic,
+            scope: "open_tutor",
             recent_messages: messages.slice(-6),
             saved_conversations: conversations.length,
           },
@@ -1231,8 +1216,11 @@ export default function StudyPage() {
 
   const resumeConversation = (conversation: StudyConversation) => {
     setCurrentConversationId(conversation.id);
-    setChapter(conversation.chapter || "hydrocarbon");
-    setTopic(conversation.topic || "alkanes");
+    const savedChapter = CHAPTERS.find((item) => item.value === conversation.chapter);
+    if (savedChapter) {
+      setChapter(savedChapter.value);
+      setTopic(savedChapter.topics.some((item) => item.value === conversation.topic) ? conversation.topic : savedChapter.topics[0].value);
+    }
     setMessages(conversation.messages || []);
     setMode("coach");
     window.setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
@@ -1393,28 +1381,38 @@ export default function StudyPage() {
 
   if (authBusy) {
     return (
-      <LoadingState title="Opening your study room..." detail="Preparing tutor, chapter, topic, and voice tools." />
+      <LoadingState title="Opening your study room..." detail="Preparing tutor, chat, and learning tools." />
     );
   }
 
   return (
-    <div className="study-lab-shell flex min-h-[calc(100svh-6.5rem)] w-full flex-col overflow-hidden rounded-[2.2rem] border border-white/50 bg-white/70 shadow-[0_30px_100px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
-      <section className="study-lab-header border-b border-white/45 bg-white/64 px-4 py-4 backdrop-blur-2xl sm:px-6">
+    <div className={`study-lab-shell flex min-h-[calc(100svh-6.5rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl ${
+      mode === "coach" ? "rounded-[1.6rem] shadow-[0_24px_80px_rgba(15,23,42,0.10)]" : "rounded-[2.2rem] shadow-[0_30px_100px_rgba(15,23,42,0.12)]"
+    }`}>
+      <section className={`study-lab-header border-b border-white/45 bg-white/64 px-4 backdrop-blur-2xl sm:px-6 ${
+        mode === "coach" ? "py-3" : "py-4"
+      }`}>
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Study Lab</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">
+              {mode === "coach" ? "Open Tutor" : "Study Lab"}
+            </p>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
               <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-                Ask {coachName} anything
+                {mode === "coach" ? `Ask ${coachName} anything` : `${mode[0].toUpperCase()}${mode.slice(1)} tools`}
               </h1>
               <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
                 {speechSupported ? "Voice ready" : "Text mode"}
               </span>
             </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              One focused place for doubts, revision sheets, exam practice, history, and adaptive tutoring.
+              {mode === "coach"
+                ? "Ask any subject, any topic, or any follow-up. The tutor will infer the intent and adapt the answer."
+                : mode === "history"
+                  ? "Resume old doubts without choosing a subject or topic."
+                  : "Choose a target topic for revision sheets and exam practice."}
             </p>
-            <MentorInsightBar profile={mentorProfile} />
+            {mode === "coach" ? null : <MentorInsightBar profile={mentorProfile} />}
           </div>
 
           <div className="flex flex-col gap-3 lg:min-w-[620px]">
@@ -1431,43 +1429,65 @@ export default function StudyPage() {
               ))}
             </div>
 
-            <div className="flex flex-col gap-2 rounded-3xl border border-slate-200/70 bg-white/58 p-2 sm:flex-row">
-              <div className="flex-1">
-                <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Chapter
-                </label>
-                <select
-                  value={chapter}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    setChapter(next);
-                    setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
-                  }}
-                  className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
-                >
-                  {CHAPTERS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                  Topic
-                </label>
-                <select
-                  value={topic}
-                  onChange={(event) => setTopic(event.target.value)}
-                  className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
-                >
-                  {selectedChapter.topics.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className={`flex flex-col gap-2 rounded-3xl border border-slate-200/70 bg-white/58 p-2 sm:flex-row ${
+              !needsTopicPicker ? "items-center justify-end" : ""
+            }`}>
+              {needsTopicPicker ? (
+                <>
+                  <div className="flex-1">
+                    <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                      Chapter
+                    </label>
+                    <select
+                      value={chapter}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        setChapter(next);
+                        setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
+                      }}
+                      className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
+                    >
+                      {CHAPTERS.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                      Topic
+                    </label>
+                    <select
+                      value={topic}
+                      onChange={(event) => setTopic(event.target.value)}
+                      className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
+                    >
+                      {selectedChapter.topics.map((item) => (
+                        <option key={item.value} value={item.value}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : (
+                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 px-2 py-1">
+                  {mode === "coach" ? (
+                    <>
+                      <span className="rounded-full border border-[#0E7490]/18 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490]">
+                        Any subject
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                        Context-aware chat
+                      </span>
+                    </>
+                  ) : null}
+                  <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                    {conversations.length} saved
+                  </span>
+                </div>
+              )}
               <IconButton
                 label="Start a new chat"
                 icon="plus"
@@ -1496,31 +1516,18 @@ export default function StudyPage() {
             <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               {messages.length === 0 ? (
                 <div className="study-empty-state mx-auto flex min-h-[52svh] max-w-4xl flex-col items-center justify-center text-center">
-                  <div className="study-coach-avatar flex h-16 w-16 items-center justify-center rounded-[1.4rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-xl font-black text-white shadow-[0_20px_55px_rgba(14,116,144,0.24)]">
+                  <div className="study-coach-avatar flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-lg font-black text-white shadow-[0_18px_48px_rgba(14,116,144,0.22)]">
                     {coachName[0]}
                   </div>
-                  <p className="mt-5 text-xs font-black uppercase tracking-[0.24em] text-[#0E7490]">
-                    Private AI tutor
+                  <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] text-[#0E7490]">
+                    Open AI tutor
                   </p>
                   <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                    Ask one doubt. Learn it clearly.
+                    What do you want to learn today?
                   </h2>
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
-                    Hi {displayName.split(" ")[0]}, start naturally with a question, phrase, or follow-up. {coachName} will answer like a subject expert and keep the conversation connected.
+                    Hi {displayName.split(" ")[0]}, ask naturally across any subject, chapter, doubt, or follow-up. {coachName} will infer the topic and teach at your level.
                   </p>
-                  <div className="mt-5 max-w-2xl rounded-3xl border border-[#0E7490]/14 bg-white/58 p-4 text-left shadow-[0_14px_38px_rgba(15,23,42,0.06)]">
-                    <div className="flex items-start gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-[#0E7490]">
-                        <AppIcon name="spark" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">Adaptive tutor engine</p>
-                        <p className="mt-1 text-sm leading-6 text-slate-500">
-                          I will infer whether you need basics, revision, exam strategy, deeper reasoning, or a quick check question as the conversation evolves.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                   <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
                     {starterPrompts.map((starter) => (
                       <StarterPromptCard
@@ -1574,7 +1581,7 @@ export default function StudyPage() {
                         coachName={coachName}
                         content={message.content}
                         timestamp={message.timestamp}
-                        topicLabel={selectedTopic.label}
+                        topicLabel="Open tutor"
                         stages={stages}
                         onPrompt={setInput}
                       />
@@ -1596,11 +1603,11 @@ export default function StudyPage() {
               <div className="mx-auto w-full max-w-5xl">
                 <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-                      Chapter: <span className="text-slate-800">{selectedChapter.label}</span>
+                    <span className="rounded-full border border-[#0E7490]/20 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490]">
+                      Ask any subject
                     </span>
                     <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-                      Topic: <span className="text-slate-800">{selectedTopic.label}</span>
+                      No topic lock
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2">
