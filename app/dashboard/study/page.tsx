@@ -903,24 +903,14 @@ function TutorActionDock({
         <button
           type="button"
           onClick={() => setMoreOpen((current) => !current)}
+          aria-expanded={moreOpen}
           className="rounded-full border border-slate-200 bg-white/70 px-3.5 py-2 text-xs font-bold text-slate-500 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
         >
           More
         </button>
-        {canRegenerate ? (
-          <button
-            type="button"
-            onClick={onRegenerate}
-            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3.5 py-2 text-xs font-bold text-slate-500 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
-          >
-            <AppIcon name="spark" className="h-3.5 w-3.5" />
-            <span>Regenerate</span>
-          </button>
-        ) : null}
-        <CopyButton value={answer} />
       </div>
       {moreOpen ? (
-        <div className="mt-2 flex flex-wrap gap-2">
+        <div className="mt-3 inline-flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/62 p-2 shadow-[0_18px_42px_rgba(15,23,42,0.06)] backdrop-blur-xl">
           {secondaryActions.map((action) => (
             <button
               key={action.label}
@@ -934,6 +924,20 @@ function TutorActionDock({
               {action.label}
             </button>
           ))}
+          {canRegenerate ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                onRegenerate();
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/56 px-3.5 py-2 text-xs font-semibold text-slate-500 transition hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+            >
+              <AppIcon name="spark" className="h-3.5 w-3.5" />
+              <span>Regenerate</span>
+            </button>
+          ) : null}
+          <CopyButton value={answer} />
         </div>
       ) : null}
     </div>
@@ -1006,12 +1010,14 @@ function TutorResponseCard({
                 <div className="study-answer-stream">
                   <CoachAnswer value={content} streaming={streaming} />
                 </div>
-                <TutorActionDock
-                  answer={content}
-                  canRegenerate={canRegenerate}
-                  onPrompt={onPrompt}
-                  onRegenerate={onRegenerate}
-                />
+                {!streaming ? (
+                  <TutorActionDock
+                    answer={content}
+                    canRegenerate={canRegenerate}
+                    onPrompt={onPrompt}
+                    onRegenerate={onRegenerate}
+                  />
+                ) : null}
               </>
             )}
           </article>
@@ -1164,27 +1170,21 @@ export default function StudyPage() {
     () => [
       {
         label: "Explain",
-        title: "Teach any concept",
-        detail: "Start with a topic from any subject and ask for a simple explanation.",
+        title: "Explain a concept",
+        detail: "Get a simple explanation with one clear example.",
         prompt: "Teach me photosynthesis from the basics with one simple example.",
       },
       {
-        label: "Exam",
-        title: "Write answer format",
-        detail: "Get a clean, marks-ready answer for school exams.",
-        prompt: "Write an exam-ready answer on Newton's laws with definition, points, example, and common mistake.",
+        label: "Doubt",
+        title: "Solve a doubt",
+        detail: "Ask any confusing question and get a step-by-step answer.",
+        prompt: "I am confused about why objects fall at the same acceleration. Explain it simply.",
       },
       {
         label: "Practice",
-        title: "Ask one question",
-        detail: "Let the tutor test you and review your answer.",
+        title: "Test me",
+        detail: "Try one question, answer it, and get feedback.",
         prompt: "Ask me one intelligent practice question on quadratic equations, wait for my answer, then evaluate it.",
-      },
-      {
-        label: "Plan",
-        title: "Create mini plan",
-        detail: "Turn any topic into a short study path.",
-        prompt: "Create a simple 20-minute study plan for the French Revolution.",
       },
     ],
     [],
@@ -1851,7 +1851,7 @@ export default function StudyPage() {
                   <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
                     Hi {displayName.split(" ")[0]}, ask naturally across any subject, chapter, doubt, or follow-up. {coachName} will infer the topic and teach at your level.
                   </p>
-                  <div className="mt-8 grid w-full gap-3 sm:grid-cols-2">
+                  <div className="mt-8 grid w-full gap-3 md:grid-cols-3">
                     {starterPrompts.map((starter) => (
                       <StarterPromptCard
                         key={starter.label}
