@@ -817,6 +817,57 @@ body {
   z-index: 1;
 }
 
+.study-answer-flow {
+  color: #334155;
+}
+
+.study-answer-section {
+  padding: 0.1rem 0;
+}
+
+.study-answer-section + .study-answer-section {
+  border-top: 1px solid rgba(148,163,184,0.20);
+  padding-top: 1.15rem;
+}
+
+.study-answer-callout {
+  border: 1px solid rgba(148,163,184,0.22);
+  border-radius: 1rem;
+  padding: 1rem;
+  background: rgba(248,250,252,0.62);
+}
+
+.study-answer-callout + .study-answer-section,
+.study-answer-section + .study-answer-callout {
+  border-top: 0;
+}
+
+.study-answer-callout.is-warning {
+  border-color: rgba(217,119,6,0.20);
+  background: rgba(255,251,235,0.74);
+}
+
+.study-answer-callout.is-exam {
+  border-color: rgba(16,185,129,0.20);
+  background: rgba(236,253,245,0.72);
+}
+
+.study-answer-callout.is-practice {
+  border-color: rgba(14,116,144,0.16);
+  background: rgba(236,254,255,0.68);
+}
+
+.study-stream-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: #0E7490;
+  vertical-align: -0.16em;
+  animation: study-cursor-blink 1s steps(2, start) infinite;
+}
+
 .study-live-orb {
   position: relative;
   display: inline-flex;
@@ -939,6 +990,31 @@ body {
   animation: study-soft-enter 300ms ease-out both;
 }
 
+.study-agent-mini {
+  width: fit-content;
+  max-width: 100%;
+  animation: study-soft-enter 220ms ease-out both;
+}
+
+.study-mini-pulse {
+  position: relative;
+  height: 0.45rem;
+  width: 0.45rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: #14B8A6;
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.10);
+}
+
+.study-mini-pulse::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(20,184,166,0.26);
+  animation: study-live-ring 1.7s ease-out infinite;
+}
+
 .study-answer-stream {
   animation: study-soft-enter 220ms ease-out both;
 }
@@ -1009,6 +1085,15 @@ body {
   40% {
     opacity: 1;
     transform: translateY(-3px);
+  }
+}
+
+@keyframes study-cursor-blink {
+  0%, 45% {
+    opacity: 1;
+  }
+  46%, 100% {
+    opacity: 0;
   }
 }
 
@@ -1135,6 +1220,10 @@ body {
   background: rgba(255,255,255,0.68) !important;
 }
 
+[data-theme="light"] .study-answer-section + .study-answer-section {
+  border-color: rgba(15,23,42,0.10);
+}
+
 [data-theme="dark"] .study-tutor-response {
   border-color: rgba(255,255,255,0.08) !important;
   background:
@@ -1173,6 +1262,34 @@ body {
   border-color: rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.06);
   color: #CBD5E1;
+}
+
+[data-theme="dark"] .study-answer-flow {
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .study-answer-section + .study-answer-section {
+  border-color: rgba(255,255,255,0.10);
+}
+
+[data-theme="dark"] .study-answer-callout {
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.055);
+}
+
+[data-theme="dark"] .study-answer-callout.is-warning {
+  border-color: rgba(242,184,75,0.20);
+  background: rgba(242,184,75,0.08);
+}
+
+[data-theme="dark"] .study-answer-callout.is-exam {
+  border-color: rgba(16,185,129,0.20);
+  background: rgba(16,185,129,0.08);
+}
+
+[data-theme="dark"] .study-answer-callout.is-practice {
+  border-color: rgba(20,184,166,0.20);
+  background: rgba(20,184,166,0.075);
 }
 
 /* ============================================================

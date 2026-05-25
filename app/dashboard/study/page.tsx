@@ -561,55 +561,63 @@ const ANSWER_BLOCKS: Array<{
   icon: AppIconName;
   className: string;
   iconClassName: string;
+  featured: boolean;
 }> = [
   {
     match: ["direct answer", "answer", "concept"],
     label: "Core idea",
     icon: "study",
-    className: "border-[#0E7490]/16 bg-[#0E7490]/[0.07]",
-    iconClassName: "bg-[#0E7490]/10 text-[#0E7490]",
+    className: "",
+    iconClassName: "",
+    featured: false,
   },
   {
     match: ["simple explanation", "why", "reason", "breakdown"],
     label: "Explanation",
     icon: "book",
-    className: "border-sky-200/70 bg-sky-50/55",
-    iconClassName: "bg-sky-100 text-sky-700",
+    className: "",
+    iconClassName: "",
+    featured: false,
   },
   {
     match: ["example", "analogy", "real life"],
     label: "Example",
     icon: "spark",
-    className: "border-teal-200/70 bg-teal-50/55",
-    iconClassName: "bg-teal-100 text-teal-700",
+    className: "",
+    iconClassName: "",
+    featured: false,
   },
   {
     match: ["common mistake", "mistake", "trap"],
     label: "Watch out",
     icon: "x",
-    className: "border-amber-200/80 bg-amber-50/65",
+    className: "study-answer-callout is-warning",
     iconClassName: "bg-amber-100 text-amber-700",
+    featured: true,
   },
   {
     match: ["formula", "steps", "method", "solve"],
     label: "Method",
     icon: "clock",
-    className: "border-indigo-200/70 bg-indigo-50/55",
-    iconClassName: "bg-indigo-100 text-indigo-700",
+    className: "",
+    iconClassName: "",
+    featured: false,
   },
   {
     match: ["exam", "marks", "exam tip", "exam-ready"],
     label: "Exam focus",
     icon: "check",
-    className: "border-emerald-200/80 bg-emerald-50/65",
+    className: "study-answer-callout is-exam",
     iconClassName: "bg-emerald-100 text-emerald-700",
+    featured: true,
   },
   {
     match: ["quick check", "checkpoint", "question", "next step", "practice"],
     label: "Try this",
     icon: "arrowRight",
-    className: "border-slate-200 bg-slate-50/80",
+    className: "study-answer-callout is-practice",
     iconClassName: "bg-slate-200/70 text-slate-700",
+    featured: true,
   },
 ];
 
@@ -619,53 +627,58 @@ function getAnswerBlockMeta(heading: string | null) {
   return ANSWER_BLOCKS.find((block) => block.match.some((item) => normalized.includes(item))) || null;
 }
 
-function CoachAnswer({ value }: { value: string }) {
+function CoachAnswer({ value, streaming = false }: { value: string; streaming?: boolean }) {
   const blocks = value.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
 
   if (!blocks.length) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="study-answer-flow space-y-5">
       {blocks.map((block, blockIndex) => {
         const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
         const heading = lines[0]?.endsWith(":") && lines[0].length <= 72 ? lines[0].replace(/:$/, "") : null;
         const body = heading ? lines.slice(1) : lines;
         const blockMeta = getAnswerBlockMeta(heading);
+        const featured = Boolean(blockMeta?.featured);
 
         return (
           <section
             key={`${heading || "answer"}-${blockIndex}`}
-            className={`space-y-3 ${
-              blockMeta
-                ? `rounded-2xl border px-4 py-4 ${blockMeta.className}`
-                : "rounded-2xl border border-transparent py-1"
-            }`}
+            className={`study-answer-section space-y-3 ${featured ? blockMeta?.className || "" : ""}`}
           >
             {heading ? (
-              <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.08em] text-[#0E7490]">
-                {blockMeta ? (
+              <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.11em] text-[#0E7490]">
+                {featured && blockMeta ? (
                   <span className={`flex h-7 w-7 items-center justify-center rounded-xl ${blockMeta.iconClassName}`}>
                     <AppIcon name={blockMeta.icon} className="h-3.5 w-3.5" />
                   </span>
                 ) : (
                   <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
                 )}
-                <span>{blockMeta?.label || heading}</span>
-                {blockMeta ? <span className="text-[10px] font-bold normal-case tracking-normal text-slate-400">{heading}</span> : null}
+                <span>{featured ? blockMeta?.label || heading : heading}</span>
               </h3>
             ) : null}
             <div className="space-y-3 text-[15.5px] leading-8 text-slate-700">
               {body.map((line, lineIndex) => {
                 const bullet = line.match(/^[-*]\s+(.*)$/);
+                const isLastLine = streaming && blockIndex === blocks.length - 1 && lineIndex === body.length - 1;
                 if (bullet) {
                   return (
                     <div key={lineIndex} className="flex gap-3">
                       <span className="mt-3.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#14B8A6] shadow-[0_0_0_4px_rgba(20,184,166,0.10)]" />
-                      <p className="min-w-0">{renderInlineChemistry(bullet[1])}</p>
+                      <p className="min-w-0">
+                        {renderInlineChemistry(bullet[1])}
+                        {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
+                      </p>
                     </div>
                   );
                 }
-                return <p key={lineIndex}>{renderInlineChemistry(line)}</p>;
+                return (
+                  <p key={lineIndex}>
+                    {renderInlineChemistry(line)}
+                    {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
+                  </p>
+                );
               })}
             </div>
           </section>
@@ -783,6 +796,22 @@ function AgentActivitySummary({
   );
 }
 
+function AgentActivityMini({ stages }: { stages: AgentStageState[] }) {
+  const activeStage =
+    stages.find((stage) => stage.status === "active") ||
+    stages.find((stage) => stage.status === "pending") ||
+    stages[stages.length - 1];
+
+  return (
+    <div className="study-agent-mini flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/50 px-3 py-2 text-xs font-semibold text-slate-500 backdrop-blur-xl">
+      <span className="study-mini-pulse" />
+      <span className="truncate">
+        {activeStage.agent} / {activeStage.title}
+      </span>
+    </div>
+  );
+}
+
 function StarterPromptCard({
   label,
   title,
@@ -823,19 +852,20 @@ function StudentPromptCard({ content, timestamp }: { content: string; timestamp:
 
 function TutorActionDock({
   answer,
+  canRegenerate,
   onPrompt,
+  onRegenerate,
 }: {
   answer: string;
+  canRegenerate: boolean;
   onPrompt: (prompt: string) => void;
+  onRegenerate: () => void;
 }) {
-  const actions = [
+  const [moreOpen, setMoreOpen] = useState(false);
+  const primaryActions = [
     {
       label: "Simplify",
       prompt: "Explain the previous answer more simply, like I am learning it for the first time.",
-    },
-    {
-      label: "Example",
-      prompt: "Give me one real-life example connected to the concept we just discussed, step by step.",
     },
     {
       label: "Practice",
@@ -844,6 +874,12 @@ function TutorActionDock({
     {
       label: "Exam answer",
       prompt: "Turn the previous answer into an exam-ready answer with marks-style structure.",
+    },
+  ];
+  const secondaryActions = [
+    {
+      label: "Example",
+      prompt: "Give me one real-life example connected to the concept we just discussed, step by step.",
     },
     {
       label: "Mistake check",
@@ -854,7 +890,7 @@ function TutorActionDock({
   return (
     <div className="mt-6 border-t border-slate-200/80 pt-4">
       <div className="flex flex-wrap items-center gap-2">
-        {actions.map((action) => (
+        {primaryActions.map((action) => (
           <button
             key={action.label}
             type="button"
@@ -864,8 +900,42 @@ function TutorActionDock({
             {action.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((current) => !current)}
+          className="rounded-full border border-slate-200 bg-white/70 px-3.5 py-2 text-xs font-bold text-slate-500 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+        >
+          More
+        </button>
+        {canRegenerate ? (
+          <button
+            type="button"
+            onClick={onRegenerate}
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3.5 py-2 text-xs font-bold text-slate-500 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+          >
+            <AppIcon name="spark" className="h-3.5 w-3.5" />
+            <span>Regenerate</span>
+          </button>
+        ) : null}
         <CopyButton value={answer} />
       </div>
+      {moreOpen ? (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {secondaryActions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                onPrompt(action.prompt);
+              }}
+              className="rounded-full border border-slate-200/80 bg-white/56 px-3.5 py-2 text-xs font-semibold text-slate-500 transition hover:border-[#0E7490]/25 hover:text-[#0E7490]"
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -877,7 +947,11 @@ function TutorResponseCard({
   topicLabel,
   stages,
   showActivity,
+  activityCollapsed,
+  streaming,
+  canRegenerate,
   onPrompt,
+  onRegenerate,
 }: {
   coachName: string;
   content: string;
@@ -885,7 +959,11 @@ function TutorResponseCard({
   topicLabel: string;
   stages: AgentStageState[];
   showActivity: boolean;
+  activityCollapsed: boolean;
+  streaming: boolean;
+  canRegenerate: boolean;
   onPrompt: (prompt: string) => void;
+  onRegenerate: () => void;
 }) {
   const pending = !content.trim();
 
@@ -910,7 +988,7 @@ function TutorResponseCard({
           <article className="study-tutor-response rounded-[1.45rem] border border-slate-200/60 bg-white/78 px-4 py-4 shadow-[0_18px_58px_rgba(15,23,42,0.07)] backdrop-blur-2xl sm:px-6 sm:py-6">
             {showActivity ? (
               <div className={pending ? "" : "mb-5"}>
-                <AgentPipeline stages={stages} />
+                {activityCollapsed && !pending ? <AgentActivityMini stages={stages} /> : <AgentPipeline stages={stages} />}
               </div>
             ) : null}
 
@@ -926,9 +1004,14 @@ function TutorResponseCard({
             ) : (
               <>
                 <div className="study-answer-stream">
-                  <CoachAnswer value={content} />
+                  <CoachAnswer value={content} streaming={streaming} />
                 </div>
-                <TutorActionDock answer={content} onPrompt={onPrompt} />
+                <TutorActionDock
+                  answer={content}
+                  canRegenerate={canRegenerate}
+                  onPrompt={onPrompt}
+                  onRegenerate={onRegenerate}
+                />
               </>
             )}
           </article>
@@ -943,12 +1026,14 @@ function ModeButton({
   label,
   detail,
   icon,
+  compact = false,
   onClick,
 }: {
   active: boolean;
   label: string;
   detail: string;
   icon: AppIconName;
+  compact?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -956,18 +1041,22 @@ function ModeButton({
       type="button"
       onClick={onClick}
       title={detail}
-      className={`study-mode-button flex min-h-[58px] items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition ${
+      className={`study-mode-button flex items-center gap-3 rounded-2xl border px-3 text-left transition ${
+        compact ? "min-h-[48px] py-2" : "min-h-[58px] py-2.5"
+      } ${
         active
           ? "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490] shadow-[0_14px_36px_rgba(14,116,144,0.10)]"
           : "border-slate-200 bg-white/64 text-slate-500 hover:border-[#0E7490]/25 hover:text-slate-900"
       }`}
     >
-      <span className={`study-mode-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
+      <span className={`study-mode-icon flex shrink-0 items-center justify-center rounded-2xl ${
+        compact ? "h-8 w-8" : "h-9 w-9"
+      } ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
         <AppIcon name={icon} />
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold">{label}</span>
-        <span className="mt-0.5 hidden text-[11px] leading-4 opacity-75 xl:block">{detail}</span>
+        <span className={`mt-0.5 text-[11px] leading-4 opacity-75 ${compact ? "hidden" : "hidden xl:block"}`}>{detail}</span>
       </span>
     </button>
   );
@@ -1041,6 +1130,7 @@ export default function StudyPage() {
   const [showPipeline, setShowPipeline] = useState(false);
   const [showAgentSummary, setShowAgentSummary] = useState(false);
   const [agentSummaryExpanded, setAgentSummaryExpanded] = useState(false);
+  const [activityCollapsed, setActivityCollapsed] = useState(false);
   const [error, setError] = useState("");
   const [revisionContent, setRevisionContent] = useState<Record<RevisionType, string>>({ summary: "", explain: "", keypoints: "" });
   const [revisionLoading, setRevisionLoading] = useState<Record<RevisionType, boolean>>({ summary: false, explain: false, keypoints: false });
@@ -1058,6 +1148,8 @@ export default function StudyPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const activityCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activityCollapseScheduledRef = useRef(false);
 
   const authBusy = loading || authLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
@@ -1066,6 +1158,7 @@ export default function StudyPage() {
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
   const needsTopicPicker = mode === "revision" || mode === "exam";
+  const hasCoachChat = mode === "coach" && messages.length > 0;
 
   const starterPrompts = useMemo(
     () => [
@@ -1100,6 +1193,14 @@ export default function StudyPage() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, showPipeline]);
+
+  useEffect(() => {
+    return () => {
+      if (activityCollapseTimerRef.current) {
+        clearTimeout(activityCollapseTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     setSpeechSupported(Boolean(getSpeechRecognitionCtor()) && typeof window !== "undefined" && Boolean(window.speechSynthesis));
@@ -1170,6 +1271,27 @@ export default function StudyPage() {
     };
   }, [authBusy, backendURL, getAuthHeaders, userId]);
 
+  const resetActivityCollapse = () => {
+    if (activityCollapseTimerRef.current) {
+      clearTimeout(activityCollapseTimerRef.current);
+      activityCollapseTimerRef.current = null;
+    }
+    activityCollapseScheduledRef.current = false;
+    setActivityCollapsed(false);
+  };
+
+  const scheduleActivityCollapse = () => {
+    if (activityCollapseScheduledRef.current) return;
+    activityCollapseScheduledRef.current = true;
+    if (activityCollapseTimerRef.current) {
+      clearTimeout(activityCollapseTimerRef.current);
+    }
+    activityCollapseTimerRef.current = setTimeout(() => {
+      setActivityCollapsed(true);
+      activityCollapseTimerRef.current = null;
+    }, 2000);
+  };
+
   const handleStagePayload = (payload: AgentStagePayload) => {
     setStages((current) => applyStageUpdate(current, payload));
     setShowPipeline(payload.status !== "done" || payload.stage !== "delivering");
@@ -1211,6 +1333,7 @@ export default function StudyPage() {
     const deltaPayload = parseAnswerDeltaPayload(raw);
     if (deltaPayload) {
       appendLastCoachMessage(deltaPayload.delta);
+      scheduleActivityCollapse();
       return { kind: "delta", value: deltaPayload.delta };
     }
 
@@ -1234,10 +1357,14 @@ export default function StudyPage() {
     return { kind: "none" };
   };
 
-  const sendMessage = async (override?: string, options?: { fromVoice?: boolean }) => {
+  const sendMessage = async (override?: string, options?: { fromVoice?: boolean; replaceLastAssistant?: boolean }) => {
     const prompt = (override ?? input).trim();
     if (!prompt || !userId || authBusy || loadingAnswer) return;
-    const adaptiveProfile = inferMentorProfile(prompt, messages);
+    const contextMessages =
+      options?.replaceLastAssistant && messages[messages.length - 1]?.role === "coach"
+        ? messages.slice(0, -1)
+        : messages;
+    const adaptiveProfile = inferMentorProfile(prompt, contextMessages);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -1249,14 +1376,23 @@ export default function StudyPage() {
     setShowPipeline(true);
     setShowAgentSummary(false);
     setAgentSummaryExpanded(false);
+    resetActivityCollapse();
     setStages(createStages().map((stage) => (stage.id === "received" ? { ...stage, status: "active" } : stage)));
     let finalAnswer = "";
 
-    setMessages((current) => [
-      ...current,
-      { role: "user", content: prompt, timestamp: getTime() },
-      { role: "coach", content: "", timestamp: "" },
-    ]);
+    setMessages((current) => {
+      if (options?.replaceLastAssistant && current[current.length - 1]?.role === "coach") {
+        const next = [...current];
+        next[next.length - 1] = { role: "coach", content: "", timestamp: "" };
+        return next;
+      }
+
+      return [
+        ...current,
+        { role: "user", content: prompt, timestamp: getTime() },
+        { role: "coach", content: "", timestamp: "" },
+      ];
+    });
 
     try {
       const res = await fetch(`${backendURL}/coach/chat/stream`, {
@@ -1285,7 +1421,7 @@ export default function StudyPage() {
           },
           learning_context: {
             scope: "open_tutor",
-            recent_messages: messages.slice(-6),
+            recent_messages: contextMessages.slice(-6),
             saved_conversations: conversations.length,
           },
         }),
@@ -1334,6 +1470,32 @@ export default function StudyPage() {
     }
   };
 
+  const stopGenerating = () => {
+    abortRef.current?.abort();
+    setLoadingAnswer(false);
+    setShowPipeline(false);
+    setShowAgentSummary(false);
+    resetActivityCollapse();
+    setMessages((current) => {
+      const next = [...current];
+      const last = next[next.length - 1];
+      if (last?.role === "coach" && !last.content.trim()) {
+        next[next.length - 1] = {
+          ...last,
+          content: "Stopped. Edit your question or regenerate when you are ready.",
+          timestamp: getTime(),
+        };
+      }
+      return next;
+    });
+  };
+
+  const regenerateLastAnswer = () => {
+    const lastPrompt = [...messages].reverse().find((message) => message.role === "user")?.content.trim();
+    if (!lastPrompt || loadingAnswer) return;
+    void sendMessage(lastPrompt, { replaceLastAssistant: true });
+  };
+
   const startNewChat = () => {
     abortRef.current?.abort();
     setCurrentConversationId(createConversationId());
@@ -1343,6 +1505,7 @@ export default function StudyPage() {
     setShowPipeline(false);
     setShowAgentSummary(false);
     setAgentSummaryExpanded(false);
+    resetActivityCollapse();
     setStages(createStages);
     setMode("coach");
   };
@@ -1363,6 +1526,7 @@ export default function StudyPage() {
     setShowPipeline(false);
     setShowAgentSummary(false);
     setAgentSummaryExpanded(false);
+    resetActivityCollapse();
     setStages(createStages);
   };
 
@@ -1378,6 +1542,7 @@ export default function StudyPage() {
     setShowPipeline(false);
     setShowAgentSummary(false);
     setAgentSummaryExpanded(false);
+    resetActivityCollapse();
     window.setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
 
@@ -1545,32 +1710,34 @@ export default function StudyPage() {
       mode === "coach" ? "rounded-[1.6rem] shadow-[0_24px_80px_rgba(15,23,42,0.10)]" : "rounded-[2.2rem] shadow-[0_30px_100px_rgba(15,23,42,0.12)]"
     }`}>
       <section className={`study-lab-header border-b border-white/45 bg-white/64 px-4 backdrop-blur-2xl sm:px-6 ${
-        mode === "coach" ? "py-3" : "py-4"
+        hasCoachChat ? "py-2.5" : mode === "coach" ? "py-3" : "py-4"
       }`}>
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div className={`flex flex-col xl:flex-row xl:items-center xl:justify-between ${hasCoachChat ? "gap-3" : "gap-4"}`}>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">
-              {mode === "coach" ? "Open Tutor" : "Study Lab"}
+              {hasCoachChat ? "Tutor" : mode === "coach" ? "Open Tutor" : "Study Lab"}
             </p>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+            <div className={`flex flex-col gap-2 sm:flex-row sm:items-end ${hasCoachChat ? "mt-1" : "mt-2"}`}>
+              <h1 className={`font-semibold tracking-tight text-slate-950 ${
+                hasCoachChat ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"
+              }`}>
                 {mode === "coach" ? `Ask ${coachName} anything` : `${mode[0].toUpperCase()}${mode.slice(1)} tools`}
               </h1>
-              <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
+              {!hasCoachChat ? <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
                 {speechSupported ? "Voice ready" : "Text mode"}
-              </span>
+              </span> : null}
             </div>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            {!hasCoachChat ? <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               {mode === "coach"
                 ? "Ask any subject, any topic, or any follow-up. The tutor will infer the intent and adapt the answer."
                 : mode === "history"
                   ? "Resume old doubts without choosing a subject or topic."
                   : "Choose a target topic for revision sheets and exam practice."}
-            </p>
+            </p> : null}
             {mode === "coach" ? null : <MentorInsightBar profile={mentorProfile} />}
           </div>
 
-          <div className="flex flex-col gap-3 lg:min-w-[620px]">
+          <div className={`flex flex-col gap-2 ${hasCoachChat ? "lg:min-w-[520px]" : "gap-3 lg:min-w-[620px]"}`}>
             <div className="grid gap-2 sm:grid-cols-4">
               {STUDY_MODES.map((item) => (
                 <ModeButton
@@ -1579,6 +1746,7 @@ export default function StudyPage() {
                   label={item.label}
                   detail={item.detail}
                   icon={item.icon}
+                  compact={hasCoachChat}
                   onClick={() => setMode(item.id)}
                 />
               ))}
@@ -1628,7 +1796,7 @@ export default function StudyPage() {
                 </>
               ) : (
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 px-2 py-1">
-                  {mode === "coach" ? (
+                  {mode === "coach" && !hasCoachChat ? (
                     <>
                       <span className="rounded-full border border-[#0E7490]/18 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490]">
                         Any subject
@@ -1638,9 +1806,9 @@ export default function StudyPage() {
                       </span>
                     </>
                   ) : null}
-                  <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+                  {!hasCoachChat ? <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] font-bold text-slate-500">
                     {conversations.length} saved
-                  </span>
+                  </span> : null}
                 </div>
               )}
               <IconButton
@@ -1741,7 +1909,11 @@ export default function StudyPage() {
                         topicLabel="Open tutor"
                         stages={stages}
                         showActivity={showPipeline && isLatestMessage}
+                        activityCollapsed={activityCollapsed}
+                        streaming={loadingAnswer && isLatestMessage && Boolean(message.content.trim())}
+                        canRegenerate={!loadingAnswer && isLatestMessage}
                         onPrompt={setInput}
+                        onRegenerate={regenerateLastAnswer}
                       />
                     );
                   })}
@@ -1761,66 +1933,54 @@ export default function StudyPage() {
 
             <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
               <div className="mx-auto w-full max-w-5xl">
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full border border-[#0E7490]/20 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490]">
-                      Ask any subject
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-                      No topic lock
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <span
-                      title={mentorProfile.nextMove}
-                      className="max-w-full truncate rounded-full border border-[#0E7490]/20 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490] sm:max-w-[420px]"
-                    >
-                      Strategy: {mentorProfile.nextMove}
-                    </span>
-                    <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-600">
-                      {speechSupported ? "Voice ready" : "Text ready"}
-                    </span>
-                    <span className="rounded-full border border-slate-200 bg-white/72 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-                      {conversations.length} saved
-                    </span>
-                  </div>
+                <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-400">
+                  <span className="truncate">
+                    {loadingAnswer ? `${coachName} is responding...` : "Ask naturally. Enter to send, Shift+Enter for a new line."}
+                  </span>
+                  <span className="hidden shrink-0 sm:inline">
+                    {speechSupported ? "Voice available" : "Text ready"}
+                  </span>
                 </div>
 
                 <div className="rounded-[1.8rem] border border-slate-200 bg-white p-2 shadow-[0_22px_70px_rgba(15,23,42,0.10)]">
                   <div className="flex items-end gap-2 sm:gap-3">
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={(event) => setInput(event.target.value)}
-                    onKeyDown={handleKeyDown}
-                    rows={1}
-                    placeholder={listening ? "Listening..." : `Message ${coachName}...`}
-                    className="study-textarea max-h-40 min-h-12 flex-1 resize-none rounded-2xl bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={listening ? stopVoiceInput : startVoiceInput}
-                    disabled={!speechSupported || loadingAnswer}
-                    title={listening ? "Stop voice input" : "Start voice input"}
-                    className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                      listening
-                        ? "bg-emerald-500 text-white"
-                        : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
-                    } disabled:cursor-not-allowed disabled:opacity-45`}
-                  >
-                    <AppIcon name={listening ? "x" : "mic"} />
-                    <span>{listening ? "Stop" : "Voice"}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void sendMessage()}
-                    disabled={loadingAnswer || !input.trim()}
-                    title="Send message"
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    <AppIcon name="send" />
-                    <span>{loadingAnswer ? "Thinking" : "Send"}</span>
-                  </button>
+                    <textarea
+                      ref={inputRef}
+                      value={input}
+                      onChange={(event) => setInput(event.target.value)}
+                      onKeyDown={handleKeyDown}
+                      rows={1}
+                      placeholder={listening ? "Listening..." : `Message ${coachName}...`}
+                      className="study-textarea max-h-40 min-h-12 flex-1 resize-none rounded-2xl bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                    />
+                    <button
+                      type="button"
+                      onClick={listening ? stopVoiceInput : startVoiceInput}
+                      disabled={!speechSupported || loadingAnswer}
+                      title={listening ? "Stop voice input" : "Start voice input"}
+                      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                        listening
+                          ? "bg-emerald-500 text-white"
+                          : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                      } disabled:cursor-not-allowed disabled:opacity-45`}
+                    >
+                      <AppIcon name={listening ? "x" : "mic"} />
+                      <span className="hidden sm:inline">{listening ? "Stop" : "Voice"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadingAnswer ? stopGenerating : () => void sendMessage()}
+                      disabled={!loadingAnswer && !input.trim()}
+                      title={loadingAnswer ? "Stop response" : "Send message"}
+                      className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                        loadingAnswer
+                          ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
+                          : "bg-[#0E7490] text-white hover:bg-[#0B5F76]"
+                      }`}
+                    >
+                      <AppIcon name={loadingAnswer ? "x" : "send"} />
+                      <span>{loadingAnswer ? "Stop" : "Send"}</span>
+                    </button>
                   </div>
                 </div>
                 {!speechSupported ? (
