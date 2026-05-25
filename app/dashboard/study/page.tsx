@@ -19,7 +19,7 @@ import {
 } from "react";
 
 type CoachRole = "user" | "coach";
-type AgentStageId = "drafting" | "reviewing" | "delivering";
+type AgentStageId = "received" | "understanding" | "drafting" | "reviewing" | "formatting" | "delivering";
 type AgentStageStatus = "pending" | "active" | "done";
 type StudyMode = "coach" | "revision" | "exam" | "history";
 type RevisionType = "summary" | "explain" | "keypoints";
@@ -140,7 +140,7 @@ const CHAPTERS = [
   },
 ];
 
-const STAGE_ORDER: AgentStageId[] = ["drafting", "reviewing", "delivering"];
+const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
 
 const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
   { id: "coach", label: "Coach", detail: "Ask and continue doubts", icon: "study" },
@@ -354,24 +354,45 @@ function speakTutorResponse(value: string) {
 function createStages(): AgentStageState[] {
   return [
     {
+      id: "received",
+      agent: "Study Desk",
+      title: "Question received",
+      detail: "Your doubt enters the tutor workspace.",
+      status: "pending",
+    },
+    {
+      id: "understanding",
+      agent: "Learning Profiler",
+      title: "Understanding need",
+      detail: "Mapping intent, level, confidence, and follow-up context.",
+      status: "pending",
+    },
+    {
       id: "drafting",
-      agent: "Intent Mapper",
-      title: "Reading intent",
-      detail: "Understanding your question, level, emotion, and lesson context.",
+      agent: "Adaptive Mentor",
+      title: "Drafting answer",
+      detail: "Building the first explanation around the selected teaching route.",
       status: "pending",
     },
     {
       id: "reviewing",
       agent: "Strategy Tutor",
-      title: "Choosing strategy",
-      detail: "Selecting the best teaching style, depth, and examples.",
+      title: "Refining explanation",
+      detail: "Checking clarity, accuracy, depth, and student friendliness.",
+      status: "pending",
+    },
+    {
+      id: "formatting",
+      agent: "Response Designer",
+      title: "Formatting response",
+      detail: "Turning the answer into a clean study format.",
       status: "pending",
     },
     {
       id: "delivering",
-      agent: "Adaptive Mentor",
-      title: "Teaching",
-      detail: "Preparing a personalized explanation and next step.",
+      agent: "Tutor Voice",
+      title: "Delivering answer",
+      detail: "Sending the final response into the chat.",
       status: "pending",
     },
   ];
@@ -541,42 +562,100 @@ function CoachAnswer({ value }: { value: string }) {
 }
 
 function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
+  const activeStage = stages.find((stage) => stage.status === "active") || stages.find((stage) => stage.status === "pending") || stages[stages.length - 1];
+  const completedCount = stages.filter((stage) => stage.status === "done").length;
+  const progress = Math.round((completedCount / Math.max(1, stages.length)) * 100);
+
   return (
-    <div className="w-full rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(236,254,255,0.76))] p-4 shadow-[0_22px_70px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.22em] text-[#0E7490]">Agent workflow</p>
-          <p className="mt-1 text-sm text-slate-500">Drafting, reviewing, and preparing your final tutor response.</p>
-        </div>
-        <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-600">
-          Live
-        </span>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {stages.map((stage) => {
-          const active = stage.status === "active";
-          const done = stage.status === "done";
-          return (
-            <div
-              key={stage.id}
-              className={`relative overflow-hidden rounded-3xl border p-4 transition ${
-                active
-                  ? "scale-[1.015] border-[#0E7490]/30 bg-[#0E7490]/10 shadow-[0_18px_45px_rgba(14,116,144,0.14)]"
-                  : done
-                  ? "border-emerald-400/30 bg-emerald-400/10"
-                  : "border-slate-200/90 bg-white/70"
-              }`}
-            >
-              {active ? <span className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#14B8A6] to-transparent" /> : null}
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-black text-slate-950">{stage.title}</p>
-                <span className={`h-2.5 w-2.5 rounded-full ${done ? "bg-emerald-400" : active ? "animate-pulse bg-[#0E7490]" : "bg-slate-300"}`} />
-              </div>
-              <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">{stage.agent}</p>
-              <p className="mt-3 text-xs leading-5 text-slate-500">{stage.detail}</p>
+    <div className="w-full rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(248,250,252,0.92),rgba(236,254,255,0.68))] p-4">
+      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[0.82fr_1.18fr] lg:items-stretch">
+        <div className="flex min-h-[260px] flex-col justify-between rounded-[1.45rem] border border-[#0E7490]/14 bg-white/76 p-5 shadow-[0_18px_50px_rgba(14,116,144,0.09)]">
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0E7490]">Live tutor team</p>
+              <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600">
+                Working
+              </span>
             </div>
-          );
-        })}
+            <div className="mt-5 flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490] text-white shadow-[0_14px_38px_rgba(14,116,144,0.18)]">
+                <AppIcon name={activeStage?.id === "delivering" ? "send" : activeStage?.id === "formatting" ? "book" : activeStage?.id === "reviewing" ? "check" : "spark"} />
+              </span>
+              <div className="min-w-0">
+                <p className="text-base font-black tracking-tight text-slate-950">{activeStage?.agent || "Tutor team"}</p>
+                <p className="mt-1 text-sm font-semibold text-[#0E7490]">{activeStage?.title || "Preparing response"}</p>
+                <p className="mt-3 text-sm leading-6 text-slate-600">{activeStage?.detail || "Preparing the next step."}</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-5">
+            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              <span>Progress</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200/80">
+              <span
+                className="block h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6)] transition-all duration-500"
+                style={{ width: `${Math.max(8, progress)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[1.45rem] border border-slate-200/80 bg-white/70 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
+          <div className="grid gap-2 sm:grid-cols-2">
+            {stages.map((stage, index) => {
+              const active = stage.status === "active";
+              const done = stage.status === "done";
+              const waiting = stage.status === "pending";
+              return (
+                <div
+                  key={stage.id}
+                  className={`relative min-h-[118px] overflow-hidden rounded-[1.15rem] border p-3.5 transition duration-300 ${
+                    active
+                      ? "border-[#0E7490]/32 bg-[#0E7490]/10 shadow-[0_14px_34px_rgba(14,116,144,0.13)]"
+                      : done
+                      ? "border-emerald-300/50 bg-emerald-50/80"
+                      : "border-slate-200/90 bg-white/68"
+                  }`}
+                >
+                  {active ? <span className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#14B8A6] to-transparent" /> : null}
+                  <div className="flex items-start gap-3">
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
+                        done
+                          ? "bg-emerald-500 text-white"
+                          : active
+                          ? "bg-[#0E7490] text-white shadow-[0_10px_25px_rgba(14,116,144,0.20)]"
+                          : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {done ? <AppIcon name="check" className="h-4 w-4" /> : index + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-black tracking-tight text-slate-950">{stage.agent}</p>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
+                            done
+                              ? "bg-emerald-500/10 text-emerald-700"
+                              : active
+                              ? "bg-[#0E7490]/12 text-[#0E7490]"
+                              : "bg-slate-100 text-slate-400"
+                          }`}
+                        >
+                          {done ? "done" : active ? "now" : "next"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs font-bold text-slate-700">{stage.title}</p>
+                      <p className={`mt-2 text-[11px] leading-5 ${waiting ? "text-slate-400" : "text-slate-500"}`}>{stage.detail}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1005,7 +1084,7 @@ export default function StudyPage() {
     setLoadingAnswer(true);
     setMentorProfile(adaptiveProfile);
     setShowPipeline(true);
-    setStages(createStages().map((stage) => (stage.id === "drafting" ? { ...stage, status: "active" } : stage)));
+    setStages(createStages().map((stage) => (stage.id === "received" ? { ...stage, status: "active" } : stage)));
     let finalAnswer = "";
 
     setMessages((current) => [
