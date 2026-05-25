@@ -189,12 +189,12 @@ function HubTile({
     <Link
       href={href}
       aria-label={`${title}: ${description}`}
-      className={`hub-tile hub-tile--${tone} group relative min-h-[238px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 sm:p-7`}
+      className={`hub-tile hub-tile--${tone} group relative min-h-[238px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 outline-none sm:p-7`}
     >
-      <div className="absolute right-[-3.5rem] top-[-3.5rem] h-36 w-36 rounded-full bg-white/28 blur-2xl transition duration-500 group-hover:scale-110" />
-      <div className="relative z-20 flex h-full flex-col">
-        <div className="flex items-start justify-between gap-4">
-          <div>
+      <div className="hub-tile-glow absolute right-[-3.5rem] top-[-3.5rem] h-36 w-36 rounded-full bg-white/28 blur-2xl transition duration-500 group-hover:scale-110" />
+      <div className="hub-tile-content relative z-20 flex h-full flex-col">
+        <div className="hub-tile-top flex items-start justify-between gap-4">
+          <div className="min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">{eyebrow}</p>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
           </div>
@@ -203,11 +203,11 @@ function HubTile({
           </span>
         </div>
 
-        <p className="mt-4 max-w-sm text-sm leading-6 opacity-[0.78]">{description}</p>
-        <div className="mt-auto pt-7">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span className="text-xs font-semibold opacity-[0.68]">{helper}</span>
-            <span className="hub-tile-action inline-flex w-fit items-center rounded-full border border-white/60 bg-white/48 px-4 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <p className="hub-tile-description mt-4 max-w-sm text-sm leading-6 opacity-[0.78]">{description}</p>
+        <div className="hub-tile-footer mt-auto pt-7">
+          <div className="flex items-end justify-between gap-4">
+            <span className="hub-tile-helper min-w-0 text-xs font-semibold leading-5 opacity-[0.68]">{helper}</span>
+            <span className="hub-tile-action inline-flex shrink-0 items-center rounded-full border border-white/60 bg-white/48 px-4 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
               {action}
             </span>
           </div>
