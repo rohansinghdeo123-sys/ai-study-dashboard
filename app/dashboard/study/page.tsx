@@ -682,108 +682,57 @@ function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
     stages[stages.length - 1];
   const completedCount = stages.filter((stage) => stage.status === "done").length;
   const progress = Math.round((completedCount / Math.max(1, stages.length)) * 100);
+  const isComplete = completedCount === stages.length;
 
   return (
-    <div className="w-full overflow-hidden rounded-[1.55rem] border border-slate-200/80 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-      <div className="border-b border-slate-200/70 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(236,254,255,0.72))] px-5 py-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490] text-white shadow-[0_14px_38px_rgba(14,116,144,0.18)]">
-              <AppIcon name={activeStage ? STAGE_ICONS[activeStage.id] : "spark"} />
-            </span>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#0E7490]">Agent activity</p>
-                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-600">
-                  Live
-                </span>
-              </div>
-              <h3 className="mt-2 text-lg font-black tracking-tight text-slate-950">{activeStage?.title || "Preparing response"}</h3>
-              <p className="mt-1 text-sm leading-6 text-slate-600">{activeStage?.detail || "Preparing the next step."}</p>
+    <div className="study-agent-pipeline w-full overflow-hidden rounded-[1.35rem] border border-slate-200/60 bg-white/58 px-4 py-3 shadow-[0_14px_46px_rgba(15,23,42,0.06)] backdrop-blur-2xl">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className={`study-live-orb mt-1 ${isComplete ? "is-complete" : ""}`}>
+            <AppIcon name={isComplete ? "check" : STAGE_ICONS[activeStage.id]} className="h-3.5 w-3.5" />
+          </span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E7490]">
+                {isComplete ? "Tutor flow complete" : "Tutor thinking"}
+              </span>
+              <span className="study-live-pill">{isComplete ? "Ready" : "Live"}</span>
             </div>
+            <p className="study-live-line mt-1 text-sm font-semibold leading-6 text-slate-900">
+              <span className="text-slate-500">{activeStage.agent}</span>
+              <span className="px-1.5 text-slate-300">/</span>
+              <span>{activeStage.title}</span>
+            </p>
+            <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-500">{activeStage.detail}</p>
           </div>
-          <div className="min-w-[168px]">
-            <div className="flex items-center justify-end -space-x-2">
-              {stages.map((stage) => (
-                <span
-                  key={stage.id}
-                  title={stage.agent}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[10px] font-black shadow-sm ${
-                    stage.status === "done"
-                      ? "bg-emerald-500 text-white"
-                      : stage.status === "active"
-                      ? "bg-[#0E7490] text-white"
-                      : "bg-slate-100 text-slate-400"
-                  }`}
-                >
-                  {stage.agent.split(" ").map((word) => word[0]).join("").slice(0, 2)}
-                </span>
-              ))}
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200/80">
-              <span
-                className="block h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6)] transition-all duration-500"
-                style={{ width: `${Math.max(8, progress)}%` }}
-              />
-            </div>
-            <p className="mt-2 text-right text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{completedCount}/{stages.length} complete</p>
+        </div>
+        <div className="min-w-[160px] md:text-right">
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+            {completedCount}/{stages.length} complete
+          </p>
+          <div className="study-live-progress mt-2">
+            <span style={{ width: `${Math.max(isComplete ? 100 : 10, progress)}%` }} />
           </div>
         </div>
       </div>
 
-      <div className="px-4 py-3 sm:px-5">
-        <div className="space-y-1">
-          {stages.map((stage, index) => {
-            const active = stage.status === "active";
-            const done = stage.status === "done";
-            const waiting = stage.status === "pending";
-            return (
-              <section
-                key={stage.id}
-                className={`relative flex gap-3 rounded-2xl px-3 py-3 transition duration-300 ${
-                  active
-                    ? "bg-[#0E7490]/10 shadow-[0_14px_34px_rgba(14,116,144,0.10)]"
-                    : done
-                    ? "bg-emerald-50/70"
-                    : "bg-transparent"
-                }`}
-              >
-                <div className="relative flex flex-col items-center">
-                  <span
-                    className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
-                      done
-                        ? "bg-emerald-500 text-white"
-                        : active
-                        ? "bg-[#0E7490] text-white shadow-[0_10px_25px_rgba(14,116,144,0.20)]"
-                        : "bg-slate-100 text-slate-400"
-                    }`}
-                  >
-                    {done ? <AppIcon name="check" className="h-4 w-4" /> : <AppIcon name={STAGE_ICONS[stage.id]} className="h-4 w-4" />}
-                  </span>
-                  {index < stages.length - 1 ? <span className="absolute top-8 h-[calc(100%+0.35rem)] w-px bg-slate-200" /> : null}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-black tracking-tight text-slate-950">{stage.agent}</p>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
-                        done
-                          ? "bg-emerald-500/10 text-emerald-700"
-                          : active
-                          ? "bg-[#0E7490]/12 text-[#0E7490]"
-                          : "bg-slate-100 text-slate-400"
-                      }`}
-                    >
-                      {done ? "done" : active ? "now" : "next"}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs font-bold text-slate-700">{stage.title}</p>
-                  <p className={`mt-1 text-[11px] leading-5 ${waiting ? "text-slate-400" : "text-slate-500"}`}>{stage.detail}</p>
-                </div>
-              </section>
-            );
-          })}
-        </div>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {stages.map((stage, index) => {
+          const active = stage.status === "active";
+          const done = stage.status === "done";
+          return (
+            <span
+              key={stage.id}
+              title={`${stage.agent}: ${stage.title}`}
+              className={`study-agent-chip ${active ? "is-active" : ""} ${done ? "is-done" : ""}`}
+            >
+              <span className="study-agent-dot">
+                {done ? <AppIcon name="check" className="h-3 w-3" /> : index + 1}
+              </span>
+              <span className="whitespace-nowrap">{stage.agent}</span>
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -800,29 +749,33 @@ function AgentActivitySummary({
 }) {
   const completedCount = stages.filter((stage) => stage.status === "done").length;
   const allDone = completedCount === stages.length;
+  const activeStage =
+    stages.find((stage) => stage.status === "active") ||
+    stages.find((stage) => stage.status === "pending") ||
+    stages[stages.length - 1];
 
   return (
     <div className="mx-auto w-full max-w-5xl">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/78 px-4 py-3 text-left shadow-[0_14px_42px_rgba(15,23,42,0.06)] transition hover:border-[#0E7490]/24 hover:bg-white"
+        className="study-agent-summary flex w-full items-center justify-between gap-3 rounded-[1.25rem] border border-slate-200/60 bg-white/56 px-4 py-3 text-left shadow-[0_12px_38px_rgba(15,23,42,0.05)] backdrop-blur-2xl transition hover:border-[#0E7490]/24 hover:bg-white/76"
       >
         <span className="flex min-w-0 items-center gap-3">
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${allDone ? "bg-emerald-500 text-white" : "bg-[#0E7490] text-white"}`}>
-            <AppIcon name={allDone ? "check" : "spark"} />
+          <span className={`study-live-orb ${allDone ? "is-complete" : ""}`}>
+            <AppIcon name={allDone ? "check" : STAGE_ICONS[activeStage.id]} className="h-3.5 w-3.5" />
           </span>
           <span className="min-w-0">
-            <span className="block text-sm font-black text-slate-950">
-              {allDone ? `${completedCount} agents completed` : `${completedCount}/${stages.length} agents completed`}
+            <span className="block truncate text-sm font-semibold text-slate-900">
+              {allDone ? "Tutor flow finished" : `${activeStage.agent} is ${activeStage.title.toLowerCase()}`}
             </span>
             <span className="mt-0.5 block truncate text-xs text-slate-500">
               {expanded ? "Hide process details" : "View process details"}
             </span>
           </span>
         </span>
-        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-          {expanded ? "Hide" : "Process"}
+        <span className="rounded-full border border-slate-200/70 bg-white/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+          {expanded ? "Hide" : `${completedCount}/${stages.length}`}
         </span>
       </button>
       {expanded ? <div className="mt-3"><AgentPipeline stages={stages} /></div> : null}
@@ -923,6 +876,7 @@ function TutorResponseCard({
   timestamp,
   topicLabel,
   stages,
+  showActivity,
   onPrompt,
 }: {
   coachName: string;
@@ -930,36 +884,54 @@ function TutorResponseCard({
   timestamp: string;
   topicLabel: string;
   stages: AgentStageState[];
+  showActivity: boolean;
   onPrompt: (prompt: string) => void;
 }) {
   const pending = !content.trim();
 
   return (
     <div className="flex justify-start">
-      <div className="grid w-full max-w-5xl grid-cols-[44px_minmax(0,1fr)] gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)]">
+      <div className="grid w-full max-w-5xl grid-cols-[40px_minmax(0,1fr)] gap-3 sm:grid-cols-[44px_minmax(0,1fr)]">
+        <div className="study-message-avatar flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)] sm:h-11 sm:w-11">
           {coachName[0]}
         </div>
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
-            <p className="font-black tracking-tight text-slate-950">{coachName}</p>
-            <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
+            <p className="font-semibold tracking-tight text-slate-950">{coachName}</p>
+            <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
               Tutor
             </span>
-            <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+            <span className="rounded-full border border-slate-200/70 bg-white/58 px-2.5 py-1 text-[10px] font-bold text-slate-500">
               {topicLabel}
             </span>
             {timestamp ? <span className="text-xs font-medium text-slate-400">{timestamp}</span> : null}
           </div>
 
-          {pending ? (
-            <AgentPipeline stages={stages} />
-          ) : (
-            <article className="rounded-[1.35rem] border border-slate-200/70 bg-white/86 px-5 py-5 shadow-[0_18px_58px_rgba(15,23,42,0.07)] backdrop-blur-2xl sm:px-7 sm:py-7">
-              <CoachAnswer value={content} />
-              <TutorActionDock answer={content} onPrompt={onPrompt} />
-            </article>
-          )}
+          <article className="study-tutor-response rounded-[1.45rem] border border-slate-200/60 bg-white/78 px-4 py-4 shadow-[0_18px_58px_rgba(15,23,42,0.07)] backdrop-blur-2xl sm:px-6 sm:py-6">
+            {showActivity ? (
+              <div className={pending ? "" : "mb-5"}>
+                <AgentPipeline stages={stages} />
+              </div>
+            ) : null}
+
+            {pending ? (
+              <div className="study-stream-placeholder flex items-center gap-2 px-1 py-3 text-sm font-medium text-slate-500">
+                <span className="study-typing-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span>{coachName} is preparing your answer</span>
+              </div>
+            ) : (
+              <>
+                <div className="study-answer-stream">
+                  <CoachAnswer value={content} />
+                </div>
+                <TutorActionDock answer={content} onPrompt={onPrompt} />
+              </>
+            )}
+          </article>
         </div>
       </div>
     </div>
@@ -1091,7 +1063,6 @@ export default function StudyPage() {
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
-  const hasPendingCoachMessage = messages.some((message) => message.role === "coach" && !message.content.trim());
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
   const needsTopicPicker = mode === "revision" || mode === "exam";
@@ -1752,8 +1723,10 @@ export default function StudyPage() {
                 </div>
               ) : (
                 <div className="mx-auto w-full max-w-5xl space-y-6">
-                  {messages.map((message, index) => (
-                    message.role === "user" ? (
+                  {messages.map((message, index) => {
+                    const isLatestMessage = index === messages.length - 1;
+
+                    return message.role === "user" ? (
                       <StudentPromptCard
                         key={`${message.role}-${index}`}
                         content={message.content}
@@ -1767,16 +1740,11 @@ export default function StudyPage() {
                         timestamp={message.timestamp}
                         topicLabel="Open tutor"
                         stages={stages}
+                        showActivity={showPipeline && isLatestMessage}
                         onPrompt={setInput}
                       />
-                    )
-                  ))}
-
-                  {showPipeline && !hasPendingCoachMessage ? (
-                    <div className="flex justify-start">
-                      <AgentPipeline stages={stages} />
-                    </div>
-                  ) : null}
+                    );
+                  })}
 
                   {showAgentSummary && !showPipeline ? (
                     <AgentActivitySummary
