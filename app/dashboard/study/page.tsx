@@ -142,6 +142,15 @@ const CHAPTERS = [
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
 
+const STAGE_ICONS: Record<AgentStageId, AppIconName> = {
+  received: "study",
+  understanding: "spark",
+  drafting: "book",
+  reviewing: "check",
+  formatting: "copy",
+  delivering: "send",
+};
+
 const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
   { id: "coach", label: "Coach", detail: "Ask and continue doubts", icon: "study" },
   { id: "revision", label: "Revision", detail: "Summary, explain, key points", icon: "book" },
@@ -562,99 +571,113 @@ function CoachAnswer({ value }: { value: string }) {
 }
 
 function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
-  const activeStage = stages.find((stage) => stage.status === "active") || stages.find((stage) => stage.status === "pending") || stages[stages.length - 1];
+  const activeStage =
+    stages.find((stage) => stage.status === "active") ||
+    stages.find((stage) => stage.status === "pending") ||
+    stages[stages.length - 1];
   const completedCount = stages.filter((stage) => stage.status === "done").length;
   const progress = Math.round((completedCount / Math.max(1, stages.length)) * 100);
 
   return (
-    <div className="w-full rounded-[1.7rem] bg-[linear-gradient(135deg,rgba(248,250,252,0.92),rgba(236,254,255,0.68))] p-4">
-      <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[0.82fr_1.18fr] lg:items-stretch">
-        <div className="flex min-h-[260px] flex-col justify-between rounded-[1.45rem] border border-[#0E7490]/14 bg-white/76 p-5 shadow-[0_18px_50px_rgba(14,116,144,0.09)]">
-          <div>
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#0E7490]">Live tutor team</p>
-              <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600">
-                Working
-              </span>
-            </div>
-            <div className="mt-5 flex items-start gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490] text-white shadow-[0_14px_38px_rgba(14,116,144,0.18)]">
-                <AppIcon name={activeStage?.id === "delivering" ? "send" : activeStage?.id === "formatting" ? "book" : activeStage?.id === "reviewing" ? "check" : "spark"} />
-              </span>
-              <div className="min-w-0">
-                <p className="text-base font-black tracking-tight text-slate-950">{activeStage?.agent || "Tutor team"}</p>
-                <p className="mt-1 text-sm font-semibold text-[#0E7490]">{activeStage?.title || "Preparing response"}</p>
-                <p className="mt-3 text-sm leading-6 text-slate-600">{activeStage?.detail || "Preparing the next step."}</p>
+    <div className="w-full overflow-hidden rounded-[1.55rem] border border-slate-200/80 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+      <div className="border-b border-slate-200/70 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(236,254,255,0.72))] px-5 py-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490] text-white shadow-[0_14px_38px_rgba(14,116,144,0.18)]">
+              <AppIcon name={activeStage ? STAGE_ICONS[activeStage.id] : "spark"} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#0E7490]">Agent activity</p>
+                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-emerald-600">
+                  Live
+                </span>
               </div>
+              <h3 className="mt-2 text-lg font-black tracking-tight text-slate-950">{activeStage?.title || "Preparing response"}</h3>
+              <p className="mt-1 text-sm leading-6 text-slate-600">{activeStage?.detail || "Preparing the next step."}</p>
             </div>
           </div>
-          <div className="mt-5">
-            <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              <span>Progress</span>
-              <span>{progress}%</span>
+          <div className="min-w-[168px]">
+            <div className="flex items-center justify-end -space-x-2">
+              {stages.map((stage) => (
+                <span
+                  key={stage.id}
+                  title={stage.agent}
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[10px] font-black shadow-sm ${
+                    stage.status === "done"
+                      ? "bg-emerald-500 text-white"
+                      : stage.status === "active"
+                      ? "bg-[#0E7490] text-white"
+                      : "bg-slate-100 text-slate-400"
+                  }`}
+                >
+                  {stage.agent.split(" ").map((word) => word[0]).join("").slice(0, 2)}
+                </span>
+              ))}
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200/80">
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200/80">
               <span
                 className="block h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6)] transition-all duration-500"
                 style={{ width: `${Math.max(8, progress)}%` }}
               />
             </div>
+            <p className="mt-2 text-right text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{completedCount}/{stages.length} complete</p>
           </div>
         </div>
+      </div>
 
-        <div className="rounded-[1.45rem] border border-slate-200/80 bg-white/70 p-3 shadow-[0_18px_50px_rgba(15,23,42,0.06)]">
-          <div className="grid gap-2 sm:grid-cols-2">
-            {stages.map((stage, index) => {
-              const active = stage.status === "active";
-              const done = stage.status === "done";
-              const waiting = stage.status === "pending";
-              return (
-                <div
-                  key={stage.id}
-                  className={`relative min-h-[118px] overflow-hidden rounded-[1.15rem] border p-3.5 transition duration-300 ${
-                    active
-                      ? "border-[#0E7490]/32 bg-[#0E7490]/10 shadow-[0_14px_34px_rgba(14,116,144,0.13)]"
-                      : done
-                      ? "border-emerald-300/50 bg-emerald-50/80"
-                      : "border-slate-200/90 bg-white/68"
-                  }`}
-                >
-                  {active ? <span className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-[#14B8A6] to-transparent" /> : null}
-                  <div className="flex items-start gap-3">
+      <div className="px-4 py-3 sm:px-5">
+        <div className="space-y-1">
+          {stages.map((stage, index) => {
+            const active = stage.status === "active";
+            const done = stage.status === "done";
+            const waiting = stage.status === "pending";
+            return (
+              <section
+                key={stage.id}
+                className={`relative flex gap-3 rounded-2xl px-3 py-3 transition duration-300 ${
+                  active
+                    ? "bg-[#0E7490]/10 shadow-[0_14px_34px_rgba(14,116,144,0.10)]"
+                    : done
+                    ? "bg-emerald-50/70"
+                    : "bg-transparent"
+                }`}
+              >
+                <div className="relative flex flex-col items-center">
+                  <span
+                    className={`z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
+                      done
+                        ? "bg-emerald-500 text-white"
+                        : active
+                        ? "bg-[#0E7490] text-white shadow-[0_10px_25px_rgba(14,116,144,0.20)]"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    {done ? <AppIcon name="check" className="h-4 w-4" /> : <AppIcon name={STAGE_ICONS[stage.id]} className="h-4 w-4" />}
+                  </span>
+                  {index < stages.length - 1 ? <span className="absolute top-8 h-[calc(100%+0.35rem)] w-px bg-slate-200" /> : null}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-black tracking-tight text-slate-950">{stage.agent}</p>
                     <span
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
+                      className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
                         done
-                          ? "bg-emerald-500 text-white"
+                          ? "bg-emerald-500/10 text-emerald-700"
                           : active
-                          ? "bg-[#0E7490] text-white shadow-[0_10px_25px_rgba(14,116,144,0.20)]"
+                          ? "bg-[#0E7490]/12 text-[#0E7490]"
                           : "bg-slate-100 text-slate-400"
                       }`}
                     >
-                      {done ? <AppIcon name="check" className="h-4 w-4" /> : index + 1}
+                      {done ? "done" : active ? "now" : "next"}
                     </span>
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-black tracking-tight text-slate-950">{stage.agent}</p>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] ${
-                            done
-                              ? "bg-emerald-500/10 text-emerald-700"
-                              : active
-                              ? "bg-[#0E7490]/12 text-[#0E7490]"
-                              : "bg-slate-100 text-slate-400"
-                          }`}
-                        >
-                          {done ? "done" : active ? "now" : "next"}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs font-bold text-slate-700">{stage.title}</p>
-                      <p className={`mt-2 text-[11px] leading-5 ${waiting ? "text-slate-400" : "text-slate-500"}`}>{stage.detail}</p>
-                    </div>
                   </div>
+                  <p className="mt-1 text-xs font-bold text-slate-700">{stage.title}</p>
+                  <p className={`mt-1 text-[11px] leading-5 ${waiting ? "text-slate-400" : "text-slate-500"}`}>{stage.detail}</p>
                 </div>
-              );
-            })}
-          </div>
+              </section>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -688,12 +711,12 @@ function StarterPromptCard({
 function StudentPromptCard({ content, timestamp }: { content: string; timestamp: string }) {
   return (
     <div className="flex justify-end">
-      <article className="max-w-[780px] rounded-[1.7rem] rounded-tr-md bg-[linear-gradient(135deg,#0E7490,#0F8F9F)] px-5 py-4 text-white shadow-[0_24px_65px_rgba(14,116,144,0.22)]">
-        <div className="mb-2 flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/70">
+      <article className="max-w-[760px] rounded-[1.55rem] rounded-tr-md bg-[linear-gradient(135deg,#0F172A,#0E7490)] px-5 py-4 text-white shadow-[0_20px_54px_rgba(14,116,144,0.20)]">
+        <div className="mb-2 flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/66">
           <span>You</span>
           {timestamp ? <span>{timestamp}</span> : null}
         </div>
-        <p className="whitespace-pre-wrap text-[15px] leading-7">{content}</p>
+        <p className="whitespace-pre-wrap text-[15px] leading-7 text-white/95">{content}</p>
       </article>
     </div>
   );
@@ -769,35 +792,43 @@ function TutorResponseCard({
 
   return (
     <div className="flex justify-start">
-      <article className="w-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200/80 bg-white/92 shadow-[0_26px_85px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-        <header className="flex flex-col gap-4 border-b border-slate-200/75 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(236,254,255,0.72))] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)]">
-              {coachName[0]}
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-black tracking-tight text-slate-950">{coachName}</p>
-                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
-                  Tutor
-                </span>
-              </div>
-              <p className="mt-1 text-xs text-slate-500">
-                {pending ? "Preparing a reviewed response" : "Reviewed subject answer"} {timestamp ? `at ${timestamp}` : ""}
-              </p>
-            </div>
-          </div>
-          <div className="flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-3 py-2 text-[11px] font-bold text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-[#14B8A6]" />
-            {topicLabel}
-          </div>
-        </header>
-
-        <div className="px-5 py-5 sm:px-7 sm:py-7">
-          {pending ? <AgentPipeline stages={stages} /> : <CoachAnswer value={content} />}
-          {!pending ? <TutorActionDock answer={content} topicLabel={topicLabel} onPrompt={onPrompt} /> : null}
+      <div className="grid w-full max-w-5xl grid-cols-[44px_minmax(0,1fr)] gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)]">
+          {coachName[0]}
         </div>
-      </article>
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+            <p className="font-black tracking-tight text-slate-950">{coachName}</p>
+            <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
+              Tutor
+            </span>
+            <span className="rounded-full border border-slate-200 bg-white/70 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+              {topicLabel}
+            </span>
+            {timestamp ? <span className="text-xs font-medium text-slate-400">{timestamp}</span> : null}
+          </div>
+
+          {pending ? (
+            <AgentPipeline stages={stages} />
+          ) : (
+            <article className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white/94 shadow-[0_24px_78px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
+              <div className="border-b border-slate-200/70 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(236,254,255,0.58))] px-5 py-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#0E7490]">Reviewed answer</p>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-600">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Ready
+                  </span>
+                </div>
+              </div>
+              <div className="px-5 py-5 sm:px-7 sm:py-7">
+                <CoachAnswer value={content} />
+                <TutorActionDock answer={content} topicLabel={topicLabel} onPrompt={onPrompt} />
+              </div>
+            </article>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
