@@ -60,6 +60,16 @@ interface AgentStagePayload {
   detail?: string;
 }
 
+interface AnswerDeltaPayload {
+  type: "answer_delta";
+  delta: string;
+}
+
+type StreamProcessResult =
+  | { kind: "none" }
+  | { kind: "delta"; value: string }
+  | { kind: "answer"; value: string };
+
 interface RevisionTool {
   id: RevisionType;
   title: string;
@@ -474,6 +484,22 @@ function parseStagePayload(value: string): AgentStagePayload | null {
   return null;
 }
 
+function parseAnswerDeltaPayload(value: string): AnswerDeltaPayload | null {
+  const payload = stripDataPrefix(value);
+  if (!payload.startsWith("{")) return null;
+
+  try {
+    const parsed = JSON.parse(payload) as Partial<AnswerDeltaPayload>;
+    if (parsed.type === "answer_delta" && typeof parsed.delta === "string") {
+      return parsed as AnswerDeltaPayload;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function normalizeAnswerPayload(value: string) {
   const payload = stripDataPrefix(value);
   if (!payload || payload === "[DONE]" || payload.startsWith("{")) return "";
@@ -529,6 +555,70 @@ function renderInlineChemistry(value: string) {
   });
 }
 
+const ANSWER_BLOCKS: Array<{
+  match: string[];
+  label: string;
+  icon: AppIconName;
+  className: string;
+  iconClassName: string;
+}> = [
+  {
+    match: ["direct answer", "answer", "concept"],
+    label: "Core idea",
+    icon: "study",
+    className: "border-[#0E7490]/16 bg-[#0E7490]/[0.07]",
+    iconClassName: "bg-[#0E7490]/10 text-[#0E7490]",
+  },
+  {
+    match: ["simple explanation", "why", "reason", "breakdown"],
+    label: "Explanation",
+    icon: "book",
+    className: "border-sky-200/70 bg-sky-50/55",
+    iconClassName: "bg-sky-100 text-sky-700",
+  },
+  {
+    match: ["example", "analogy", "real life"],
+    label: "Example",
+    icon: "spark",
+    className: "border-teal-200/70 bg-teal-50/55",
+    iconClassName: "bg-teal-100 text-teal-700",
+  },
+  {
+    match: ["common mistake", "mistake", "trap"],
+    label: "Watch out",
+    icon: "x",
+    className: "border-amber-200/80 bg-amber-50/65",
+    iconClassName: "bg-amber-100 text-amber-700",
+  },
+  {
+    match: ["formula", "steps", "method", "solve"],
+    label: "Method",
+    icon: "clock",
+    className: "border-indigo-200/70 bg-indigo-50/55",
+    iconClassName: "bg-indigo-100 text-indigo-700",
+  },
+  {
+    match: ["exam", "marks", "exam tip", "exam-ready"],
+    label: "Exam focus",
+    icon: "check",
+    className: "border-emerald-200/80 bg-emerald-50/65",
+    iconClassName: "bg-emerald-100 text-emerald-700",
+  },
+  {
+    match: ["quick check", "checkpoint", "question", "next step", "practice"],
+    label: "Try this",
+    icon: "arrowRight",
+    className: "border-slate-200 bg-slate-50/80",
+    iconClassName: "bg-slate-200/70 text-slate-700",
+  },
+];
+
+function getAnswerBlockMeta(heading: string | null) {
+  if (!heading) return null;
+  const normalized = heading.toLowerCase();
+  return ANSWER_BLOCKS.find((block) => block.match.some((item) => normalized.includes(item))) || null;
+}
+
 function CoachAnswer({ value }: { value: string }) {
   const blocks = value.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
 
@@ -540,13 +630,28 @@ function CoachAnswer({ value }: { value: string }) {
         const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
         const heading = lines[0]?.endsWith(":") && lines[0].length <= 72 ? lines[0].replace(/:$/, "") : null;
         const body = heading ? lines.slice(1) : lines;
+        const blockMeta = getAnswerBlockMeta(heading);
 
         return (
-          <section key={`${heading || "answer"}-${blockIndex}`} className="space-y-3">
+          <section
+            key={`${heading || "answer"}-${blockIndex}`}
+            className={`space-y-3 ${
+              blockMeta
+                ? `rounded-2xl border px-4 py-4 ${blockMeta.className}`
+                : "rounded-2xl border border-transparent py-1"
+            }`}
+          >
             {heading ? (
               <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.08em] text-[#0E7490]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
-                {heading}
+                {blockMeta ? (
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-xl ${blockMeta.iconClassName}`}>
+                    <AppIcon name={blockMeta.icon} className="h-3.5 w-3.5" />
+                  </span>
+                ) : (
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
+                )}
+                <span>{blockMeta?.label || heading}</span>
+                {blockMeta ? <span className="text-[10px] font-bold normal-case tracking-normal text-slate-400">{heading}</span> : null}
               </h3>
             ) : null}
             <div className="space-y-3 text-[15.5px] leading-8 text-slate-700">
@@ -680,6 +785,47 @@ function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
           })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function AgentActivitySummary({
+  stages,
+  expanded,
+  onToggle,
+}: {
+  stages: AgentStageState[];
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const completedCount = stages.filter((stage) => stage.status === "done").length;
+  const allDone = completedCount === stages.length;
+
+  return (
+    <div className="mx-auto w-full max-w-5xl">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white/78 px-4 py-3 text-left shadow-[0_14px_42px_rgba(15,23,42,0.06)] transition hover:border-[#0E7490]/24 hover:bg-white"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${allDone ? "bg-emerald-500 text-white" : "bg-[#0E7490] text-white"}`}>
+            <AppIcon name={allDone ? "check" : "spark"} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-black text-slate-950">
+              {allDone ? `${completedCount} agents completed` : `${completedCount}/${stages.length} agents completed`}
+            </span>
+            <span className="mt-0.5 block truncate text-xs text-slate-500">
+              {expanded ? "Hide process details" : "View process details"}
+            </span>
+          </span>
+        </span>
+        <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
+          {expanded ? "Hide" : "Process"}
+        </span>
+      </button>
+      {expanded ? <div className="mt-3"><AgentPipeline stages={stages} /></div> : null}
     </div>
   );
 }
@@ -921,6 +1067,8 @@ export default function StudyPage() {
   const [stages, setStages] = useState(createStages);
   const [mentorProfile, setMentorProfile] = useState<MentorProfile>(createDefaultMentorProfile);
   const [showPipeline, setShowPipeline] = useState(false);
+  const [showAgentSummary, setShowAgentSummary] = useState(false);
+  const [agentSummaryExpanded, setAgentSummaryExpanded] = useState(false);
   const [error, setError] = useState("");
   const [revisionContent, setRevisionContent] = useState<Record<RevisionType, string>>({ summary: "", explain: "", keypoints: "" });
   const [revisionLoading, setRevisionLoading] = useState<Record<RevisionType, boolean>>({ summary: false, explain: false, keypoints: false });
@@ -1056,6 +1204,21 @@ export default function StudyPage() {
     setShowPipeline(payload.status !== "done" || payload.stage !== "delivering");
   };
 
+  const appendLastCoachMessage = (delta: string) => {
+    setMessages((current) => {
+      const next = [...current];
+      const last = next[next.length - 1];
+      if (last?.role === "coach") {
+        next[next.length - 1] = {
+          ...last,
+          content: `${last.content}${delta}`,
+          timestamp: getTime(),
+        };
+      }
+      return next;
+    });
+  };
+
   const updateLastCoachMessage = (content: string) => {
     setMessages((current) => {
       const next = [...current];
@@ -1067,27 +1230,37 @@ export default function StudyPage() {
     });
   };
 
-  const processSseEvent = (raw: string) => {
+  const processSseEvent = (raw: string): StreamProcessResult => {
     const stagePayload = parseStagePayload(raw);
     if (stagePayload) {
       handleStagePayload(stagePayload);
-      return "";
+      return { kind: "none" };
+    }
+
+    const deltaPayload = parseAnswerDeltaPayload(raw);
+    if (deltaPayload) {
+      appendLastCoachMessage(deltaPayload.delta);
+      return { kind: "delta", value: deltaPayload.delta };
     }
 
     const payload = stripDataPrefix(raw);
     if (payload === "[DONE]") {
       setShowPipeline(false);
-      return "";
+      setShowAgentSummary(true);
+      setAgentSummaryExpanded(false);
+      return { kind: "none" };
     }
 
     const answer = normalizeAnswerPayload(raw);
     if (answer) {
       updateLastCoachMessage(answer);
       setShowPipeline(false);
-      return answer;
+      setShowAgentSummary(true);
+      setAgentSummaryExpanded(false);
+      return { kind: "answer", value: answer };
     }
 
-    return "";
+    return { kind: "none" };
   };
 
   const sendMessage = async (override?: string, options?: { fromVoice?: boolean }) => {
@@ -1103,6 +1276,8 @@ export default function StudyPage() {
     setLoadingAnswer(true);
     setMentorProfile(adaptiveProfile);
     setShowPipeline(true);
+    setShowAgentSummary(false);
+    setAgentSummaryExpanded(false);
     setStages(createStages().map((stage) => (stage.id === "received" ? { ...stage, status: "active" } : stage)));
     let finalAnswer = "";
 
@@ -1164,14 +1339,16 @@ export default function StudyPage() {
         const events = buffer.split("\n\n");
         buffer = events.pop() || "";
         events.forEach((event) => {
-          const answer = processSseEvent(event);
-          if (answer) finalAnswer = answer;
+          const result = processSseEvent(event);
+          if (result.kind === "answer") finalAnswer = result.value;
+          if (result.kind === "delta") finalAnswer += result.value;
         });
       }
 
       if (buffer.trim()) {
-        const answer = processSseEvent(buffer);
-        if (answer) finalAnswer = answer;
+        const result = processSseEvent(buffer);
+        if (result.kind === "answer") finalAnswer = result.value;
+        if (result.kind === "delta") finalAnswer += result.value;
       }
     } catch (caught) {
       if ((caught as Error).name !== "AbortError") {
@@ -1193,6 +1370,8 @@ export default function StudyPage() {
     setInput("");
     setError("");
     setShowPipeline(false);
+    setShowAgentSummary(false);
+    setAgentSummaryExpanded(false);
     setStages(createStages);
     setMode("coach");
   };
@@ -1211,6 +1390,8 @@ export default function StudyPage() {
     setInput("");
     setError("");
     setShowPipeline(false);
+    setShowAgentSummary(false);
+    setAgentSummaryExpanded(false);
     setStages(createStages);
   };
 
@@ -1223,6 +1404,9 @@ export default function StudyPage() {
     }
     setMessages(conversation.messages || []);
     setMode("coach");
+    setShowPipeline(false);
+    setShowAgentSummary(false);
+    setAgentSummaryExpanded(false);
     window.setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
 
@@ -1592,6 +1776,14 @@ export default function StudyPage() {
                     <div className="flex justify-start">
                       <AgentPipeline stages={stages} />
                     </div>
+                  ) : null}
+
+                  {showAgentSummary && !showPipeline ? (
+                    <AgentActivitySummary
+                      stages={stages}
+                      expanded={agentSummaryExpanded}
+                      onToggle={() => setAgentSummaryExpanded((current) => !current)}
+                    />
                   ) : null}
 
                   <div ref={endRef} />
