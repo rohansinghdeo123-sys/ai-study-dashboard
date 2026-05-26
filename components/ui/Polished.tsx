@@ -211,7 +211,7 @@ export function IconButton({
       title={label}
       aria-label={children ? undefined : label}
       className={cn(
-        "polished-icon-button inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-3 text-sm font-semibold text-slate-600 shadow-[0_12px_34px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-45",
+        "agentify-action agentify-action-secondary polished-icon-button inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-3 text-sm font-semibold text-slate-600 shadow-[0_12px_34px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-45",
         className,
       )}
       {...props}
@@ -224,8 +224,8 @@ export function IconButton({
 
 export function LoadingState({ title, detail }: { title: string; detail?: string }) {
   return (
-    <div className="flex min-h-[64svh] items-center justify-center p-4">
-      <div className="polished-loading-card w-full max-w-md rounded-[1.8rem] border border-white/70 bg-white/78 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+    <div className="flex min-h-[64svh] items-center justify-center p-4" role="status" aria-live="polite">
+      <div className="agentify-state-panel polished-loading-card w-full max-w-md rounded-[1.8rem] border border-white/70 bg-white/78 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <span className="h-3 w-3 rounded-full bg-[#14B8A6] shadow-[0_0_0_6px_rgba(20,184,166,0.10)]" />
           <p className="text-sm font-semibold text-slate-950">{title}</p>
@@ -253,12 +253,33 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="polished-empty-state flex min-h-[280px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/62 p-7 text-center">
+    <div className="agentify-state-panel polished-empty-state flex min-h-[280px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/62 p-7 text-center">
       <span className="polished-icon-surface flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-[#0E7490]">
         <AppIcon name={icon} className="h-6 w-6" />
       </span>
       <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">{title}</h2>
       <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">{detail}</p>
+      {action ? <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div> : null}
+    </div>
+  );
+}
+
+export function ErrorState({
+  title = "Something went wrong",
+  detail,
+  action,
+}: {
+  title?: string;
+  detail: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="agentify-state-panel polished-empty-state flex min-h-[280px] flex-col items-center justify-center rounded-[2rem] border border-rose-200/80 bg-rose-50/70 p-7 text-center" role="alert">
+      <span className="polished-icon-surface flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-600">
+        <AppIcon name="x" className="h-6 w-6" />
+      </span>
+      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">{title}</h2>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">{detail}</p>
       {action ? <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div> : null}
     </div>
   );
@@ -273,7 +294,7 @@ export function AlertState({ message, tone = "rose" }: { message: string; tone?:
         : "border-rose-200 bg-rose-50 text-rose-600";
 
   return (
-    <p className={cn("rounded-2xl border px-4 py-3 text-sm font-medium", styles)}>
+    <p className={cn("agentify-alert rounded-2xl border px-4 py-3 text-sm font-medium", styles)} role={tone === "rose" ? "alert" : "status"} aria-live={tone === "rose" ? "assertive" : "polite"}>
       {message}
     </p>
   );

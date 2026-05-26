@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo, type ComponentType } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/Polished";
 
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as ComponentType<Record<string, unknown>>;
@@ -423,8 +424,9 @@ function ExamView({ questions }: { questions: MCQQuestion[] }) {
       {!submitted && allAnswered && (
         <div className="flex justify-center mt-6">
           <button
+            type="button"
             onClick={handleSubmit}
-            className="bg-red-600 hover:bg-red-700 transition px-8 py-3 rounded-xl font-bold text-white"
+            className="agentify-action bg-red-600 hover:bg-red-700 transition px-8 py-3 rounded-xl font-bold text-white"
           >
             Submit Exam — See Score
           </button>
@@ -492,6 +494,8 @@ export default function AnalyticsPage() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [agentResponse, setAgentResponse] = useState<unknown>(null);
   const [loadingAgent, setLoadingAgent] = useState(false);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState("");
   const [currentMode, setCurrentMode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -501,25 +505,70 @@ export default function AnalyticsPage() {
       if (authLoading) return;
       if (!user?.uid) {
         setAnalytics(null);
+        setAnalyticsError("Sign in again to load analytics.");
+        setLoadingAnalytics(false);
         return;
       }
 
-      const res = await fetch(`${backendURL}/analytics/${user.uid}`, {
-        cache: "no-store",
-        headers: await getAuthHeaders(),
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as AnalyticsData;
-      if (active) setAnalytics(data);
+      try {
+        setLoadingAnalytics(true);
+        setAnalyticsError("");
+        const res = await fetch(`${backendURL}/analytics/${user.uid}`, {
+          cache: "no-store",
+          headers: await getAuthHeaders(),
+        });
+        if (!res.ok) throw new Error(`Analytics failed: ${res.status}`);
+        const data = (await res.json()) as AnalyticsData;
+        if (active) setAnalytics(data);
+      } catch {
+        if (active) {
+          setAnalytics(null);
+          setAnalyticsError("Analytics could not load right now.");
+        }
+      } finally {
+        if (active) setLoadingAnalytics(false);
+      }
     }
 
     loadAnalytics();
     return () => { active = false; };
   }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
 
-  if (!analytics) {
+  if (authLoading || loadingAnalytics) {
     return (
-      <div className="p-10 text-white">Loading Analytics...</div>
+      <LoadingState title="Loading analytics..." detail="Preparing performance charts, weak topics, and recommendations." />
+    );
+  }
+
+  if (analyticsError && !analytics) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100svh-105px)] max-w-4xl items-center justify-center p-6">
+        <ErrorState
+          title="Analytics unavailable"
+          detail="The analytics service did not return data. Retry once, or continue with Study Lab while the backend recovers."
+          action={
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="agentify-action agentify-action-primary rounded-2xl px-5 py-3 text-sm font-semibold"
+            >
+              Try again
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (!analytics || analytics.topic_accuracy.length === 0) {
+    return (
+      <div className="mx-auto flex min-h-[calc(100svh-105px)] max-w-4xl items-center justify-center p-6">
+        <EmptyState
+          icon="analytics"
+          title="No analytics yet"
+          detail="Complete a few study or mission sessions. Accuracy trends, weak topics, and next-step signals will appear here."
+        />
+      </div>
     );
   }
 
@@ -611,12 +660,12 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto text-white space-y-10">
+    <div className="mx-auto max-w-7xl space-y-10 p-6 text-white sm:p-8">
 
       {/* ===== HEADER ===== */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">📊 Analytics</h1>
-        <p className="text-gray-400 text-sm">
+      <div className="agentify-page-panel flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold text-slate-950">Analytics</h1>
+        <p className="text-sm text-slate-500">
           Real-time performance intelligence
         </p>
       </div>
@@ -624,8 +673,9 @@ export default function AnalyticsPage() {
       {/* ===== TABS ===== */}
       <div className="flex gap-4 border-b border-gray-700 pb-2">
         <button
+          type="button"
           onClick={() => setActiveTab("overview")}
-          className={`px-4 py-2 rounded-lg transition ${
+          className={`agentify-action rounded-lg px-4 py-2 transition ${
             activeTab === "overview"
               ? "bg-indigo-600"
               : "bg-gray-800 hover:bg-gray-700"
@@ -634,8 +684,9 @@ export default function AnalyticsPage() {
           Overview
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab("advanced")}
-          className={`px-4 py-2 rounded-lg transition ${
+          className={`agentify-action rounded-lg px-4 py-2 transition ${
             activeTab === "advanced"
               ? "bg-indigo-600"
               : "bg-gray-800 hover:bg-gray-700"
@@ -729,9 +780,10 @@ export default function AnalyticsPage() {
             <div className="flex gap-3 flex-wrap">
               {analytics.topic_accuracy.map((t: TopicAccuracy, idx: number) => (
                 <button
+                  type="button"
                   key={idx}
                   onClick={() => setSelectedTopic(t.topic)}
-                  className={`px-3 py-1 rounded transition ${
+                  className={`agentify-action px-3 py-1 rounded transition ${
                     selectedTopic === t.topic
                       ? "bg-indigo-600"
                       : "bg-gray-700 hover:bg-gray-600"
@@ -757,12 +809,13 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setSelectedTopic(null);
                     setAgentResponse(null);
                     setCurrentMode(null);
                   }}
-                  className="text-sm text-gray-400 hover:text-white border border-gray-600 px-3 py-1 rounded-lg transition"
+                  className="agentify-action text-sm text-gray-400 hover:text-white border border-gray-600 px-3 py-1 rounded-lg transition"
                 >
                   Reset
                 </button>
@@ -771,9 +824,10 @@ export default function AnalyticsPage() {
               {/* Action buttons */}
               <div className="flex gap-3">
                 <button
+                  type="button"
                   onClick={() => runAgentAction("revision")}
                   disabled={loadingAgent}
-                  className={`px-5 py-2 rounded-xl font-semibold transition flex items-center gap-2 ${
+                  className={`agentify-action px-5 py-2 rounded-xl font-semibold transition flex items-center gap-2 ${
                     currentMode === "revision"
                       ? "bg-indigo-600 ring-2 ring-indigo-400"
                       : "bg-indigo-600/80 hover:bg-indigo-600"
@@ -782,9 +836,10 @@ export default function AnalyticsPage() {
                   📖 Revise
                 </button>
                 <button
+                  type="button"
                   onClick={() => runAgentAction("exam")}
                   disabled={loadingAgent}
-                  className={`px-5 py-2 rounded-xl font-semibold transition flex items-center gap-2 ${
+                  className={`agentify-action px-5 py-2 rounded-xl font-semibold transition flex items-center gap-2 ${
                     currentMode === "exam"
                       ? "bg-green-600 ring-2 ring-green-400"
                       : "bg-green-600/80 hover:bg-green-600"
@@ -793,9 +848,10 @@ export default function AnalyticsPage() {
                   📝 Practice
                 </button>
                 <button
+                  type="button"
                   onClick={() => runAgentAction("test")}
                   disabled={loadingAgent}
-                  className={`px-5 py-2 rounded-xl font-semibold transition flex items-center gap-2 ${
+                  className={`agentify-action px-5 py-2 rounded-xl font-semibold transition flex items-center gap-2 ${
                     currentMode === "test"
                       ? "bg-red-600 ring-2 ring-red-400"
                       : "bg-red-600/80 hover:bg-red-600"

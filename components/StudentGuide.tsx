@@ -91,7 +91,7 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="dashboard-nav-card rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-[#0E7490]"
+        className="agentify-action dashboard-nav-card rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-[#0E7490]"
       >
         Guide
       </button>
@@ -119,7 +119,7 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close guide"
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                  className="agentify-action rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
                 >
                   Close
                 </button>

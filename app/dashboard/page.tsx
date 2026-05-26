@@ -371,7 +371,7 @@ export default function DashboardPage() {
               A focused overview of progress, weak areas, rankings, and the next best study move.
             </p>
           </div>
-          <Link href="/dashboard" className="rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
+          <Link href="/dashboard" className="agentify-action agentify-action-secondary rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
             Back to hub
           </Link>
         </div>
@@ -391,7 +391,7 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">How to use AgentifyAI</p>
               <h2 className="mt-2 text-xl font-semibold text-slate-950">Three simple moves</h2>
             </div>
-            <Link href="/dashboard/mission" className="rounded-full bg-[#0E7490]/10 px-3 py-2 text-xs font-semibold text-[#0E7490]">
+            <Link href="/dashboard/mission" className="agentify-action rounded-full bg-[#0E7490]/10 px-3 py-2 text-xs font-semibold text-[#0E7490]">
               Guided start
             </Link>
           </div>
@@ -445,11 +445,11 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard/progress" className="rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
+            <Link href="/dashboard/progress" className="agentify-action agentify-action-secondary rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
               Analytics
             </Link>
             {isAdmin ? (
-              <Link href="/dashboard/internal/ops" className="rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15">
+              <Link href="/dashboard/internal/ops" className="agentify-action rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15">
                 Ops
               </Link>
             ) : null}

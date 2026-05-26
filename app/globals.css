@@ -144,6 +144,28 @@ body {
   overflow-x: hidden;
 }
 
+:where(button, a, input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(button, a, input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,0.88),
+    0 0 0 6px rgba(14,116,144,0.34) !important;
+  border-color: rgba(14,116,144,0.58) !important;
+}
+
+[data-theme="dark"] :where(button, a, input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  box-shadow:
+    0 0 0 2px rgba(15,23,42,0.96),
+    0 0 0 5px rgba(20,184,166,0.46) !important;
+}
+
+:where(button, [role="button"]) {
+  touch-action: manipulation;
+}
+
 /* ============================================================
    4. GLOBAL UTILITY CLASSES (DESIGN SYSTEM)
    ============================================================ */
@@ -175,6 +197,137 @@ body {
 .card:hover {
   border-color: var(--color-border-hover);
   box-shadow: var(--shadow-elevated);
+}
+
+.agentify-page-panel,
+.agentify-card {
+  border: 1px solid rgba(255,255,255,0.68);
+  border-radius: 2rem;
+  background: rgba(255,255,255,0.76);
+  box-shadow: 0 22px 80px rgba(15,23,42,0.09);
+  backdrop-filter: blur(24px);
+}
+
+.agentify-page-panel {
+  padding: 1.25rem;
+}
+
+.agentify-card {
+  padding: 1rem;
+}
+
+.agentify-label {
+  color: #0E7490;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.agentify-muted-label {
+  color: #64748B;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.agentify-action {
+  min-height: 2.5rem;
+  border-radius: 1rem;
+}
+
+.agentify-action-primary {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #0F172A 0%, #0E7490 48%, #14B8A6 100%);
+  box-shadow: 0 16px 42px rgba(14,116,144,0.18);
+}
+
+.agentify-action-secondary {
+  border-color: rgba(148,163,184,0.28);
+  background: rgba(255,255,255,0.76);
+  color: #475569;
+}
+
+.agentify-action-ghost {
+  color: #64748B;
+}
+
+.agentify-action-danger {
+  background: #D94A57;
+  color: #FFFFFF;
+}
+
+.agentify-field {
+  border-color: rgba(148,163,184,0.30);
+  background: rgba(255,255,255,0.78);
+  color: #0F172A;
+}
+
+.agentify-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid rgba(148,163,184,0.24);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.66);
+  padding: 0.42rem 0.75rem;
+  color: #64748B;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.agentify-state-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.agentify-state-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(20,184,166,0.08), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(242,184,75,0.08), transparent 28%);
+}
+
+.agentify-state-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.agentify-alert {
+  box-shadow: 0 14px 38px rgba(15,23,42,0.06);
+}
+
+[data-theme="dark"] .agentify-page-panel,
+[data-theme="dark"] .agentify-card {
+  border-color: rgba(255,255,255,0.09);
+  background: rgba(15,23,42,0.68);
+  box-shadow: 0 18px 58px rgba(0,0,0,0.26);
+}
+
+[data-theme="dark"] .agentify-action-secondary,
+[data-theme="dark"] .agentify-field,
+[data-theme="dark"] .agentify-chip {
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .agentify-muted-label {
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .agentify-state-panel .text-slate-950,
+[data-theme="dark"] .agentify-state-panel .text-slate-900 {
+  color: #F8FAFC !important;
+}
+
+[data-theme="dark"] .agentify-state-panel .text-slate-600,
+[data-theme="dark"] .agentify-state-panel .text-slate-500 {
+  color: #CBD5E1 !important;
 }
 
 /* Glass variant (adds blur) */
@@ -353,6 +506,12 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+
   .polished-skeleton::after {
     animation: none !important;
   }

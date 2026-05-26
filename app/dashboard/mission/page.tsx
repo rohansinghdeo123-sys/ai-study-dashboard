@@ -159,7 +159,7 @@ function ProfileSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
+        className="agentify-field mt-2 w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
       >
         {options.map((item) => (
           <option key={item.value} value={item.value}>
@@ -325,7 +325,7 @@ export default function MissionPage() {
               setChapter(next);
               setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
             }}
-            className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
+            className="agentify-field rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
           >
             {CHAPTERS.map((item) => (
               <option key={item.value} value={item.value}>
@@ -336,7 +336,7 @@ export default function MissionPage() {
           <select
             value={topic}
             onChange={(event) => setTopic(event.target.value)}
-            className="rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
+            className="agentify-field rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
           >
             {selectedChapter.topics.map((item) => (
               <option key={item.value} value={item.value}>
@@ -369,7 +369,7 @@ export default function MissionPage() {
                 max={240}
                 value={profile.availableMinutes}
                 onChange={(event) => setProfile((current) => ({ ...current, availableMinutes: event.target.value }))}
-                className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
+                className="agentify-field mt-2 w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
               />
             </label>
             <ProfileSelect
@@ -394,9 +394,10 @@ export default function MissionPage() {
         </div>
 
         <button
+          type="button"
           onClick={startMission}
           disabled={loadingMission || !userId}
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] px-5 py-4 text-sm font-semibold text-white shadow-[0_20px_55px_rgba(14,116,144,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="agentify-action agentify-action-primary mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] px-5 py-4 text-sm font-semibold text-white shadow-[0_20px_55px_rgba(14,116,144,0.22)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <AppIcon name={loadingMission ? "clock" : "mission"} />
           <span>{loadingMission ? "Building mission..." : mission ? "Refresh mission" : "Start mission"}</span>
@@ -525,6 +526,7 @@ export default function MissionPage() {
                     const wrongOption = submitted && active && option !== question.correct;
                     return (
                       <button
+                        type="button"
                         key={option}
                         onClick={() => !submitted && setSelectedAnswer(option)}
                         disabled={submitted}
@@ -542,9 +544,10 @@ export default function MissionPage() {
                   })}
                 </div>
                 <button
+                  type="button"
                   onClick={submitAnswer}
                   disabled={!selectedAnswer || submitted}
-                  className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="agentify-action agentify-action-primary mt-5 inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <AppIcon name={submitted ? "check" : "send"} />
                   <span>{submitted ? saving ? "Saving..." : "Submitted" : "Check answer"}</span>

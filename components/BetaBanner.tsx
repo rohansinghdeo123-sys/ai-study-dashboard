@@ -24,14 +24,16 @@ export default function BetaBanner() {
 
           <div className="flex shrink-0 items-center gap-2">
             <button
+              type="button"
               onClick={() => setOpen(true)}
-              className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
+              className="agentify-action rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-medium text-slate-200 transition hover:border-white/20 hover:bg-white/[0.08]"
             >
               Feedback
             </button>
             <button
+              type="button"
               onClick={() => setVisible(false)}
-              className="rounded-md px-2 py-1 text-sm text-slate-500 transition hover:bg-white/[0.06] hover:text-slate-200"
+              className="agentify-action rounded-md px-2 py-1 text-sm text-slate-500 transition hover:bg-white/[0.06] hover:text-slate-200"
               aria-label="Dismiss beta banner"
             >
               x

@@ -9,25 +9,28 @@ export default function FeedbackModal({ isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
 
-      <div className="bg-gray-900 rounded-xl w-[95%] md:w-[650px] h-[650px] p-4 relative shadow-lg">
+      <div className="relative h-[min(650px,calc(100svh-2rem))] w-full max-w-[650px] rounded-2xl border border-white/10 bg-gray-900 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.38)]">
 
         {/* Close button */}
         <button
+          type="button"
           onClick={onClose}
-          className="absolute top-2 right-3 text-gray-400 hover:text-white text-xl"
+          className="agentify-action absolute right-3 top-2 rounded-xl px-2 py-1 text-xl text-gray-400 hover:text-white"
+          aria-label="Close feedback"
         >
           ×
         </button>
 
-        <h2 className="text-lg font-semibold mb-3">
+        <h2 id="feedback-title" className="mb-3 text-lg font-semibold text-white">
           Beta Feedback
         </h2>
 
         <iframe
           src="https://docs.google.com/forms/d/e/1FAIpQLSfMwyu0LdjFoQb0nnJQGH37TkAGmR0jYEk22EWXspOqSdtgBQ/viewform?usp=publish-editorERE"
-          className="w-full h-[580px] rounded-lg border border-gray-700"
+          title="AgentifyAI beta feedback form"
+          className="h-[calc(100%-48px)] w-full rounded-lg border border-gray-700"
         />
 
       </div>

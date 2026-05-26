@@ -1877,7 +1877,7 @@ export default function StudyPage() {
                       onClick={listening ? stopVoiceInput : startVoiceInput}
                       disabled={!speechSupported || loadingAnswer}
                       title={listening ? "Stop voice input" : "Start voice input"}
-                      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      className={`agentify-action inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
                         listening
                           ? "bg-emerald-500 text-white"
                           : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
@@ -1891,7 +1891,7 @@ export default function StudyPage() {
                       onClick={loadingAnswer ? stopGenerating : () => void sendMessage()}
                       disabled={!loadingAnswer && !input.trim()}
                       title={loadingAnswer ? "Stop response" : "Send message"}
-                      className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+                      className={`agentify-action inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
                         loadingAnswer
                           ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
                           : "bg-[#0E7490] text-white hover:bg-[#0B5F76]"
@@ -1933,7 +1933,7 @@ export default function StudyPage() {
                     type="button"
                     onClick={() => void runRevision(tool)}
                     disabled={revisionLoading[tool.id]}
-                    className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                    className="agentify-action agentify-action-primary mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
                   >
                     <AppIcon name="spark" />
                     <span>{revisionLoading[tool.id] ? "Generating..." : `Generate ${tool.title}`}</span>
@@ -1973,7 +1973,7 @@ export default function StudyPage() {
                     type="button"
                     onClick={() => void generateExamPack()}
                     disabled={examLoading}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                    className="agentify-action agentify-action-primary inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
                   >
                     <AppIcon name="spark" />
                     <span>{examLoading ? "Generating..." : "Generate exam pack"}</span>
@@ -2008,7 +2008,7 @@ export default function StudyPage() {
                                         }
                                       }}
                                       disabled={examSubmitted}
-                                      className={`rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition ${
+                                      className={`agentify-action rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition ${
                                         isCorrectOption
                                           ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                                           : isSelected
@@ -2056,7 +2056,7 @@ export default function StudyPage() {
                       type="button"
                       onClick={() => void submitExam()}
                       disabled={examSubmitted || answeredExamCount !== examQuestions.length}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                      className="agentify-action inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
                     >
                       <AppIcon name={examSubmitted ? "check" : "send"} />
                       <span>{examSaving ? "Saving..." : examSubmitted ? "Submitted" : "Submit and review"}</span>

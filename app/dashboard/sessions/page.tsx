@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { AlertState, EmptyState as PolishedEmptyState, LoadingState } from "@/components/ui/Polished";
+import { AlertState, EmptyState as PolishedEmptyState, ErrorState, LoadingState } from "@/components/ui/Polished";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -158,10 +158,10 @@ function EmptyState() {
       detail="Complete one Study Lab conversation or Autonomous Mission. Your replay, score, XP, and weak signals will appear here."
       action={
         <>
-        <Link href="/dashboard/study" className="rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]">
+        <Link href="/dashboard/study" className="agentify-action agentify-action-primary rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]">
           Ask tutor
         </Link>
-        <Link href="/dashboard/mission" className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
+        <Link href="/dashboard/mission" className="agentify-action agentify-action-secondary rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
           Start mission
         </Link>
         </>
@@ -260,13 +260,14 @@ export default function SessionsPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search topic..."
-              className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0E7490] sm:w-56"
+              className="agentify-field w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0E7490] sm:w-56"
             />
             {(["latest", "accuracy", "xp"] as SortKey[]).map((key) => (
               <button
+                type="button"
                 key={key}
                 onClick={() => setSortKey(key)}
-                className={`rounded-2xl border px-4 py-3 text-xs font-semibold capitalize transition ${
+                className={`agentify-action rounded-2xl border px-4 py-3 text-xs font-semibold capitalize transition ${
                   sortKey === key ? "border-[#0E7490]/25 bg-[#0E7490]/10 text-[#0E7490]" : "border-slate-200 bg-white/75 text-slate-500 hover:text-slate-900"
                 }`}
               >
@@ -284,11 +285,30 @@ export default function SessionsPage() {
         <StatCard label="Study time" value={`${totalMinutes}m`} helper="Recorded duration" />
       </section>
 
-      {error ? (
+      {error && sessions.length ? (
         <AlertState message={error} />
       ) : null}
 
-      {!filteredSessions.length ? (
+      {error && !sessions.length ? (
+        <ErrorState
+          title="Sessions could not load"
+          detail="The page is ready, but the backend did not return your saved sessions. You can retry or continue studying while the service recovers."
+          action={
+            <>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="agentify-action agentify-action-primary rounded-2xl px-5 py-3 text-sm font-semibold"
+              >
+                Try again
+              </button>
+              <Link href="/dashboard/study" className="agentify-action agentify-action-secondary rounded-2xl px-5 py-3 text-sm font-semibold">
+                Open Study Lab
+              </Link>
+            </>
+          }
+        />
+      ) : !filteredSessions.length ? (
         <EmptyState />
       ) : (
         <section className="grid min-h-[560px] flex-1 gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
@@ -302,6 +322,7 @@ export default function SessionsPage() {
                 const active = selectedSession?.id === session.id;
                 return (
                   <button
+                    type="button"
                     key={session.id}
                     onClick={() => setSelectedId(session.id ?? null)}
                     className={`w-full rounded-[1.4rem] border p-4 text-left transition ${
@@ -343,7 +364,7 @@ export default function SessionsPage() {
                     </div>
                     <Link
                       href={`/dashboard/study?topic=${encodeURIComponent(String(selectedSession.topic || ""))}`}
-                      className="rounded-2xl bg-[#0E7490] px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]"
+                      className="agentify-action agentify-action-primary rounded-2xl bg-[#0E7490] px-4 py-3 text-center text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]"
                     >
                       Revise topic
                     </Link>

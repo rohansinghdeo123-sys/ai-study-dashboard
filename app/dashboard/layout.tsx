@@ -111,8 +111,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <span className="max-w-[130px] truncate text-sm font-semibold text-slate-900">{displayName}</span>
         </div>
         <button
+          type="button"
           onClick={logout}
-          className="dashboard-nav-card rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-rose-500"
+          className="agentify-action dashboard-nav-card rounded-2xl border border-white/70 bg-white/78 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-rose-500"
         >
           Log out
         </button>

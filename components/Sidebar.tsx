@@ -115,8 +115,9 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
             )}
           </div>
           <button
+            type="button"
             onClick={onToggle}
-            className="rounded-md border border-white/10 px-2 py-1 text-[11px] text-slate-500 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-slate-200"
+            className="agentify-action rounded-md border border-white/10 px-2 py-1 text-[11px] text-slate-500 transition hover:border-white/20 hover:bg-white/[0.04] hover:text-slate-200"
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? ">" : "<"}

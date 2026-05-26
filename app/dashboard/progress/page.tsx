@@ -536,7 +536,7 @@ function Rail({ value, tone = "neutral" }: { value: number; tone?: Tone }) {
 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="progress-empty-state flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-cyan-100/12 bg-white/[0.025] px-6 text-center">
+    <div className="agentify-state-panel progress-empty-state flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-cyan-100/12 bg-white/[0.025] px-6 text-center">
       <div className="text-[10px] font-bold uppercase tracking-[0.34em] text-cyan-200/45">{title}</div>
       <p className="mt-4 max-w-md text-sm leading-6 text-slate-400">{detail}</p>
     </div>
@@ -548,9 +548,11 @@ function TrendRangeToggle({ range, setRange }: { range: TrendRange; setRange: (v
     <div className="flex gap-1">
       {(["14d", "8w"] as const).map((item) => (
         <button
+          type="button"
           key={item}
           onClick={() => setRange(item)}
           className={cn(
+            "agentify-action",
             "rounded-md border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] transition-all font-mono",
             item === range ? "border-amber-400/40 bg-amber-400/10 text-amber-300" : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white"
           )}
@@ -899,8 +901,9 @@ export default function ProgressPage() {
                   <p className="mt-2 truncate text-sm font-semibold text-white">{latestSession?.topic || "No session yet"}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={handleExportCSV}
-                  className="rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16"
+                  className="agentify-action rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16"
                 >
                   <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#67E8F9]">Export</span>
                   <span className="mt-2 block text-sm font-semibold text-white">Download CSV</span>
@@ -1122,8 +1125,9 @@ export default function ProgressPage() {
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleReviseTopic(topic.topic)}
-                  className="mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
+                  className="agentify-action mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
                 >
                   REVISE NOW
                 </button>
