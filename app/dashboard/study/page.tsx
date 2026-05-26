@@ -868,6 +868,44 @@ function safeJsonResponse(response: Response) {
   return response.json().catch(() => null);
 }
 
+function isBackendFailureText(value: unknown) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return true;
+  return [
+    "knowledge base error",
+    "section '",
+    "not found in any knowledge source",
+    "ai service encountered an error",
+    "no response generated",
+    "no revision generated",
+    "option unavailable",
+  ].some((marker) => text.includes(marker));
+}
+
+function getUsableBackendAnswer(data: unknown) {
+  if (!data || typeof data !== "object") return "";
+  const answer = String((data as { answer?: unknown }).answer || "").trim();
+  return isBackendFailureText(answer) ? "" : answer;
+}
+
+function isUsableArtifactResponse(data: unknown): data is StudyArtifactResponse {
+  if (!data || typeof data !== "object") return false;
+  const response = data as StudyArtifactResponse;
+  return Array.isArray(response.artifacts) && response.artifacts.some((item) => artifactHasContent(item));
+}
+
+function isUsableExamQuestion(question: ExamQuestion) {
+  return Boolean(question.question?.trim())
+    && Array.isArray(question.options)
+    && question.options.length >= 4
+    && question.options.every((option) => !isBackendFailureText(option))
+    && /^[A-D]$/.test(String(question.correct || "").trim().toUpperCase());
+}
+
+function isUsableProbableQuestion(question: ProbableQuestion) {
+  return Boolean(question.question?.trim()) && !isBackendFailureText(question.question);
+}
+
 function hasAny(value: string, words: string[]) {
   return words.some((word) => value.includes(word));
 }
@@ -2086,13 +2124,7 @@ export default function StudyPage() {
       localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(next));
       return next;
     });
-  }, [chapter, currentConversationId, messages, topic, userId]);
-
-  useEffect(() => {
-    setArtifact(null);
-    setArtifactError("");
-    setActiveArtifactTab("concept_map");
-  }, [topic]);
+  }, [currentConversationId, messages, userId]);
 
   useEffect(() => {
     if (!userId || authBusy) return;
@@ -2194,11 +2226,14 @@ export default function StudyPage() {
 
     const answer = normalizeAnswerPayload(raw);
     if (answer) {
-      updateLastCoachMessage(answer);
+      const safeAnswer = isBackendFailureText(answer)
+        ? "I could not get a clean tutor response from the backend. Please try again in a moment."
+        : answer;
+      updateLastCoachMessage(safeAnswer);
       setShowPipeline(false);
       setShowAgentSummary(true);
       setAgentSummaryExpanded(false);
-      return { kind: "answer", value: answer };
+      return { kind: "answer", value: safeAnswer };
     }
 
     return { kind: "none" };
@@ -2276,8 +2311,10 @@ export default function StudyPage() {
       if (!res.ok) throw new Error(`Coach failed: ${res.status}`);
       if (!res.body) {
         const text = normalizeAnswerPayload(await res.text());
-        finalAnswer = text || "I could not read the tutor response. Please try again.";
-        updateLastCoachMessage(text || "I could not read the tutor response. Please try again.");
+        finalAnswer = text && !isBackendFailureText(text)
+          ? text
+          : "I could not read a clean tutor response. Please try again.";
+        updateLastCoachMessage(finalAnswer);
         return;
       }
 
@@ -2302,6 +2339,11 @@ export default function StudyPage() {
         const result = processSseEvent(buffer);
         if (result.kind === "answer") finalAnswer = result.value;
         if (result.kind === "delta") finalAnswer += result.value;
+      }
+
+      if (isBackendFailureText(finalAnswer)) {
+        finalAnswer = "I could not get a clean tutor response from the backend. Please try again in a moment.";
+        updateLastCoachMessage(finalAnswer);
       }
     } catch (caught) {
       if ((caught as Error).name !== "AbortError") {
@@ -2440,7 +2482,10 @@ export default function StudyPage() {
       });
       if (!res.ok) throw new Error(`Revision failed: ${res.status}`);
       const data = await safeJsonResponse(res);
-      setRevisionContent((current) => ({ ...current, [tool.id]: data?.answer || "No revision generated." }));
+      const backendAnswer = getUsableBackendAnswer(data);
+      if (backendAnswer) {
+        setRevisionContent((current) => ({ ...current, [tool.id]: backendAnswer }));
+      }
     } catch {
       setRevisionError("");
     } finally {
@@ -2471,9 +2516,11 @@ export default function StudyPage() {
       if (!res.ok) {
         throw new Error((data as { detail?: string } | null)?.detail || `Artifact failed: ${res.status}`);
       }
-      const nextArtifact = data as StudyArtifactResponse;
-      setArtifact(nextArtifact);
-      setActiveArtifactTab(firstArtifactTab(nextArtifact));
+      if (isUsableArtifactResponse(data)) {
+        const nextArtifact = data as StudyArtifactResponse;
+        setArtifact(nextArtifact);
+        setActiveArtifactTab(firstArtifactTab(nextArtifact));
+      }
     } catch {
       setArtifactError("");
     } finally {
@@ -2520,8 +2567,8 @@ export default function StudyPage() {
       if (!mcqRes.ok || !probableRes.ok) throw new Error("Exam generation failed");
       const mcqData = await safeJsonResponse(mcqRes);
       const probableData = await safeJsonResponse(probableRes);
-      const nextQuestions = Array.isArray(mcqData?.questions) ? mcqData.questions : [];
-      const nextProbable = Array.isArray(probableData?.questions) ? probableData.questions : [];
+      const nextQuestions = Array.isArray(mcqData?.questions) ? mcqData.questions.filter(isUsableExamQuestion) : [];
+      const nextProbable = Array.isArray(probableData?.questions) ? probableData.questions.filter(isUsableProbableQuestion) : [];
       if (nextQuestions.length) setExamQuestions(nextQuestions);
       if (nextProbable.length) setProbableQuestions(nextProbable);
     } catch {
