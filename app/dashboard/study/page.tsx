@@ -555,117 +555,31 @@ function renderInlineChemistry(value: string) {
   });
 }
 
-const ANSWER_BLOCKS: Array<{
-  match: string[];
-  label: string;
-  icon: AppIconName;
-  className: string;
-  iconClassName: string;
-  featured: boolean;
-}> = [
-  {
-    match: ["direct answer", "answer", "concept"],
-    label: "Core idea",
-    icon: "study",
-    className: "",
-    iconClassName: "",
-    featured: false,
-  },
-  {
-    match: ["simple explanation", "why", "reason", "breakdown"],
-    label: "Explanation",
-    icon: "book",
-    className: "",
-    iconClassName: "",
-    featured: false,
-  },
-  {
-    match: ["example", "analogy", "real life"],
-    label: "Example",
-    icon: "spark",
-    className: "",
-    iconClassName: "",
-    featured: false,
-  },
-  {
-    match: ["common mistake", "mistake", "trap"],
-    label: "Watch out",
-    icon: "x",
-    className: "study-answer-callout is-warning",
-    iconClassName: "bg-amber-100 text-amber-700",
-    featured: true,
-  },
-  {
-    match: ["formula", "steps", "method", "solve"],
-    label: "Method",
-    icon: "clock",
-    className: "",
-    iconClassName: "",
-    featured: false,
-  },
-  {
-    match: ["exam", "marks", "exam tip", "exam-ready"],
-    label: "Exam focus",
-    icon: "check",
-    className: "study-answer-callout is-exam",
-    iconClassName: "bg-emerald-100 text-emerald-700",
-    featured: true,
-  },
-  {
-    match: ["quick check", "checkpoint", "question", "next step", "practice"],
-    label: "Try this",
-    icon: "arrowRight",
-    className: "study-answer-callout is-practice",
-    iconClassName: "bg-slate-200/70 text-slate-700",
-    featured: true,
-  },
-];
-
-function getAnswerBlockMeta(heading: string | null) {
-  if (!heading) return null;
-  const normalized = heading.toLowerCase();
-  return ANSWER_BLOCKS.find((block) => block.match.some((item) => normalized.includes(item))) || null;
-}
-
 function CoachAnswer({ value, streaming = false }: { value: string; streaming?: boolean }) {
   const blocks = value.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
 
   if (!blocks.length) return null;
 
   return (
-    <div className="study-answer-flow space-y-5">
+    <div className="study-answer-flow">
       {blocks.map((block, blockIndex) => {
         const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
         const heading = lines[0]?.endsWith(":") && lines[0].length <= 72 ? lines[0].replace(/:$/, "") : null;
         const body = heading ? lines.slice(1) : lines;
-        const blockMeta = getAnswerBlockMeta(heading);
-        const featured = Boolean(blockMeta?.featured);
 
         return (
-          <section
-            key={`${heading || "answer"}-${blockIndex}`}
-            className={`study-answer-section space-y-3 ${featured ? blockMeta?.className || "" : ""}`}
-          >
+          <section key={`${heading || "answer"}-${blockIndex}`} className="study-answer-text-block">
             {heading ? (
-              <h3 className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.11em] text-[#0E7490]">
-                {featured && blockMeta ? (
-                  <span className={`flex h-7 w-7 items-center justify-center rounded-xl ${blockMeta.iconClassName}`}>
-                    <AppIcon name={blockMeta.icon} className="h-3.5 w-3.5" />
-                  </span>
-                ) : (
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#14B8A6]" />
-                )}
-                <span>{featured ? blockMeta?.label || heading : heading}</span>
-              </h3>
+              <h3 className="study-answer-heading">{heading}</h3>
             ) : null}
-            <div className="space-y-3 text-[15.5px] leading-8 text-slate-700">
+            <div className="study-answer-body">
               {body.map((line, lineIndex) => {
                 const bullet = line.match(/^[-*]\s+(.*)$/);
                 const isLastLine = streaming && blockIndex === blocks.length - 1 && lineIndex === body.length - 1;
                 if (bullet) {
                   return (
-                    <div key={lineIndex} className="flex gap-3">
-                      <span className="mt-3.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#14B8A6] shadow-[0_0_0_4px_rgba(20,184,166,0.10)]" />
+                    <div key={lineIndex} className="study-answer-list-item">
+                      <span aria-hidden="true">-</span>
                       <p className="min-w-0">
                         {renderInlineChemistry(bullet[1])}
                         {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
@@ -684,6 +598,27 @@ function CoachAnswer({ value, streaming = false }: { value: string; streaming?: 
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function InlineAgentActivity({ stages, compact }: { stages: AgentStageState[]; compact: boolean }) {
+  const activeStage =
+    stages.find((stage) => stage.status === "active") ||
+    stages.find((stage) => stage.status === "pending") ||
+    stages[stages.length - 1];
+  const completedCount = stages.filter((stage) => stage.status === "done").length;
+  const isComplete = completedCount === stages.length;
+
+  return (
+    <div className="study-inline-activity" aria-live="polite">
+      <span className={`study-mini-pulse ${isComplete ? "is-complete" : ""}`} />
+      <span className="min-w-0">
+        <span className="study-inline-activity-line">
+          {isComplete ? "Tutor flow complete" : `${activeStage.agent} / ${activeStage.title}`}
+        </span>
+        {!compact && !isComplete ? <span className="study-inline-activity-detail">{activeStage.detail}</span> : null}
+      </span>
     </div>
   );
 }
@@ -792,22 +727,6 @@ function AgentActivitySummary({
         </span>
       </button>
       {expanded ? <div className="mt-3"><AgentPipeline stages={stages} /></div> : null}
-    </div>
-  );
-}
-
-function AgentActivityMini({ stages }: { stages: AgentStageState[] }) {
-  const activeStage =
-    stages.find((stage) => stage.status === "active") ||
-    stages.find((stage) => stage.status === "pending") ||
-    stages[stages.length - 1];
-
-  return (
-    <div className="study-agent-mini flex items-center gap-2 rounded-full border border-slate-200/60 bg-white/50 px-3 py-2 text-xs font-semibold text-slate-500 backdrop-blur-xl">
-      <span className="study-mini-pulse" />
-      <span className="truncate">
-        {activeStage.agent} / {activeStage.title}
-      </span>
     </div>
   );
 }
@@ -989,10 +908,10 @@ function TutorResponseCard({
             {timestamp ? <span className="text-xs font-medium text-slate-400">{timestamp}</span> : null}
           </div>
 
-          <article className="study-tutor-response rounded-[1.45rem] border border-slate-200/60 bg-white/78 px-4 py-4 shadow-[0_18px_58px_rgba(15,23,42,0.07)] backdrop-blur-2xl sm:px-6 sm:py-6">
+          <article className="study-tutor-response px-1 py-2 sm:px-2">
             {showActivity ? (
-              <div className={pending ? "" : "mb-5"}>
-                {activityCollapsed && !pending ? <AgentActivityMini stages={stages} /> : <AgentPipeline stages={stages} />}
+              <div className={pending ? "" : "mb-3"}>
+                <InlineAgentActivity stages={stages} compact={activityCollapsed && !pending} />
               </div>
             ) : null}
 
@@ -1294,7 +1213,7 @@ export default function StudyPage() {
 
   const handleStagePayload = (payload: AgentStagePayload) => {
     setStages((current) => applyStageUpdate(current, payload));
-    setShowPipeline(payload.status !== "done" || payload.stage !== "delivering");
+    setShowPipeline(true);
   };
 
   const appendLastCoachMessage = (delta: string) => {
