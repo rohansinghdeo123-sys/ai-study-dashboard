@@ -166,6 +166,18 @@ interface ProbableQuestion {
   question: string;
 }
 
+interface ArtifactConceptSeed {
+  title: string;
+  definition: string;
+  keyPoints: string[];
+  properties?: string[];
+  formulas?: FormulaItem[];
+  examples?: string[];
+  related?: string[];
+  prerequisites?: string[];
+  mistakes?: MistakeItem[];
+}
+
 type SpeechRecognitionEventLike = {
   results: {
     [index: number]: {
@@ -210,6 +222,130 @@ const CHAPTERS = [
     ],
   },
 ];
+
+const ARTIFACT_CONCEPT_SEEDS: Record<string, ArtifactConceptSeed> = {
+  matter_definition: {
+    title: "Matter Definition",
+    definition: "Matter is anything that has mass and occupies space.",
+    keyPoints: [
+      "Matter has mass, so it contains a measurable amount of substance.",
+      "Matter occupies space, which means it has volume.",
+      "Books, water, air, tables, and living things are examples of matter.",
+      "Light, heat, and sound are forms of energy, not matter.",
+      "Matter can exist as solid, liquid, or gas depending on particle arrangement and energy.",
+    ],
+    properties: ["Mass", "Volume", "Particles", "States", "Examples"],
+    examples: ["A balloon filled with air is matter because air has mass and occupies space."],
+    related: ["Properties of Matter", "States of Matter"],
+    mistakes: [
+      { mistake: "Thinking only visible things are matter.", correction: "Air is invisible but still matter because it has mass and volume.", frequency: "high" },
+      { mistake: "Calling light matter.", correction: "Light is energy; matter must have mass and occupy space.", frequency: "medium" },
+    ],
+  },
+  properties_of_matter: {
+    title: "Properties of Matter",
+    definition: "Properties of matter are observable or measurable features used to describe, compare, and identify substances.",
+    keyPoints: [
+      "Mass tells how much matter is present in a substance.",
+      "Volume tells how much space a substance occupies.",
+      "Density compares mass with volume and helps explain why some things sink or float.",
+      "Compressibility is high in gases, lower in liquids, and very low in solids.",
+      "Rigidity, fluidity, and diffusion help compare solids, liquids, and gases.",
+      "Melting point and boiling point help identify substances in experiments.",
+      "Physical properties can be observed without changing the substance into a new substance.",
+    ],
+    properties: ["Mass", "Volume", "Density", "Compressibility", "Rigidity", "Diffusion", "Melting point"],
+    formulas: [
+      { label: "Density", formula: "Density = Mass / Volume", variables: ["mass", "volume"], hint: "Keep units consistent before dividing." },
+    ],
+    examples: [
+      "A sponge can be compressed more easily than a stone because their material properties are different.",
+      "Perfume spreads through a room because gas particles diffuse.",
+    ],
+    prerequisites: ["Matter Definition", "States of Matter"],
+    related: ["Classification of Matter", "States of Matter"],
+    mistakes: [
+      { mistake: "Confusing mass with volume.", correction: "Mass is amount of matter; volume is occupied space.", frequency: "high" },
+      { mistake: "Thinking only solids have properties.", correction: "Liquids and gases also have measurable properties.", frequency: "medium" },
+      { mistake: "Treating density as only mass.", correction: "Density depends on both mass and volume.", frequency: "high" },
+    ],
+  },
+  states_of_matter: {
+    title: "States of Matter",
+    definition: "States of matter describe the physical forms in which matter exists, mainly solid, liquid, and gas.",
+    keyPoints: [
+      "Solids have fixed shape and fixed volume because particles are closely packed.",
+      "Liquids have fixed volume but take the shape of the container.",
+      "Gases have no fixed shape or volume and spread to fill available space.",
+      "Changing temperature or pressure can change the state of matter.",
+      "Particle spacing and motion explain most differences between solids, liquids, and gases.",
+    ],
+    properties: ["Solid", "Liquid", "Gas", "Particle motion", "Shape", "Volume"],
+    examples: ["Ice, water, and steam show the same substance in three different states."],
+    related: ["Properties of Matter", "Interconversion of Matter"],
+    mistakes: [
+      { mistake: "Thinking particles stop moving in solids.", correction: "Solid particles vibrate around fixed positions.", frequency: "medium" },
+      { mistake: "Thinking gases do not have mass.", correction: "Gases have mass, even if they are hard to see.", frequency: "high" },
+    ],
+  },
+  alkanes: {
+    title: "Alkanes",
+    definition: "Alkanes are saturated hydrocarbons containing only single covalent bonds between carbon atoms.",
+    keyPoints: [
+      "Alkanes have the general formula CnH2n+2 for open-chain compounds.",
+      "They are saturated because carbon atoms form only single bonds.",
+      "They mainly undergo combustion and substitution reactions.",
+      "Boiling point generally increases with molecular size.",
+      "Methane, ethane, propane, and butane are common examples.",
+    ],
+    properties: ["Saturated", "Single bonds", "CnH2n+2", "Combustion", "Substitution"],
+    formulas: [{ label: "General formula", formula: "CnH2n+2", variables: ["n"], hint: "Use n as the number of carbon atoms." }],
+    related: ["Alkenes", "Alkynes", "Aromatic Hydrocarbons"],
+    mistakes: [{ mistake: "Mixing alkane and alkene formulas.", correction: "Alkanes use CnH2n+2; alkenes use CnH2n.", frequency: "high" }],
+  },
+  alkenes: {
+    title: "Alkenes",
+    definition: "Alkenes are unsaturated hydrocarbons containing at least one carbon-carbon double bond.",
+    keyPoints: [
+      "Alkenes usually follow the formula CnH2n for one double bond in an open chain.",
+      "The double bond makes alkenes more reactive than alkanes.",
+      "They commonly undergo addition reactions.",
+      "Ethene and propene are important examples.",
+      "Alkenes can decolourise bromine water because of the double bond.",
+    ],
+    properties: ["Unsaturated", "Double bond", "CnH2n", "Addition", "Bromine test"],
+    formulas: [{ label: "General formula", formula: "CnH2n", variables: ["n"], hint: "Use this for one double bond in an open chain." }],
+    related: ["Alkanes", "Alkynes", "Aromatic Hydrocarbons"],
+    mistakes: [{ mistake: "Forgetting the double bond position.", correction: "Number the chain so the double bond gets the lowest possible number.", frequency: "medium" }],
+  },
+  alkynes: {
+    title: "Alkynes",
+    definition: "Alkynes are unsaturated hydrocarbons containing at least one carbon-carbon triple bond.",
+    keyPoints: [
+      "Alkynes usually follow the formula CnH2n-2 for one triple bond in an open chain.",
+      "The triple bond makes alkynes reactive in addition reactions.",
+      "Ethyne is the simplest alkyne.",
+      "Alkynes are less saturated than alkenes and alkanes.",
+    ],
+    properties: ["Unsaturated", "Triple bond", "CnH2n-2", "Addition", "Ethyne"],
+    formulas: [{ label: "General formula", formula: "CnH2n-2", variables: ["n"], hint: "Use this for one triple bond in an open chain." }],
+    related: ["Alkanes", "Alkenes", "Aromatic Hydrocarbons"],
+    mistakes: [{ mistake: "Using alkene formula for alkynes.", correction: "Alkynes have two fewer hydrogens than alkenes for the same carbon count.", frequency: "high" }],
+  },
+  aromatics: {
+    title: "Aromatic Hydrocarbons",
+    definition: "Aromatic hydrocarbons are stable cyclic hydrocarbons with delocalised electrons, commonly based on benzene rings.",
+    keyPoints: [
+      "Benzene is the simplest and most important aromatic hydrocarbon.",
+      "Aromatic rings have delocalised electrons that increase stability.",
+      "They often undergo substitution rather than addition.",
+      "Aromatic compounds are important in fuels, dyes, medicines, and polymers.",
+    ],
+    properties: ["Benzene ring", "Delocalisation", "Stability", "Substitution", "Cyclic"],
+    related: ["Alkanes", "Alkenes", "Alkynes"],
+    mistakes: [{ mistake: "Drawing benzene as ordinary double bonds only.", correction: "Benzene is better understood through delocalised electrons.", frequency: "medium" }],
+  },
+};
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
 
@@ -266,6 +402,131 @@ const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: App
   { id: "practice", label: "Practice", detail: "Focused drills", icon: "study" },
   { id: "review", label: "Review", detail: "Answers and mistakes", icon: "analytics" },
 ];
+
+function normalizeArtifactId(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+}
+
+function titleFromId(value: string) {
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function createFallbackArtifact(sectionId: string, topicLabel: string): StudyArtifactResponse {
+  const normalizedId = normalizeArtifactId(sectionId || topicLabel);
+  const seed: ArtifactConceptSeed = ARTIFACT_CONCEPT_SEEDS[normalizedId] || {
+    title: topicLabel || titleFromId(normalizedId),
+    definition: `${topicLabel || titleFromId(normalizedId)} is the selected study topic.`,
+    keyPoints: [
+      `Start with the definition of ${topicLabel || titleFromId(normalizedId)}.`,
+      "Identify the key terms and what each term means.",
+      "Connect the idea with one school-level example.",
+      "Practice one recall question before moving ahead.",
+    ],
+    properties: ["Definition", "Key terms", "Example", "Recall"],
+    mistakes: [
+      {
+        mistake: "Reading the topic only once and assuming it is clear.",
+        correction: "Explain it back in your own words and check one example.",
+        frequency: "medium",
+      },
+    ],
+  };
+  const title = seed.title || topicLabel || titleFromId(normalizedId);
+  const points = seed.keyPoints.slice(0, 7);
+  const properties = (seed.properties?.length ? seed.properties : points.map((point, index) => point.split(/[.,;]/)[0] || `Point ${index + 1}`)).slice(0, 7);
+  const nodes: ArtifactNode[] = [
+    {
+      id: normalizedId,
+      label: title,
+      description: seed.definition,
+      kind: "core",
+    },
+    ...properties.map((property, index) => ({
+      id: `${normalizedId}-property-${index + 1}`,
+      label: property,
+      description: points[index] || `Important part of ${title}.`,
+      kind: "property" as const,
+    })),
+    ...(seed.prerequisites || []).slice(0, 2).map((item, index) => ({
+      id: `${normalizedId}-prerequisite-${index + 1}`,
+      label: item,
+      description: "Review this first if the main idea feels confusing.",
+      kind: "prerequisite" as const,
+    })),
+    ...(seed.related || []).slice(0, 3).map((item, index) => ({
+      id: `${normalizedId}-related-${index + 1}`,
+      label: item,
+      description: `Connected idea for ${title}.`,
+      kind: "related" as const,
+    })),
+  ];
+  const edges: ArtifactEdge[] = [
+    ...properties.map((_, index) => ({ from: normalizedId, to: `${normalizedId}-property-${index + 1}`, label: "includes" })),
+    ...(seed.prerequisites || []).slice(0, 2).map((_, index) => ({ from: `${normalizedId}-prerequisite-${index + 1}`, to: normalizedId, label: "supports" })),
+    ...(seed.related || []).slice(0, 3).map((_, index) => ({ from: normalizedId, to: `${normalizedId}-related-${index + 1}`, label: "connects" })),
+  ];
+  const cards: FlipCard[] = [
+    { front: `What is ${title}?`, back: seed.definition, tag: "definition" },
+    ...points.slice(0, 6).map((point, index) => ({
+      front: properties[index] || `Key point ${index + 1}`,
+      back: point,
+      tag: "key point",
+    })),
+    ...(seed.examples || []).slice(0, 2).map((example) => ({
+      front: "Can you connect this to real life?",
+      back: example,
+      tag: "example",
+    })),
+  ];
+  const formulas = seed.formulas || [];
+  const mistakes = seed.mistakes || [];
+
+  return {
+    source: "client_fallback",
+    section_id: normalizedId,
+    title,
+    subtitle: seed.definition,
+    student_goal: `Understand ${title}, recall the key points, and avoid common exam mistakes.`,
+    quality: {
+      key_points: points.length,
+      formulas: formulas.length,
+      mistakes: mistakes.length,
+    },
+    artifacts: [
+      {
+        type: "concept_map",
+        title: `${title} concept map`,
+        subtitle: "A quick visual route through the idea.",
+        nodes,
+        edges,
+      },
+      {
+        type: "flip_cards",
+        title: "Tap-to-reveal cards",
+        subtitle: "Fast recall without rereading long notes.",
+        cards,
+      },
+      {
+        type: "formula_lab",
+        title: "Formula lab",
+        subtitle: "Use formulas actively, not just as text.",
+        formulas,
+        empty_note: "This topic is concept-heavy, so focus on definitions, examples, and mistakes first.",
+      },
+      {
+        type: "mistake_cards",
+        title: "Mistake shield",
+        subtitle: "Common traps students should avoid.",
+        mistakes,
+        empty_note: "No common mistakes are listed for this topic yet.",
+      },
+    ],
+  };
+}
 
 function hasAny(value: string, words: string[]) {
   return words.some((word) => value.includes(word));
@@ -1845,7 +2106,14 @@ export default function StudyPage() {
       setActiveArtifactTab(firstArtifactTab(nextArtifact));
     } catch (caught) {
       const detail = (caught as Error).message || "Artifact could not be generated.";
-      setArtifactError(detail.includes("not found") ? "Artifact data was not found for this topic yet." : "Artifact could not be generated. Please try again.");
+      if (!detail.toLowerCase().includes("auth")) {
+        const fallbackArtifact = createFallbackArtifact(topic, selectedTopic.label);
+        setArtifact(fallbackArtifact);
+        setActiveArtifactTab(firstArtifactTab(fallbackArtifact));
+        setArtifactError("");
+      } else {
+        setArtifactError("Artifact could not be generated. Please sign in again and retry.");
+      }
     } finally {
       setArtifactLoading(false);
     }
