@@ -23,6 +23,7 @@ type AgentStageId = "received" | "understanding" | "drafting" | "reviewing" | "f
 type AgentStageStatus = "pending" | "active" | "done";
 type StudyMode = "coach" | "revision" | "exam" | "history";
 type RevisionType = "summary" | "explain" | "keypoints";
+type RevisionPanel = RevisionType | "artifact";
 type ArtifactType = "concept_map" | "flip_cards" | "formula_lab" | "mistake_cards";
 type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" | "curiosity";
 type LearningLevel = "beginner" | "intermediate" | "advanced";
@@ -1389,6 +1390,9 @@ export default function StudyPage() {
   const [artifactLoading, setArtifactLoading] = useState(false);
   const [artifactError, setArtifactError] = useState("");
   const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("concept_map");
+  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("artifact");
+  const [studyHeaderExpanded, setStudyHeaderExpanded] = useState(false);
+  const [examPanelOpen, setExamPanelOpen] = useState(true);
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
   const [examAnswers, setExamAnswers] = useState<Record<string, string>>({});
@@ -1413,6 +1417,8 @@ export default function StudyPage() {
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
   const needsTopicPicker = mode === "revision" || mode === "exam";
   const hasCoachChat = mode === "coach" && messages.length > 0;
+  const headerCompact = !studyHeaderExpanded || hasCoachChat;
+  const activeRevisionTool = activeRevisionPanel === "artifact" ? null : REVISION_TOOLS.find((tool) => tool.id === activeRevisionPanel) || REVISION_TOOLS[0];
 
   const starterPrompts = useMemo(
     () => [
@@ -1829,6 +1835,7 @@ export default function StudyPage() {
   const runRevision = async (tool: RevisionTool) => {
     if (!userId || authBusy) return;
     setMode("revision");
+    setActiveRevisionPanel(tool.id);
     setRevisionError("");
     setRevisionLoading((current) => ({ ...current, [tool.id]: true }));
     try {
@@ -1856,6 +1863,7 @@ export default function StudyPage() {
   const generateArtifact = async () => {
     if (!userId || authBusy || artifactLoading) return;
     setMode("revision");
+    setActiveRevisionPanel("artifact");
     setArtifactError("");
     setArtifactLoading(true);
     try {
@@ -1990,38 +1998,38 @@ export default function StudyPage() {
   }
 
   return (
-    <div className={`study-lab-shell flex min-h-[calc(100svh-6.5rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl ${
+    <div className={`study-lab-shell flex min-h-[calc(100svh-5.25rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl ${
       mode === "coach" ? "rounded-[1.6rem] shadow-[0_24px_80px_rgba(15,23,42,0.10)]" : "rounded-[2.2rem] shadow-[0_30px_100px_rgba(15,23,42,0.12)]"
     }`}>
       <section className={`study-lab-header border-b border-white/45 bg-white/64 px-4 backdrop-blur-2xl sm:px-6 ${
-        hasCoachChat ? "py-2.5" : mode === "coach" ? "py-3" : "py-4"
+        headerCompact ? "py-2.5" : mode === "coach" ? "py-3" : "py-4"
       }`}>
-        <div className={`flex flex-col xl:flex-row xl:items-center xl:justify-between ${hasCoachChat ? "gap-3" : "gap-4"}`}>
+        <div className={`flex flex-col xl:flex-row xl:items-center xl:justify-between ${headerCompact ? "gap-3" : "gap-4"}`}>
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">
               {hasCoachChat ? "Tutor" : mode === "coach" ? "Open Tutor" : "Study Lab"}
             </p>
-            <div className={`flex flex-col gap-2 sm:flex-row sm:items-end ${hasCoachChat ? "mt-1" : "mt-2"}`}>
+            <div className={`flex flex-col gap-2 sm:flex-row sm:items-end ${headerCompact ? "mt-1" : "mt-2"}`}>
               <h1 className={`font-semibold tracking-tight text-slate-950 ${
-                hasCoachChat ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"
+                headerCompact ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"
               }`}>
                 {mode === "coach" ? `Ask ${coachName} anything` : `${mode[0].toUpperCase()}${mode.slice(1)} tools`}
               </h1>
-              {!hasCoachChat ? <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
+              {!headerCompact ? <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
                 {speechSupported ? "Voice ready" : "Text mode"}
               </span> : null}
             </div>
-            {!hasCoachChat ? <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+            {!headerCompact ? <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               {mode === "coach"
                 ? "Ask any subject, any topic, or any follow-up. The tutor will infer the intent and adapt the answer."
                 : mode === "history"
                   ? "Resume old doubts without choosing a subject or topic."
                   : "Choose a target topic for revision sheets and exam practice."}
             </p> : null}
-            {mode === "coach" ? null : <MentorInsightBar profile={mentorProfile} />}
+            {mode === "coach" || headerCompact ? null : <MentorInsightBar profile={mentorProfile} />}
           </div>
 
-          <div className={`flex flex-col gap-2 ${hasCoachChat ? "lg:min-w-[520px]" : "gap-3 lg:min-w-[620px]"}`}>
+          <div className={`flex flex-col gap-2 ${headerCompact ? "lg:min-w-[560px]" : "gap-3 lg:min-w-[620px]"}`}>
             <div className="grid gap-2 sm:grid-cols-4">
               {STUDY_MODES.map((item) => (
                 <ModeButton
@@ -2096,6 +2104,14 @@ export default function StudyPage() {
                 </div>
               )}
               <IconButton
+                label={studyHeaderExpanded ? "Collapse study header" : "Show study details"}
+                icon={studyHeaderExpanded ? "x" : "arrowRight"}
+                onClick={() => setStudyHeaderExpanded((current) => !current)}
+                className="min-h-[48px] bg-white/78 px-4 py-3 text-slate-700"
+              >
+                {studyHeaderExpanded ? "Focus" : "Details"}
+              </IconButton>
+              <IconButton
                 label="Start a new chat"
                 icon="plus"
                 onClick={startNewChat}
@@ -2122,7 +2138,7 @@ export default function StudyPage() {
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               {messages.length === 0 ? (
-                <div className="study-empty-state mx-auto flex min-h-[52svh] max-w-4xl flex-col items-center justify-center text-center">
+                <div className="study-empty-state mx-auto flex min-h-[58svh] max-w-[72rem] flex-col items-center justify-center text-center">
                   <div className="study-coach-avatar flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-lg font-black text-white shadow-[0_18px_48px_rgba(14,116,144,0.22)]">
                     {coachName[0]}
                   </div>
@@ -2174,7 +2190,7 @@ export default function StudyPage() {
                   </div>
                 </div>
               ) : (
-                <div className="mx-auto w-full max-w-5xl space-y-6">
+                <div className="mx-auto w-full max-w-[76rem] space-y-6">
                   {messages.map((message, index) => {
                     const isLatestMessage = index === messages.length - 1;
 
@@ -2216,7 +2232,7 @@ export default function StudyPage() {
             </div>
 
             <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
-              <div className="mx-auto w-full max-w-5xl">
+              <div className="mx-auto w-full max-w-[76rem]">
                 <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-400">
                   <span className="truncate">
                     {loadingAnswer ? `${coachName} is responding...` : "Ask naturally. Enter to send, Shift+Enter for a new line."}
@@ -2279,97 +2295,129 @@ export default function StudyPage() {
         ) : null}
 
         {mode === "revision" ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto grid max-w-[92rem] gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {REVISION_TOOLS.map((tool) => (
-                <article
-                  key={tool.id}
-                  className="study-content-card flex min-h-[520px] flex-col rounded-[2rem] border border-white/60 bg-white/82 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{tool.id}</p>
-                      <h2 className="mt-2 text-xl font-semibold text-slate-950">{tool.title}</h2>
-                      <p className="mt-2 text-sm leading-6 text-slate-500">{tool.detail}</p>
-                    </div>
-                    <CopyButton value={revisionContent[tool.id]} />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void runRevision(tool)}
-                    disabled={revisionLoading[tool.id]}
-                    className="agentify-action agentify-action-primary mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
-                  >
-                    <AppIcon name="spark" />
-                    <span>{revisionLoading[tool.id] ? "Generating..." : `Generate ${tool.title}`}</span>
-                  </button>
-
-                  <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-4">
-                    {revisionContent[tool.id] ? (
-                      <CoachAnswer value={revisionContent[tool.id]} />
-                    ) : (
-                      <EmptyState
-                        icon="book"
-                        title={`No ${tool.title.toLowerCase()} yet`}
-                        detail={`Generate it for ${selectedTopic.label}. Students can copy it directly into notes.`}
-                      />
-                    )}
-                  </div>
-                </article>
-              ))}
-
-              <article className="study-content-card study-artifact-card flex min-h-[520px] flex-col rounded-[2rem] border border-white/60 bg-white/82 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl md:col-span-2 xl:col-span-1">
-                <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+            <div className="study-focus-workspace mx-auto flex min-h-full max-w-[96rem] flex-col gap-4">
+              <div className="study-focus-toolbar rounded-[1.7rem] border border-white/60 bg-white/76 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Artifact</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-950">Interactive Artifact</h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">
-                      Visual map, tap cards, formula lab, and mistakes from your chapter data.
-                    </p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Revision canvas</p>
+                    <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{selectedTopic.label}</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500">Open one focused workspace at a time so notes and artifacts have room to breathe.</p>
                   </div>
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#0E7490]/16 bg-[#0E7490]/10 text-[#0E7490]">
-                    <AppIcon name="mission" className="h-5 w-5" />
-                  </span>
+                  <div className="study-panel-tabs" role="tablist" aria-label="Revision workspaces">
+                    {REVISION_TOOLS.map((tool) => (
+                      <button
+                        key={tool.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={activeRevisionPanel === tool.id}
+                        onClick={() => setActiveRevisionPanel(tool.id)}
+                        className={`study-panel-tab ${activeRevisionPanel === tool.id ? "is-active" : ""}`}
+                      >
+                        <AppIcon name={tool.id === "summary" ? "book" : tool.id === "explain" ? "study" : "copy"} className="h-3.5 w-3.5" />
+                        <span>{tool.title.replace("Revision ", "")}</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeRevisionPanel === "artifact"}
+                      onClick={() => setActiveRevisionPanel("artifact")}
+                      className={`study-panel-tab ${activeRevisionPanel === "artifact" ? "is-active" : ""}`}
+                    >
+                      <AppIcon name="mission" className="h-3.5 w-3.5" />
+                      <span>Artifact</span>
+                    </button>
+                  </div>
                 </div>
+              </div>
 
-                <button
-                  type="button"
-                  onClick={() => void generateArtifact()}
-                  disabled={artifactLoading}
-                  className="agentify-action agentify-action-primary mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
-                >
-                  <AppIcon name="spark" />
-                  <span>{artifactLoading ? "Building artifact..." : "Generate Artifact"}</span>
-                </button>
+              <section className={`study-content-card study-focus-panel ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-[640px] flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl`}>
+                {activeRevisionTool ? (
+                  <>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{activeRevisionTool.id}</p>
+                        <h2 className="mt-2 text-2xl font-semibold text-slate-950">{activeRevisionTool.title}</h2>
+                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{activeRevisionTool.detail}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <CopyButton value={revisionContent[activeRevisionTool.id]} />
+                        <button
+                          type="button"
+                          onClick={() => void runRevision(activeRevisionTool)}
+                          disabled={revisionLoading[activeRevisionTool.id]}
+                          className="agentify-action agentify-action-primary inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                        >
+                          <AppIcon name="spark" />
+                          <span>{revisionLoading[activeRevisionTool.id] ? "Generating..." : `Generate ${activeRevisionTool.title}`}</span>
+                        </button>
+                      </div>
+                    </div>
 
-                {artifactError ? <div className="mt-4"><AlertState message={artifactError} /></div> : null}
+                    <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                      {revisionContent[activeRevisionTool.id] ? (
+                        <CoachAnswer value={revisionContent[activeRevisionTool.id]} />
+                      ) : (
+                        <EmptyState
+                          icon="book"
+                          title={`No ${activeRevisionTool.title.toLowerCase()} yet`}
+                          detail={`Generate it for ${selectedTopic.label}. This full-window panel keeps the notes easier to read.`}
+                        />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Artifact</p>
+                        <h2 className="mt-2 text-2xl font-semibold text-slate-950">Interactive Artifact</h2>
+                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                          Visual map, tap cards, formula lab, and mistakes from your chapter data. This opens as a wide canvas so it feels like a proper study artifact.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void generateArtifact()}
+                        disabled={artifactLoading}
+                        className="agentify-action agentify-action-primary inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                      >
+                        <AppIcon name="spark" />
+                        <span>{artifactLoading ? "Building artifact..." : "Generate Artifact"}</span>
+                      </button>
+                    </div>
 
-                <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-4">
-                  {artifactLoading ? (
-                    <ArtifactLoadingState />
-                  ) : artifact ? (
-                    <ArtifactViewer
-                      response={artifact}
-                      activeTab={activeArtifactTab}
-                      onTabChange={setActiveArtifactTab}
-                    />
-                  ) : (
-                    <EmptyState
-                      icon="spark"
-                      title="No artifact yet"
-                      detail={`Generate one for ${selectedTopic.label}. It will turn notes into a student-friendly visual study tool.`}
-                    />
-                  )}
-                </div>
-              </article>
+                    {artifactError ? <div className="mt-4"><AlertState message={artifactError} /></div> : null}
+
+                    <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                      {artifactLoading ? (
+                        <ArtifactLoadingState />
+                      ) : artifact ? (
+                        <ArtifactViewer
+                          response={artifact}
+                          activeTab={activeArtifactTab}
+                          onTabChange={setActiveArtifactTab}
+                        />
+                      ) : (
+                        <EmptyState
+                          icon="spark"
+                          title="No artifact yet"
+                          detail={`Generate one for ${selectedTopic.label}. It will turn notes into a student-friendly visual study tool.`}
+                        />
+                      )}
+                    </div>
+                  </>
+                )}
+              </section>
             </div>
             {revisionError ? <div className="mx-auto mt-4 max-w-[92rem]"><AlertState message={revisionError} /></div> : null}
           </div>
         ) : null}
 
         {mode === "exam" ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto grid max-w-7xl gap-5 xl:grid-cols-[1.45fr_0.55fr]">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-5">
+            <div className={`mx-auto grid max-w-[96rem] gap-5 ${examPanelOpen ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
               <section className="study-content-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
@@ -2379,15 +2427,25 @@ export default function StudyPage() {
                       Generate one focused MCQ set, answer it once, then review feedback, common mistakes, and probable theory questions.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void generateExamPack()}
-                    disabled={examLoading}
-                    className="agentify-action agentify-action-primary inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
-                  >
-                    <AppIcon name="spark" />
-                    <span>{examLoading ? "Generating..." : "Generate exam pack"}</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExamPanelOpen((current) => !current)}
+                      className="agentify-action agentify-action-secondary inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/78 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                    >
+                      <AppIcon name={examPanelOpen ? "x" : "analytics"} />
+                      <span>{examPanelOpen ? "Hide insights" : "Show insights"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void generateExamPack()}
+                      disabled={examLoading}
+                      className="agentify-action agentify-action-primary inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                    >
+                      <AppIcon name="spark" />
+                      <span>{examLoading ? "Generating..." : "Generate exam pack"}</span>
+                    </button>
+                  </div>
                 </div>
 
                 {examQuestions.length ? (
@@ -2476,7 +2534,7 @@ export default function StudyPage() {
                 {examError ? <div className="mt-3"><AlertState message={examError} /></div> : null}
               </section>
 
-              <aside className="space-y-5">
+              {examPanelOpen ? <aside className="space-y-5">
                 <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Score</p>
                   <div className="mt-4 flex items-end gap-2">
@@ -2548,7 +2606,7 @@ export default function StudyPage() {
                     </p>
                   )}
                 </section>
-              </aside>
+              </aside> : null}
             </div>
           </div>
         ) : null}

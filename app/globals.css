@@ -1248,6 +1248,90 @@ body {
     rgba(255,255,255,0.82) !important;
 }
 
+.study-focus-workspace {
+  animation: study-soft-enter 240ms ease-out both;
+}
+
+.study-focus-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+}
+
+.study-panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+@media (min-width: 768px) {
+  .study-panel-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: min(100%, 44rem);
+  }
+}
+
+.study-panel-tab {
+  display: inline-flex;
+  min-height: 2.85rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(148,163,184,0.22);
+  border-radius: 1rem;
+  background: rgba(255,255,255,0.64);
+  color: #64748B;
+  font-size: 0.78rem;
+  font-weight: 850;
+  transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.study-panel-tab:hover {
+  border-color: rgba(14,116,144,0.24);
+  color: #0E7490;
+  transform: translateY(-1px);
+}
+
+.study-panel-tab.is-active {
+  border-color: rgba(14,116,144,0.26);
+  background: linear-gradient(135deg, rgba(236,254,255,0.86), rgba(236,253,245,0.74));
+  color: #0E7490;
+  box-shadow: 0 14px 34px rgba(14,116,144,0.09), inset 0 0 0 1px rgba(255,255,255,0.64);
+}
+
+.study-focus-panel {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(20,184,166,0.08), transparent 34%),
+    radial-gradient(circle at 94% 0%, rgba(242,184,75,0.08), transparent 30%),
+    rgba(255,255,255,0.84) !important;
+}
+
+.study-artifact-focus .study-artifact-viewer {
+  gap: 1.15rem;
+}
+
+@media (min-width: 1024px) {
+  .study-artifact-focus .study-artifact-viewer {
+    grid-template-columns: minmax(18rem, 0.36fr) minmax(0, 0.64fr);
+    align-items: start;
+  }
+
+  .study-artifact-focus .study-artifact-tabs {
+    grid-column: 1;
+  }
+
+  .study-artifact-focus .study-artifact-stage {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+
+  .study-artifact-focus .study-concept-node-grid,
+  .study-artifact-focus .study-flip-grid,
+  .study-artifact-focus .study-mistake-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .study-artifact-loading {
   min-height: 20rem;
   border-radius: 1.5rem;
@@ -1801,6 +1885,27 @@ body {
     radial-gradient(circle at 12% 0%, rgba(20,184,166,0.08), transparent 38%),
     radial-gradient(circle at 100% 8%, rgba(242,184,75,0.08), transparent 32%),
     rgba(15,23,42,0.68) !important;
+}
+
+[data-theme="dark"] .study-focus-toolbar,
+[data-theme="dark"] .study-focus-panel {
+  border-color: rgba(255,255,255,0.09) !important;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(20,184,166,0.08), transparent 34%),
+    radial-gradient(circle at 94% 0%, rgba(242,184,75,0.07), transparent 30%),
+    rgba(15,23,42,0.66) !important;
+}
+
+[data-theme="dark"] .study-panel-tab {
+  border-color: rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.06);
+  color: #CBD5E1;
+}
+
+[data-theme="dark"] .study-panel-tab.is-active {
+  border-color: rgba(20,184,166,0.22);
+  background: rgba(14,116,144,0.16);
+  color: #99F6E4;
 }
 
 [data-theme="dark"] .study-artifact-loading,
