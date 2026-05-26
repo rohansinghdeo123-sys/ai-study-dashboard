@@ -213,17 +213,142 @@ const CHAPTERS = [
     ],
   },
   {
-    label: "Matter",
+    label: "Basic Concepts of Chemistry",
     value: "matter",
     topics: [
+      { label: "Definition of Chemistry", value: "chemistry_definition" },
+      { label: "Alchemy and Iatrochemistry", value: "historical_alchemy" },
+      { label: "Ancient Indian Chemistry", value: "ancient_indian_chemistry" },
+      { label: "Role and Importance of Chemistry", value: "importance_of_chemistry" },
       { label: "Matter Definition", value: "matter_definition" },
-      { label: "States of Matter", value: "states_of_matter" },
       { label: "Properties of Matter", value: "properties_of_matter" },
+      { label: "States of Matter", value: "states_of_matter" },
+      { label: "Solid State", value: "solid_state" },
+      { label: "Liquid State", value: "liquid_state" },
+      { label: "Gaseous State", value: "gaseous_state" },
+      { label: "Interconversion of States", value: "interconversion_of_states" },
+      { label: "Classification of Matter", value: "classification_of_matter" },
     ],
   },
 ];
 
 const ARTIFACT_CONCEPT_SEEDS: Record<string, ArtifactConceptSeed> = {
+  hydrocarbon: {
+    title: "Hydrocarbons",
+    definition: "Hydrocarbons are organic compounds made only of carbon and hydrogen atoms.",
+    keyPoints: [
+      "Hydrocarbons are classified mainly as alkanes, alkenes, alkynes, and aromatic hydrocarbons.",
+      "The type of carbon-carbon bond decides the family and reactivity.",
+      "Alkanes are saturated and contain only single bonds.",
+      "Alkenes and alkynes are unsaturated and contain double or triple bonds.",
+      "Aromatic hydrocarbons contain stable ring systems such as benzene.",
+    ],
+    properties: ["Carbon and hydrogen", "Alkanes", "Alkenes", "Alkynes", "Aromatic rings"],
+    formulas: [
+      { label: "Alkanes", formula: "CnH2n+2", variables: ["n"], hint: "Use for open-chain saturated hydrocarbons." },
+      { label: "Alkenes", formula: "CnH2n", variables: ["n"], hint: "Use for one double bond in an open chain." },
+      { label: "Alkynes", formula: "CnH2n-2", variables: ["n"], hint: "Use for one triple bond in an open chain." },
+    ],
+    related: ["Alkanes", "Alkenes", "Alkynes", "Aromatic Hydrocarbons"],
+    mistakes: [
+      { mistake: "Choosing formula before checking bond type.", correction: "First identify single, double, triple, or aromatic bonding.", frequency: "high" },
+      { mistake: "Treating all hydrocarbons as equally reactive.", correction: "Unsaturated hydrocarbons are generally more reactive than alkanes.", frequency: "medium" },
+    ],
+  },
+  matter: {
+    title: "Basic Concepts of Chemistry",
+    definition: "Basic concepts of chemistry introduce matter, its properties, states, classification, and chemistry's role in everyday life.",
+    keyPoints: [
+      "Chemistry studies the composition, structure, properties, and transformations of matter.",
+      "Matter is anything that has mass and occupies space.",
+      "Properties such as mass, volume, density, and compressibility help describe matter.",
+      "Matter exists mainly as solids, liquids, and gases.",
+      "Matter can be classified into mixtures and pure substances.",
+    ],
+    properties: ["Chemistry", "Matter", "Properties", "States", "Classification"],
+    related: ["Matter Definition", "Properties of Matter", "States of Matter", "Classification of Matter"],
+    mistakes: [
+      { mistake: "Studying definitions separately without connecting them.", correction: "Link chemistry to matter, matter to properties, and properties to classification.", frequency: "medium" },
+    ],
+  },
+  basic_concepts_of_chemistry: {
+    title: "Basic Concepts of Chemistry",
+    definition: "Basic concepts of chemistry introduce matter, its properties, states, classification, and chemistry's role in everyday life.",
+    keyPoints: [
+      "Chemistry studies the composition, structure, properties, and transformations of matter.",
+      "Matter is anything that has mass and occupies space.",
+      "Properties such as mass, volume, density, and compressibility help describe matter.",
+      "Matter exists mainly as solids, liquids, and gases.",
+      "Matter can be classified into mixtures and pure substances.",
+    ],
+    properties: ["Chemistry", "Matter", "Properties", "States", "Classification"],
+    related: ["Matter Definition", "Properties of Matter", "States of Matter", "Classification of Matter"],
+    mistakes: [
+      { mistake: "Studying definitions separately without connecting them.", correction: "Link chemistry to matter, matter to properties, and properties to classification.", frequency: "medium" },
+    ],
+  },
+  chemistry_definition: {
+    title: "Definition of Chemistry",
+    definition: "Chemistry is the branch of science that studies the preparation, properties, structure, and reactions of material substances.",
+    keyPoints: [
+      "Chemistry studies composition, structure, properties, and transformations of matter.",
+      "It is called the science of atoms and molecules.",
+      "Chemistry connects physics, biology, geology, and material science.",
+      "Everyday changes such as rusting, cooking, and curd formation involve chemistry.",
+    ],
+    properties: ["Matter", "Atoms", "Molecules", "Reactions", "Everyday changes"],
+    examples: ["Rusting of iron and curd formation from milk are common chemistry examples."],
+    related: ["Matter Definition", "Role and Importance of Chemistry"],
+    mistakes: [
+      { mistake: "Thinking chemistry is only about lab chemicals.", correction: "Chemistry explains everyday materials and changes too.", frequency: "medium" },
+    ],
+  },
+  historical_alchemy: {
+    title: "Alchemy and Iatrochemistry",
+    definition: "Alchemy and iatrochemistry were early forms of chemistry that mixed practical chemical techniques with older beliefs.",
+    keyPoints: [
+      "Alchemy aimed at metal transmutation and the search for the elixir of life.",
+      "Iatrochemistry focused on medicinal chemical preparations.",
+      "Many practical methods like distillation and metallurgy developed from early chemical traditions.",
+      "Modern chemistry later became evidence-based and quantitative.",
+    ],
+    properties: ["Alchemy", "Iatrochemistry", "Distillation", "Metallurgy", "Modern chemistry"],
+    related: ["Definition of Chemistry", "Ancient Indian Chemistry"],
+    mistakes: [
+      { mistake: "Thinking alchemy contributed nothing to chemistry.", correction: "Alchemy contributed practical techniques, even though its theories were not modern science.", frequency: "low" },
+    ],
+  },
+  ancient_indian_chemistry: {
+    title: "Ancient Indian Chemistry",
+    definition: "Ancient Indian chemistry, or Rasayan Shastra, included metallurgy, medicine, dyes, glass-making, and other applied chemical arts.",
+    keyPoints: [
+      "Ancient India had advanced knowledge of metallurgy, dyes, medicines, and materials.",
+      "Texts such as Arthashastra, Charaka Samhita, and Rasratnakar recorded chemical practices.",
+      "Processes like extraction of metals, making soaps, and preparing medicines were known.",
+      "The idea of atoms was discussed in ancient Indian thought.",
+    ],
+    properties: ["Metallurgy", "Medicine", "Dyes", "Materials", "Rasayan Shastra"],
+    related: ["Alchemy and Iatrochemistry", "Definition of Chemistry"],
+    mistakes: [
+      { mistake: "Thinking ancient chemistry was only mythology.", correction: "It included practical techniques in metallurgy, medicines, and materials.", frequency: "medium" },
+    ],
+  },
+  importance_of_chemistry: {
+    title: "Role and Importance of Chemistry",
+    definition: "Chemistry is important because it helps us understand natural phenomena and design useful materials, medicines, fuels, and products.",
+    keyPoints: [
+      "Chemistry supports medicine, agriculture, industry, food, fuels, and environment studies.",
+      "It explains changes such as rusting, digestion, cooking, and combustion.",
+      "It helps create useful products like soaps, polymers, fertilizers, and medicines.",
+      "Chemistry helps solve real-life problems through materials and processes.",
+    ],
+    properties: ["Medicine", "Agriculture", "Industry", "Environment", "Materials"],
+    examples: ["Fertilizers, medicines, soaps, and fuels are linked to chemistry."],
+    related: ["Definition of Chemistry", "Matter Definition"],
+    mistakes: [
+      { mistake: "Learning examples without connecting them to chemistry.", correction: "Ask what material or chemical change is involved in each example.", frequency: "medium" },
+    ],
+  },
   matter_definition: {
     title: "Matter Definition",
     definition: "Matter is anything that has mass and occupies space.",
@@ -286,6 +411,83 @@ const ARTIFACT_CONCEPT_SEEDS: Record<string, ArtifactConceptSeed> = {
     mistakes: [
       { mistake: "Thinking particles stop moving in solids.", correction: "Solid particles vibrate around fixed positions.", frequency: "medium" },
       { mistake: "Thinking gases do not have mass.", correction: "Gases have mass, even if they are hard to see.", frequency: "high" },
+    ],
+  },
+  solid_state: {
+    title: "Solid State",
+    definition: "The solid state is a form of matter with fixed shape and fixed volume due to closely packed particles.",
+    keyPoints: [
+      "Solids have fixed shape and volume.",
+      "Particles in solids are closely packed and vibrate around fixed positions.",
+      "Solids are usually rigid and almost incompressible.",
+      "Strong inter-particle forces help solids keep their shape.",
+    ],
+    properties: ["Fixed shape", "Fixed volume", "Rigid", "Closely packed particles", "Low compressibility"],
+    related: ["States of Matter", "Properties of Matter"],
+    mistakes: [
+      { mistake: "Thinking solid particles do not move.", correction: "They vibrate around fixed positions.", frequency: "medium" },
+    ],
+  },
+  liquid_state: {
+    title: "Liquid State",
+    definition: "The liquid state is a form of matter with fixed volume but no fixed shape.",
+    keyPoints: [
+      "Liquids have fixed volume but take the shape of their container.",
+      "Liquid particles are less tightly packed than solids and can slide past one another.",
+      "Liquids are fluid and almost incompressible.",
+      "Diffusion occurs in liquids, but slower than in gases.",
+    ],
+    properties: ["Fixed volume", "No fixed shape", "Fluidity", "Low compressibility", "Diffusion"],
+    related: ["States of Matter", "Solid State", "Gaseous State"],
+    mistakes: [
+      { mistake: "Thinking liquids have no volume because they change shape.", correction: "Liquids change shape but keep nearly fixed volume.", frequency: "high" },
+    ],
+  },
+  gaseous_state: {
+    title: "Gaseous State",
+    definition: "The gaseous state is a form of matter with no fixed shape and no fixed volume.",
+    keyPoints: [
+      "Gases fill the complete space available to them.",
+      "Gas particles are far apart and move randomly at high speed.",
+      "Gases are highly compressible compared with solids and liquids.",
+      "Diffusion is fastest in gases due to large particle spacing.",
+    ],
+    properties: ["No fixed shape", "No fixed volume", "High compressibility", "Fast diffusion", "Random motion"],
+    related: ["States of Matter", "Properties of Matter"],
+    mistakes: [
+      { mistake: "Thinking gases are not matter because they are invisible.", correction: "Gases have mass and occupy space, so they are matter.", frequency: "high" },
+    ],
+  },
+  interconversion_of_states: {
+    title: "Interconversion of States of Matter",
+    definition: "Interconversion of states is the change of matter from one physical state to another by changing temperature or pressure.",
+    keyPoints: [
+      "Heating can change solid to liquid and liquid to gas.",
+      "Cooling can change gas to liquid and liquid to solid.",
+      "Pressure can also help change the state of matter.",
+      "During a physical state change, the substance usually remains chemically the same.",
+    ],
+    properties: ["Melting", "Freezing", "Evaporation", "Condensation", "Temperature", "Pressure"],
+    related: ["States of Matter", "Solid State", "Liquid State", "Gaseous State"],
+    mistakes: [
+      { mistake: "Thinking state change always creates a new substance.", correction: "Most state changes are physical changes; composition remains the same.", frequency: "medium" },
+    ],
+  },
+  classification_of_matter: {
+    title: "Classification of Matter",
+    definition: "Matter is classified into mixtures and pure substances; pure substances include elements and compounds.",
+    keyPoints: [
+      "At the macroscopic level, matter can be classified into mixtures and pure substances.",
+      "Pure substances have fixed composition.",
+      "Elements contain one type of atom, while compounds contain chemically combined elements.",
+      "Mixtures can be homogeneous or heterogeneous.",
+      "Classification helps identify and separate materials.",
+    ],
+    properties: ["Pure substances", "Mixtures", "Elements", "Compounds", "Homogeneous", "Heterogeneous"],
+    related: ["Matter Definition", "Properties of Matter"],
+    mistakes: [
+      { mistake: "Confusing compound with mixture.", correction: "Compounds have chemically combined elements; mixtures are physically combined.", frequency: "high" },
+      { mistake: "Thinking all mixtures look non-uniform.", correction: "Homogeneous mixtures look uniform throughout.", frequency: "medium" },
     ],
   },
   alkanes: {
@@ -415,9 +617,14 @@ function titleFromId(value: string) {
     .join(" ");
 }
 
-function createFallbackArtifact(sectionId: string, topicLabel: string): StudyArtifactResponse {
+function findChapterValueForTopic(topicValue: string) {
+  const normalizedTopic = normalizeArtifactId(topicValue);
+  return CHAPTERS.find((chapter) => chapter.topics.some((item) => item.value === normalizedTopic))?.value || "";
+}
+
+function getConceptSeed(sectionId: string, topicLabel: string): ArtifactConceptSeed {
   const normalizedId = normalizeArtifactId(sectionId || topicLabel);
-  const seed: ArtifactConceptSeed = ARTIFACT_CONCEPT_SEEDS[normalizedId] || {
+  return ARTIFACT_CONCEPT_SEEDS[normalizedId] || {
     title: topicLabel || titleFromId(normalizedId),
     definition: `${topicLabel || titleFromId(normalizedId)} is the selected study topic.`,
     keyPoints: [
@@ -435,6 +642,11 @@ function createFallbackArtifact(sectionId: string, topicLabel: string): StudyArt
       },
     ],
   };
+}
+
+function createFallbackArtifact(sectionId: string, topicLabel: string): StudyArtifactResponse {
+  const normalizedId = normalizeArtifactId(sectionId || topicLabel);
+  const seed = getConceptSeed(normalizedId, topicLabel);
   const title = seed.title || topicLabel || titleFromId(normalizedId);
   const points = seed.keyPoints.slice(0, 7);
   const properties = (seed.properties?.length ? seed.properties : points.map((point, index) => point.split(/[.,;]/)[0] || `Point ${index + 1}`)).slice(0, 7);
@@ -526,6 +738,134 @@ function createFallbackArtifact(sectionId: string, topicLabel: string): StudyArt
       },
     ],
   };
+}
+
+function createFallbackRevision(sectionId: string, topicLabel: string, type: RevisionType) {
+  const seed = getConceptSeed(sectionId, topicLabel);
+  const title = seed.title || topicLabel;
+  const points = seed.keyPoints.slice(0, 7);
+  const mistakes = seed.mistakes || [];
+  const formulas = seed.formulas || [];
+
+  if (type === "summary") {
+    return [
+      `## ${title} - Simple Notes`,
+      seed.definition,
+      "",
+      "### Must Remember",
+      ...points.slice(0, 5).map((point) => `- ${point}`),
+      formulas.length ? "\n### Formula Check" : "",
+      ...formulas.map((item) => `- ${item.label}: ${item.formula}`),
+      mistakes.length ? "\n### Avoid This" : "",
+      ...mistakes.slice(0, 2).map((item) => `- ${item.mistake} Correct idea: ${item.correction}`),
+    ].filter(Boolean).join("\n");
+  }
+
+  if (type === "keypoints") {
+    return [
+      `## ${title} - Key Points`,
+      ...points.map((point, index) => `${index + 1}. ${point}`),
+      "",
+      "### Quick Self Check",
+      `- Can you define ${title} in one sentence?`,
+      "- Can you give one example and one common mistake?",
+    ].join("\n");
+  }
+
+  return [
+    `## ${title} - Deep Explain`,
+    seed.definition,
+    "",
+    "### How to Understand It",
+    ...points.slice(0, 4).map((point) => `- ${point}`),
+    seed.examples?.length ? "\n### Example" : "",
+    ...(seed.examples || []).slice(0, 2).map((example) => `- ${example}`),
+    mistakes.length ? "\n### Common Confusion" : "",
+    ...mistakes.slice(0, 2).map((item) => `- ${item.mistake} -> ${item.correction}`),
+    "",
+    "### Teacher Check",
+    `Explain ${title} back in your own words before moving to practice.`,
+  ].filter(Boolean).join("\n");
+}
+
+function createFallbackExamPack(sectionId: string, topicLabel: string) {
+  const seed = getConceptSeed(sectionId, topicLabel);
+  const title = seed.title || topicLabel;
+  const points = seed.keyPoints.length ? seed.keyPoints : [seed.definition];
+  const properties = seed.properties?.length ? seed.properties : ["definition", "example", "key point"];
+  const questions: ExamQuestion[] = [
+    {
+      id: "Q1",
+      question: `Which statement best describes ${title}?`,
+      options: [
+        `A. ${seed.definition}`,
+        "B. It is only a memorization topic with no examples.",
+        "C. It is unrelated to school science.",
+        "D. It can be understood without knowing any key terms.",
+      ],
+      correct: "A",
+      explanation: `The correct answer matches the core definition of ${title}.`,
+    },
+    {
+      id: "Q2",
+      question: `Which point is most closely connected with ${title}?`,
+      options: [
+        `A. ${properties[0] || "Core definition"}`,
+        `B. ${properties[1] || "Only spelling"}`,
+        "C. Ignoring examples",
+        "D. Guessing without reading the question",
+      ],
+      correct: "A",
+      explanation: "The first option is one of the main concept handles for this topic.",
+    },
+    {
+      id: "Q3",
+      question: `What is the best way to revise ${title}?`,
+      options: [
+        "A. Memorize one line and stop",
+        "B. Read the definition, example, key point, and common mistake together",
+        "C. Skip examples",
+        "D. Only read the heading",
+      ],
+      correct: "B",
+      explanation: "Good revision connects definition, example, and mistake prevention.",
+    },
+    {
+      id: "Q4",
+      question: `Which is a common trap while learning ${title}?`,
+      options: [
+        `A. ${seed.mistakes?.[0]?.mistake || "Reading once and assuming it is clear"}`,
+        "B. Checking the definition",
+        "C. Practicing one question",
+        "D. Giving a real example",
+      ],
+      correct: "A",
+      explanation: seed.mistakes?.[0]?.correction || "The trap is avoided by explaining the concept in your own words.",
+    },
+    {
+      id: "Q5",
+      question: `Which line is a strong exam-ready recall point for ${title}?`,
+      options: [
+        `A. ${points[0]}`,
+        "B. The topic is not important",
+        "C. There are no key terms",
+        "D. Examples should never be used",
+      ],
+      correct: "A",
+      explanation: "This option is directly taken from the core learning points.",
+    },
+  ];
+  const probable: ProbableQuestion[] = [
+    { id: "P1", marks: 3, question: `Define ${title} and write two important points.` },
+    { id: "P2", marks: 3, question: `Give one example related to ${title} and explain it briefly.` },
+    { id: "P3", marks: 5, question: `Explain ${title} in detail with key points and one common mistake to avoid.` },
+    { id: "P4", marks: 5, question: `Compare the important ideas connected with ${title} and write an exam-ready answer.` },
+  ];
+  return { questions, probable };
+}
+
+function safeJsonResponse(response: Response) {
+  return response.json().catch(() => null);
 }
 
 function hasAny(value: string, words: string[]) {
@@ -1591,8 +1931,9 @@ export default function StudyPage() {
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const initialTopic = searchParams.get("topic") || "alkanes";
+  const initialChapter = searchParams.get("chapter") || findChapterValueForTopic(initialTopic) || "hydrocarbon";
 
-  const [chapter, setChapter] = useState(searchParams.get("chapter") || "hydrocarbon");
+  const [chapter, setChapter] = useState(initialChapter);
   const [topic, setTopic] = useState(initialTopic);
   const [mode, setMode] = useState<StudyMode>("coach");
   const [coachName, setCoachName] = useState("Aria");
@@ -1635,6 +1976,7 @@ export default function StudyPage() {
   const authBusy = loading || authLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
+  const selectedTopicValue = selectedTopic.value;
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
@@ -1665,6 +2007,29 @@ export default function StudyPage() {
     ],
     [],
   );
+
+  useEffect(() => {
+    if (selectedChapter.value !== chapter) {
+      setChapter(selectedChapter.value);
+      return;
+    }
+    if (selectedTopic.value !== topic) {
+      setTopic(selectedTopic.value);
+    }
+  }, [chapter, topic, selectedChapter, selectedTopic]);
+
+  useEffect(() => {
+    setRevisionContent({ summary: "", explain: "", keypoints: "" });
+    setRevisionError("");
+    setArtifact(null);
+    setArtifactError("");
+    setActiveArtifactTab("concept_map");
+    setExamQuestions([]);
+    setProbableQuestions([]);
+    setExamAnswers({});
+    setExamSubmitted(false);
+    setExamError("");
+  }, [selectedTopicValue]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -2059,23 +2424,25 @@ export default function StudyPage() {
     setActiveRevisionPanel(tool.id);
     setRevisionError("");
     setRevisionLoading((current) => ({ ...current, [tool.id]: true }));
+    const fallbackRevision = createFallbackRevision(selectedTopicValue, selectedTopic.label, tool.id);
+    setRevisionContent((current) => ({ ...current, [tool.id]: fallbackRevision }));
     try {
       const res = await fetch(`${backendURL}/section-ai`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({
           question: tool.prompt(selectedTopic.label),
-          section_id: topic,
-          session_id: `revision-${userId}-${topic}-${tool.id}`,
+          section_id: selectedTopicValue,
+          session_id: `revision-${userId}-${selectedTopicValue}-${tool.id}`,
           mode: tool.mode,
           difficulty: "medium",
         }),
       });
       if (!res.ok) throw new Error(`Revision failed: ${res.status}`);
-      const data = await res.json();
+      const data = await safeJsonResponse(res);
       setRevisionContent((current) => ({ ...current, [tool.id]: data?.answer || "No revision generated." }));
     } catch {
-      setRevisionError("Revision could not be generated. Please try again.");
+      setRevisionError("");
     } finally {
       setRevisionLoading((current) => ({ ...current, [tool.id]: false }));
     }
@@ -2086,34 +2453,29 @@ export default function StudyPage() {
     setMode("revision");
     setActiveRevisionPanel("artifact");
     setArtifactError("");
+    const fallbackArtifact = createFallbackArtifact(selectedTopicValue, selectedTopic.label);
+    setArtifact(fallbackArtifact);
+    setActiveArtifactTab(firstArtifactTab(fallbackArtifact));
     setArtifactLoading(true);
     try {
       const res = await fetch(`${backendURL}/artifacts/generate`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({
-          section_id: topic,
+          section_id: selectedTopicValue,
           topic: selectedTopic.label,
           artifact_type: "auto",
         }),
       });
-      const data = await res.json().catch(() => null) as StudyArtifactResponse | { detail?: string } | null;
+      const data = await safeJsonResponse(res) as StudyArtifactResponse | { detail?: string } | null;
       if (!res.ok) {
         throw new Error((data as { detail?: string } | null)?.detail || `Artifact failed: ${res.status}`);
       }
       const nextArtifact = data as StudyArtifactResponse;
       setArtifact(nextArtifact);
       setActiveArtifactTab(firstArtifactTab(nextArtifact));
-    } catch (caught) {
-      const detail = (caught as Error).message || "Artifact could not be generated.";
-      if (!detail.toLowerCase().includes("auth")) {
-        const fallbackArtifact = createFallbackArtifact(topic, selectedTopic.label);
-        setArtifact(fallbackArtifact);
-        setActiveArtifactTab(firstArtifactTab(fallbackArtifact));
-        setArtifactError("");
-      } else {
-        setArtifactError("Artifact could not be generated. Please sign in again and retry.");
-      }
+    } catch {
+      setArtifactError("");
     } finally {
       setArtifactLoading(false);
     }
@@ -2127,6 +2489,9 @@ export default function StudyPage() {
     setExamError("");
     setExamSubmitted(false);
     setExamAnswers({});
+    const fallbackExam = createFallbackExamPack(selectedTopicValue, selectedTopic.label);
+    setExamQuestions(fallbackExam.questions);
+    setProbableQuestions(fallbackExam.probable);
     try {
       const headers = await getAuthHeaders();
       const [mcqRes, probableRes] = await Promise.all([
@@ -2135,8 +2500,8 @@ export default function StudyPage() {
           headers,
           body: JSON.stringify({
             topic: selectedTopic.label,
-            section_id: topic,
-            session_id: `exam-${userId}-${topic}-${Date.now()}`,
+            section_id: selectedTopicValue,
+            session_id: `exam-${userId}-${selectedTopicValue}-${Date.now()}`,
             difficulty: "medium",
             count: 5,
           }),
@@ -2146,19 +2511,21 @@ export default function StudyPage() {
           headers,
           body: JSON.stringify({
             topic: selectedTopic.label,
-            section_id: topic,
-            session_id: `probable-${userId}-${topic}-${Date.now()}`,
+            section_id: selectedTopicValue,
+            session_id: `probable-${userId}-${selectedTopicValue}-${Date.now()}`,
             difficulty: "medium",
           }),
         }),
       ]);
       if (!mcqRes.ok || !probableRes.ok) throw new Error("Exam generation failed");
-      const mcqData = await mcqRes.json();
-      const probableData = await probableRes.json();
-      setExamQuestions(Array.isArray(mcqData?.questions) ? mcqData.questions : []);
-      setProbableQuestions(Array.isArray(probableData?.questions) ? probableData.questions : []);
+      const mcqData = await safeJsonResponse(mcqRes);
+      const probableData = await safeJsonResponse(probableRes);
+      const nextQuestions = Array.isArray(mcqData?.questions) ? mcqData.questions : [];
+      const nextProbable = Array.isArray(probableData?.questions) ? probableData.questions : [];
+      if (nextQuestions.length) setExamQuestions(nextQuestions);
+      if (nextProbable.length) setProbableQuestions(nextProbable);
     } catch {
-      setExamError("Exam pack could not be generated. Please try again.");
+      setExamError("");
     } finally {
       setExamLoading(false);
     }
@@ -2262,7 +2629,7 @@ export default function StudyPage() {
             {needsTopicPicker ? (
               <div className="study-topic-strip flex min-w-0 flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/58 p-1.5 sm:flex-row">
                 <select
-                  value={chapter}
+                  value={selectedChapter.value}
                   aria-label="Chapter"
                   onChange={(event) => {
                     const next = event.target.value;
@@ -2278,7 +2645,7 @@ export default function StudyPage() {
                   ))}
                 </select>
                 <select
-                  value={topic}
+                  value={selectedTopicValue}
                   aria-label="Topic"
                   onChange={(event) => setTopic(event.target.value)}
                   className="study-select min-h-10 rounded-xl border border-transparent bg-white/75 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
@@ -2573,14 +2940,14 @@ export default function StudyPage() {
                     {artifactError ? <div className="mt-4"><AlertState message={artifactError} /></div> : null}
 
                     <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
-                      {artifactLoading ? (
-                        <ArtifactLoadingState />
-                      ) : artifact ? (
+                      {artifact ? (
                         <ArtifactViewer
                           response={artifact}
                           activeTab={activeArtifactTab}
                           onTabChange={setActiveArtifactTab}
                         />
+                      ) : artifactLoading ? (
+                        <ArtifactLoadingState />
                       ) : (
                         <EmptyState
                           icon="spark"
