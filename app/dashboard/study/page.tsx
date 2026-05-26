@@ -24,6 +24,7 @@ type AgentStageStatus = "pending" | "active" | "done";
 type StudyMode = "coach" | "revision" | "exam" | "history";
 type RevisionType = "summary" | "explain" | "keypoints";
 type RevisionPanel = RevisionType | "artifact";
+type ExamPanel = "mcq" | "probable" | "practice" | "review";
 type ArtifactType = "concept_map" | "flip_cards" | "formula_lab" | "mistake_cards";
 type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" | "curiosity";
 type LearningLevel = "beginner" | "intermediate" | "advanced";
@@ -222,7 +223,7 @@ const STAGE_ICONS: Record<AgentStageId, AppIconName> = {
 };
 
 const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
-  { id: "coach", label: "Coach", detail: "Ask and continue doubts", icon: "study" },
+  { id: "coach", label: "Chat", detail: "Ask and continue doubts", icon: "study" },
   { id: "revision", label: "Revision", detail: "Summary, explain, key points", icon: "book" },
   { id: "exam", label: "Exam", detail: "MCQs and probable questions", icon: "check" },
   { id: "history", label: "History", detail: "Resume previous chats", icon: "history" },
@@ -231,10 +232,10 @@ const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: A
 const REVISION_TOOLS: RevisionTool[] = [
   {
     id: "summary",
-    title: "Revision Summary",
+    title: "Simple Notes",
     detail: "High-yield notes for quick recall.",
     mode: "summary",
-    prompt: (topic) => `Create a concise exam-focused revision summary for ${topic}.`,
+    prompt: (topic) => `Create simple, concise, exam-focused revision notes for ${topic}.`,
   },
   {
     id: "explain",
@@ -259,20 +260,12 @@ const ARTIFACT_TABS: Array<{ id: ArtifactType; label: string; icon: AppIconName 
   { id: "mistake_cards", label: "Mistakes", icon: "check" },
 ];
 
-function createDefaultMentorProfile(): MentorProfile {
-  return {
-    intent: "concept",
-    level: "intermediate",
-    emotion: "steady",
-    confidence: 68,
-    speed: "balanced",
-    curiosityDepth: 45,
-    answerStyle: "structured explanation",
-    nextMove: "explain, check understanding, then suggest practice",
-    shouldTest: false,
-    weakSignals: [],
-  };
-}
+const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: AppIconName }> = [
+  { id: "mcq", label: "MCQs", detail: "Timed objective practice", icon: "check" },
+  { id: "probable", label: "Probable", detail: "Theory questions", icon: "book" },
+  { id: "practice", label: "Practice", detail: "Focused drills", icon: "study" },
+  { id: "review", label: "Review", detail: "Answers and mistakes", icon: "analytics" },
+];
 
 function hasAny(value: string, words: string[]) {
   return words.some((word) => value.includes(word));
@@ -1277,14 +1270,12 @@ function ModeButton({
   label,
   detail,
   icon,
-  compact = false,
   onClick,
 }: {
   active: boolean;
   label: string;
   detail: string;
   icon: AppIconName;
-  compact?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -1292,44 +1283,17 @@ function ModeButton({
       type="button"
       onClick={onClick}
       title={detail}
-      className={`study-mode-button flex items-center gap-3 rounded-2xl border px-3 text-left transition ${
-        compact ? "min-h-[48px] py-2" : "min-h-[58px] py-2.5"
-      } ${
+      className={`study-mode-button inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-left text-sm font-semibold transition ${
         active
-          ? "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490] shadow-[0_14px_36px_rgba(14,116,144,0.10)]"
-          : "border-slate-200 bg-white/64 text-slate-500 hover:border-[#0E7490]/25 hover:text-slate-900"
+          ? "bg-white text-[#0E7490] shadow-[0_10px_26px_rgba(14,116,144,0.10)]"
+          : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
       }`}
     >
-      <span className={`study-mode-icon flex shrink-0 items-center justify-center rounded-2xl ${
-        compact ? "h-8 w-8" : "h-9 w-9"
-      } ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
-        <AppIcon name={icon} />
+      <span className={`study-mode-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
+        <AppIcon name={icon} className="h-3.5 w-3.5" />
       </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold">{label}</span>
-        <span className={`mt-0.5 text-[11px] leading-4 opacity-75 ${compact ? "hidden" : "hidden xl:block"}`}>{detail}</span>
-      </span>
+      <span>{label}</span>
     </button>
-  );
-}
-
-function MentorInsightBar({ profile }: { profile: MentorProfile }) {
-  return (
-    <div className="study-mentor-intelligence mt-4 flex flex-wrap gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#0E7490]/18 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold capitalize text-[#0E7490]">
-        <AppIcon name="spark" className="h-3.5 w-3.5" />
-        {profile.intent} mode
-      </span>
-      <span className="rounded-full border border-slate-200 bg-white/66 px-3 py-1.5 text-[11px] font-bold capitalize text-slate-500">
-        Level: {profile.level}
-      </span>
-      <span className="rounded-full border border-slate-200 bg-white/66 px-3 py-1.5 text-[11px] font-bold capitalize text-slate-500">
-        State: {profile.emotion}
-      </span>
-      <span className="rounded-full border border-slate-200 bg-white/66 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-        Confidence {profile.confidence}%
-      </span>
-    </div>
   );
 }
 
@@ -1377,7 +1341,6 @@ export default function StudyPage() {
   const [input, setInput] = useState("");
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [stages, setStages] = useState(createStages);
-  const [mentorProfile, setMentorProfile] = useState<MentorProfile>(createDefaultMentorProfile);
   const [showPipeline, setShowPipeline] = useState(false);
   const [showAgentSummary, setShowAgentSummary] = useState(false);
   const [agentSummaryExpanded, setAgentSummaryExpanded] = useState(false);
@@ -1390,9 +1353,8 @@ export default function StudyPage() {
   const [artifactLoading, setArtifactLoading] = useState(false);
   const [artifactError, setArtifactError] = useState("");
   const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("concept_map");
-  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("artifact");
-  const [studyHeaderExpanded, setStudyHeaderExpanded] = useState(false);
-  const [examPanelOpen, setExamPanelOpen] = useState(true);
+  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("summary");
+  const [activeExamPanel, setActiveExamPanel] = useState<ExamPanel>("mcq");
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
   const [examAnswers, setExamAnswers] = useState<Record<string, string>>({});
@@ -1416,9 +1378,8 @@ export default function StudyPage() {
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
   const needsTopicPicker = mode === "revision" || mode === "exam";
-  const hasCoachChat = mode === "coach" && messages.length > 0;
-  const headerCompact = !studyHeaderExpanded || hasCoachChat;
   const activeRevisionTool = activeRevisionPanel === "artifact" ? null : REVISION_TOOLS.find((tool) => tool.id === activeRevisionPanel) || REVISION_TOOLS[0];
+  const progressPercent = examQuestions.length ? Math.round((answeredExamCount / examQuestions.length) * 100) : 0;
 
   const starterPrompts = useMemo(
     () => [
@@ -1632,7 +1593,6 @@ export default function StudyPage() {
     setInput("");
     setError("");
     setLoadingAnswer(true);
-    setMentorProfile(adaptiveProfile);
     setShowPipeline(true);
     setShowAgentSummary(false);
     setAgentSummaryExpanded(false);
@@ -1894,6 +1854,7 @@ export default function StudyPage() {
   const generateExamPack = async () => {
     if (!userId || authBusy || examLoading) return;
     setMode("exam");
+    setActiveExamPanel("mcq");
     setExamLoading(true);
     setExamError("");
     setExamSubmitted(false);
@@ -1985,9 +1946,6 @@ export default function StudyPage() {
     }
   };
 
-  const wrongExamQuestions = examSubmitted
-    ? examQuestions.filter((question) => examAnswers[question.id] !== question.correct)
-    : [];
   const threeMarkQuestions = probableQuestions.filter((question) => question.marks !== 5);
   const fiveMarkQuestions = probableQuestions.filter((question) => question.marks === 5);
 
@@ -1998,133 +1956,89 @@ export default function StudyPage() {
   }
 
   return (
-    <div className={`study-lab-shell flex min-h-[calc(100svh-5.25rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl ${
-      mode === "coach" ? "rounded-[1.6rem] shadow-[0_24px_80px_rgba(15,23,42,0.10)]" : "rounded-[2.2rem] shadow-[0_30px_100px_rgba(15,23,42,0.12)]"
-    }`}>
-      <section className={`study-lab-header border-b border-white/45 bg-white/64 px-4 backdrop-blur-2xl sm:px-6 ${
-        headerCompact ? "py-2.5" : mode === "coach" ? "py-3" : "py-4"
-      }`}>
-        <div className={`flex flex-col xl:flex-row xl:items-center xl:justify-between ${headerCompact ? "gap-3" : "gap-4"}`}>
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">
-              {hasCoachChat ? "Tutor" : mode === "coach" ? "Open Tutor" : "Study Lab"}
-            </p>
-            <div className={`flex flex-col gap-2 sm:flex-row sm:items-end ${headerCompact ? "mt-1" : "mt-2"}`}>
-              <h1 className={`font-semibold tracking-tight text-slate-950 ${
-                headerCompact ? "text-lg sm:text-xl" : "text-2xl sm:text-3xl"
-              }`}>
-                {mode === "coach" ? `Ask ${coachName} anything` : `${mode[0].toUpperCase()}${mode.slice(1)} tools`}
-              </h1>
-              {!headerCompact ? <span className="w-fit rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-600">
-                {speechSupported ? "Voice ready" : "Text mode"}
-              </span> : null}
+    <div className="study-lab-shell flex min-h-[calc(100svh-4.5rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl">
+      <section className="study-lab-header border-b border-white/45 bg-white/64 px-3 py-2.5 backdrop-blur-2xl sm:px-5">
+        <div className="study-workspace-bar mx-auto flex w-full max-w-[104rem] flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="study-workspace-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_42px_rgba(14,116,144,0.18)]">
+              A
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold tracking-tight text-slate-950">
+                {mode === "coach" ? `AI Tutor with ${coachName}` : mode === "revision" ? "Revision Workspace" : mode === "exam" ? "Exam Workspace" : "Study History"}
+              </p>
+              <p className="truncate text-[11px] font-medium text-slate-500">
+                {mode === "coach"
+                  ? "Full-screen chat workspace"
+                  : mode === "history"
+                    ? `${conversations.length} saved conversations`
+                    : `${selectedChapter.label} / ${selectedTopic.label}`}
+              </p>
             </div>
-            {!headerCompact ? <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              {mode === "coach"
-                ? "Ask any subject, any topic, or any follow-up. The tutor will infer the intent and adapt the answer."
-                : mode === "history"
-                  ? "Resume old doubts without choosing a subject or topic."
-                  : "Choose a target topic for revision sheets and exam practice."}
-            </p> : null}
-            {mode === "coach" || headerCompact ? null : <MentorInsightBar profile={mentorProfile} />}
           </div>
 
-          <div className={`flex flex-col gap-2 ${headerCompact ? "lg:min-w-[560px]" : "gap-3 lg:min-w-[620px]"}`}>
-            <div className="grid gap-2 sm:grid-cols-4">
-              {STUDY_MODES.map((item) => (
-                <ModeButton
-                  key={item.id}
-                  active={mode === item.id}
-                  label={item.label}
-                  detail={item.detail}
-                  icon={item.icon}
-                  compact={hasCoachChat}
-                  onClick={() => setMode(item.id)}
-                />
-              ))}
-            </div>
+          <div className="study-mode-segment" role="tablist" aria-label="Study mode">
+            {STUDY_MODES.map((item) => (
+              <ModeButton
+                key={item.id}
+                active={mode === item.id}
+                label={item.label}
+                detail={item.detail}
+                icon={item.icon}
+                onClick={() => setMode(item.id)}
+              />
+            ))}
+          </div>
 
-            <div className={`flex flex-col gap-2 rounded-3xl border border-slate-200/70 bg-white/58 p-2 sm:flex-row ${
-              !needsTopicPicker ? "items-center justify-end" : ""
-            }`}>
-              {needsTopicPicker ? (
-                <>
-                  <div className="flex-1">
-                    <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                      Chapter
-                    </label>
-                    <select
-                      value={chapter}
-                      onChange={(event) => {
-                        const next = event.target.value;
-                        setChapter(next);
-                        setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
-                      }}
-                      className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
-                    >
-                      {CHAPTERS.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex-1">
-                    <label className="mb-1 block px-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                      Topic
-                    </label>
-                    <select
-                      value={topic}
-                      onChange={(event) => setTopic(event.target.value)}
-                      className="study-select w-full rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
-                    >
-                      {selectedChapter.topics.map((item) => (
-                        <option key={item.value} value={item.value}>
-                          {item.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 px-2 py-1">
-                  {mode === "coach" && !hasCoachChat ? (
-                    <>
-                      <span className="rounded-full border border-[#0E7490]/18 bg-[#0E7490]/10 px-3 py-1.5 text-[11px] font-bold text-[#0E7490]">
-                        Any subject
-                      </span>
-                      <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-                        Context-aware chat
-                      </span>
-                    </>
-                  ) : null}
-                  {!hasCoachChat ? <span className="rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[11px] font-bold text-slate-500">
-                    {conversations.length} saved
-                  </span> : null}
-                </div>
-              )}
-              <IconButton
-                label={studyHeaderExpanded ? "Collapse study header" : "Show study details"}
-                icon={studyHeaderExpanded ? "x" : "arrowRight"}
-                onClick={() => setStudyHeaderExpanded((current) => !current)}
-                className="min-h-[48px] bg-white/78 px-4 py-3 text-slate-700"
-              >
-                {studyHeaderExpanded ? "Focus" : "Details"}
-              </IconButton>
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+            {needsTopicPicker ? (
+              <div className="study-topic-strip flex min-w-0 flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/58 p-1.5 sm:flex-row">
+                <select
+                  value={chapter}
+                  aria-label="Chapter"
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setChapter(next);
+                    setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
+                  }}
+                  className="study-select min-h-10 rounded-xl border border-transparent bg-white/75 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
+                >
+                  {CHAPTERS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={topic}
+                  aria-label="Topic"
+                  onChange={(event) => setTopic(event.target.value)}
+                  className="study-select min-h-10 rounded-xl border border-transparent bg-white/75 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
+                >
+                  {selectedChapter.topics.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
+            <div className="flex gap-2">
               <IconButton
                 label="Start a new chat"
                 icon="plus"
                 onClick={startNewChat}
-                className="min-h-[48px] bg-white/78 px-4 py-3 text-slate-700"
+                className="min-h-10 rounded-xl bg-white/78 px-3 py-2 text-slate-700"
               >
-                New chat
+                New
               </IconButton>
               <IconButton
                 label="Clear current chat"
                 icon="trash"
                 onClick={clearChat}
                 disabled={!messages.length}
-                className="min-h-[48px] border-rose-200 bg-rose-50 px-4 py-3 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
+                className="min-h-10 rounded-xl border-rose-200 bg-rose-50 px-3 py-2 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
               >
                 Clear
               </IconButton>
@@ -2417,196 +2331,264 @@ export default function StudyPage() {
 
         {mode === "exam" ? (
           <div className="flex-1 overflow-y-auto p-3 sm:p-5">
-            <div className={`mx-auto grid max-w-[96rem] gap-5 ${examPanelOpen ? "xl:grid-cols-[minmax(0,1fr)_360px]" : ""}`}>
-              <section className="study-content-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="study-focus-workspace mx-auto flex min-h-full max-w-[96rem] flex-col gap-4">
+              <div className="study-focus-toolbar rounded-[1.7rem] border border-white/60 bg-white/76 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Exam Lab</p>
-                    <h2 className="mt-2 text-2xl font-semibold text-slate-950">5-question check for {selectedTopic.label}</h2>
-                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                      Generate one focused MCQ set, answer it once, then review feedback, common mistakes, and probable theory questions.
-                    </p>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Exam prep canvas</p>
+                    <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{selectedTopic.label}</h2>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="agentify-chip">Answered {answeredExamCount}/{examQuestions.length || 5}</span>
+                      <span className="agentify-chip">{examSubmitted ? `Score ${examScore}/${examQuestions.length}` : `${progressPercent}% ready`}</span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setExamPanelOpen((current) => !current)}
-                      className="agentify-action agentify-action-secondary inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/78 px-5 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]"
-                    >
-                      <AppIcon name={examPanelOpen ? "x" : "analytics"} />
-                      <span>{examPanelOpen ? "Hide insights" : "Show insights"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void generateExamPack()}
-                      disabled={examLoading}
-                      className="agentify-action agentify-action-primary inline-flex items-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
-                    >
-                      <AppIcon name="spark" />
-                      <span>{examLoading ? "Generating..." : "Generate exam pack"}</span>
-                    </button>
+                  <div className="study-panel-tabs" role="tablist" aria-label="Exam workspaces">
+                    {EXAM_TABS.map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        title={tab.detail}
+                        aria-selected={activeExamPanel === tab.id}
+                        onClick={() => setActiveExamPanel(tab.id)}
+                        className={`study-panel-tab ${activeExamPanel === tab.id ? "is-active" : ""}`}
+                      >
+                        <AppIcon name={tab.icon} className="h-3.5 w-3.5" />
+                        <span>{tab.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
+                <div className="study-exam-progress mt-3">
+                  <span style={{ width: `${progressPercent}%` }} />
+                </div>
+              </div>
 
-                {examQuestions.length ? (
-                  <div className="mt-6 space-y-4">
-                    {examQuestions.map((question, index) => {
-                      const selected = examAnswers[question.id];
-                      const correct = examSubmitted && selected === question.correct;
-                      return (
-                        <article key={question.id} className="rounded-3xl border border-slate-200 bg-white/70 p-4">
-                          <div className="flex items-start gap-3">
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-sm font-bold text-[#0E7490]">
-                              {index + 1}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-base font-semibold leading-7 text-slate-900">{question.question}</p>
-                              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                                {question.options.map((option) => {
-                                  const optionKey = option.trim().slice(0, 1).toUpperCase();
-                                  const isSelected = selected === optionKey;
-                                  const isCorrectOption = examSubmitted && question.correct === optionKey;
-                                  return (
-                                    <button
-                                      key={`${question.id}-${optionKey}`}
-                                      type="button"
-                                      onClick={() => {
-                                        if (!examSubmitted) {
-                                          setExamAnswers((current) => ({ ...current, [question.id]: optionKey }));
-                                        }
-                                      }}
-                                      disabled={examSubmitted}
-                                      className={`agentify-action rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition ${
-                                        isCorrectOption
-                                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                          : isSelected
-                                          ? "border-[#0E7490]/40 bg-[#0E7490]/10 text-[#0E7490]"
-                                          : "border-slate-200 bg-white/75 text-slate-700 hover:border-[#0E7490]/30"
-                                      }`}
-                                    >
-                                      {option}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                              {examSubmitted ? (
-                                <div className={`mt-4 rounded-2xl border p-4 ${correct ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
-                                  <p className={`text-sm font-bold ${correct ? "text-emerald-700" : "text-amber-800"}`}>
-                                    {correct ? "Correct understanding" : `Review needed. Correct answer: ${question.correct}`}
-                                  </p>
-                                  <p className="mt-2 text-sm leading-6 text-slate-700">
-                                    {question.explanation || "Revisit the core definition, compare the options, and notice the exact concept tested in this question."}
-                                  </p>
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="mt-8">
-                    <EmptyState
-                      icon="check"
-                      title="Your exam pack is not generated yet"
-                      detail="Create 5 MCQs from the selected topic, then submit once to unlock feedback and likely theory questions."
-                    />
-                  </div>
-                )}
-
-                {examQuestions.length ? (
-                  <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-slate-500">
-                      Answered {answeredExamCount}/{examQuestions.length}
+              <section className="study-content-card study-focus-panel flex min-h-[640px] flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{EXAM_TABS.find((tab) => tab.id === activeExamPanel)?.label}</p>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-950">
+                      {activeExamPanel === "mcq"
+                        ? "MCQ Practice"
+                        : activeExamPanel === "probable"
+                          ? "Probable Questions"
+                          : activeExamPanel === "practice"
+                            ? "Practice Questions"
+                            : "Answer Review"}
+                    </h2>
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                      {activeExamPanel === "mcq"
+                        ? "Generate one focused set, answer all choices, then submit to unlock review."
+                        : activeExamPanel === "probable"
+                          ? "Use likely 3-mark and 5-mark questions for theory-answer preparation."
+                          : activeExamPanel === "practice"
+                            ? "Turn generated questions into focused drills before checking answers."
+                            : "Review score, explanations, and mistake patterns after submission."}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => void submitExam()}
-                      disabled={examSubmitted || answeredExamCount !== examQuestions.length}
-                      className="agentify-action inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
-                    >
-                      <AppIcon name={examSubmitted ? "check" : "send"} />
-                      <span>{examSaving ? "Saving..." : examSubmitted ? "Submitted" : "Submit and review"}</span>
-                    </button>
                   </div>
-                ) : null}
-                {examError ? <div className="mt-3"><AlertState message={examError} /></div> : null}
-              </section>
+                  <button
+                    type="button"
+                    onClick={() => void generateExamPack()}
+                    disabled={examLoading}
+                    className="agentify-action agentify-action-primary inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                  >
+                    <AppIcon name="spark" />
+                    <span>{examLoading ? "Generating..." : examQuestions.length ? "Regenerate pack" : "Generate exam pack"}</span>
+                  </button>
+                </div>
 
-              {examPanelOpen ? <aside className="space-y-5">
-                <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Score</p>
-                  <div className="mt-4 flex items-end gap-2">
-                    <span className="text-5xl font-semibold text-slate-950">{examSubmitted ? examScore : "-"}</span>
-                    <span className="pb-2 text-sm text-slate-500">/ {examQuestions.length || 5}</span>
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-500">
-                    {examSubmitted
-                      ? examScore >= 4
-                        ? "Strong. Move to probable theory answers next."
-                        : "Good diagnostic. Revise the weak points and try one more set."
-                      : "Submit all 5 answers to get complete feedback."}
-                  </p>
-                </section>
+                {examError ? <div className="mt-4"><AlertState message={examError} /></div> : null}
 
-                {examSubmitted ? (
-                  <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-600">Common mistakes</p>
-                    {wrongExamQuestions.length ? (
-                      <div className="mt-4 space-y-3">
-                        {wrongExamQuestions.map((question) => (
-                          <div key={`mistake-${question.id}`} className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-                            <p className="text-sm font-semibold text-slate-900">{question.id}: option {examAnswers[question.id] || "not answered"}</p>
-                            <p className="mt-1 text-xs leading-5 text-slate-600">
-                              Correct is {question.correct}. Check the exact keyword in the question before choosing.
+                <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                  {activeExamPanel === "mcq" ? (
+                    examQuestions.length ? (
+                      <>
+                        <div className="space-y-4">
+                          {examQuestions.map((question, index) => {
+                            const selected = examAnswers[question.id];
+                            const correct = examSubmitted && selected === question.correct;
+                            return (
+                              <article key={question.id} className="study-exam-question rounded-3xl border border-slate-200 bg-white/74 p-5">
+                                <div className="flex items-start gap-3">
+                                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-sm font-bold text-[#0E7490]">
+                                    {index + 1}
+                                  </span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-base font-semibold leading-7 text-slate-900">{question.question}</p>
+                                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                                      {question.options.map((option) => {
+                                        const optionKey = option.trim().slice(0, 1).toUpperCase();
+                                        const isSelected = selected === optionKey;
+                                        const isCorrectOption = examSubmitted && question.correct === optionKey;
+                                        return (
+                                          <button
+                                            key={`${question.id}-${optionKey}`}
+                                            type="button"
+                                            onClick={() => {
+                                              if (!examSubmitted) {
+                                                setExamAnswers((current) => ({ ...current, [question.id]: optionKey }));
+                                              }
+                                            }}
+                                            disabled={examSubmitted}
+                                            className={`agentify-action rounded-2xl border px-4 py-3 text-left text-sm leading-6 transition ${
+                                              isCorrectOption
+                                                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                                                : isSelected
+                                                  ? "border-[#0E7490]/40 bg-[#0E7490]/10 text-[#0E7490]"
+                                                  : "border-slate-200 bg-white/75 text-slate-700 hover:border-[#0E7490]/30"
+                                            }`}
+                                          >
+                                            {option}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    {examSubmitted ? (
+                                      <div className={`mt-4 rounded-2xl border p-4 ${correct ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"}`}>
+                                        <p className={`text-sm font-bold ${correct ? "text-emerald-700" : "text-amber-800"}`}>
+                                          {correct ? "Correct understanding" : `Review needed. Correct answer: ${question.correct}`}
+                                        </p>
+                                        <p className="mt-2 text-sm leading-6 text-slate-700">
+                                          {question.explanation || "Revisit the core definition, compare the options, and notice the exact concept tested in this question."}
+                                        </p>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-sm text-slate-500">Answered {answeredExamCount}/{examQuestions.length}</p>
+                          <button
+                            type="button"
+                            onClick={() => void submitExam()}
+                            disabled={examSubmitted || answeredExamCount !== examQuestions.length}
+                            className="agentify-action inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            <AppIcon name={examSubmitted ? "check" : "send"} />
+                            <span>{examSaving ? "Saving..." : examSubmitted ? "Submitted" : "Submit and review"}</span>
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <EmptyState
+                        icon="check"
+                        title="Your MCQ set is not generated yet"
+                        detail="Create 5 MCQs from the selected topic, then submit once to unlock feedback and theory questions."
+                      />
+                    )
+                  ) : null}
+
+                  {activeExamPanel === "probable" ? (
+                    probableQuestions.length ? (
+                      <div className="space-y-6">
+                        <div className="flex justify-end">
+                          <CopyButton value={probableQuestions.map((question) => `${question.id} (${question.marks} marks): ${question.question}`).join("\n")} />
+                        </div>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          <section className="study-exam-artifact rounded-3xl border border-slate-200 bg-white/74 p-5">
+                            <p className="agentify-label">3 marks</p>
+                            <div className="mt-4 space-y-3">
+                              {threeMarkQuestions.map((question) => (
+                                <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/74 p-4 text-sm leading-6 text-slate-700">
+                                  {question.question}
+                                </p>
+                              ))}
+                            </div>
+                          </section>
+                          <section className="study-exam-artifact rounded-3xl border border-slate-200 bg-white/74 p-5">
+                            <p className="agentify-label">5 marks</p>
+                            <div className="mt-4 space-y-3">
+                              {fiveMarkQuestions.map((question) => (
+                                <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/74 p-4 text-sm leading-6 text-slate-700">
+                                  {question.question}
+                                </p>
+                              ))}
+                            </div>
+                          </section>
+                        </div>
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon="book"
+                        title="No probable questions yet"
+                        detail="Generate an exam pack to prepare likely 3-mark and 5-mark theory questions."
+                      />
+                    )
+                  ) : null}
+
+                  {activeExamPanel === "practice" ? (
+                    examQuestions.length ? (
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        {examQuestions.map((question, index) => (
+                          <article key={`practice-${question.id}`} className="study-exam-artifact rounded-3xl border border-slate-200 bg-white/74 p-5">
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="agentify-label">Practice {index + 1}</p>
+                              <span className="agentify-chip">Try first</span>
+                            </div>
+                            <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{question.question}</p>
+                            <p className="mt-3 text-sm leading-6 text-slate-500">
+                              Write your answer in rough work first. Then open MCQs or Review to compare with the options and explanation.
                             </p>
-                          </div>
+                          </article>
                         ))}
                       </div>
                     ) : (
-                      <p className="mt-4 text-sm leading-6 text-slate-500">No common mistake detected in this attempt.</p>
-                    )}
-                  </section>
-                ) : null}
+                      <EmptyState
+                        icon="study"
+                        title="Practice drills need an exam pack"
+                        detail="Generate MCQs once, then this area becomes a clean practice-question workspace."
+                      />
+                    )
+                  ) : null}
 
-                <section className="study-side-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Probable questions</p>
-                    <CopyButton
-                      value={probableQuestions.map((question) => `${question.id} (${question.marks} marks): ${question.question}`).join("\n")}
-                    />
-                  </div>
-                  {probableQuestions.length ? (
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">3 marks</p>
-                        <div className="mt-2 space-y-2">
-                          {threeMarkQuestions.map((question) => (
-                            <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm leading-6 text-slate-700">
-                              {question.question}
-                            </p>
-                          ))}
+                  {activeExamPanel === "review" ? (
+                    examSubmitted ? (
+                      <div className="space-y-5">
+                        <section className="study-exam-artifact rounded-3xl border border-slate-200 bg-white/74 p-5">
+                          <p className="agentify-label">Score</p>
+                          <div className="mt-4 flex items-end gap-2">
+                            <span className="text-5xl font-semibold text-slate-950">{examScore}</span>
+                            <span className="pb-2 text-sm text-slate-500">/ {examQuestions.length}</span>
+                          </div>
+                          <p className="mt-3 text-sm leading-6 text-slate-500">
+                            {examScore >= 4 ? "Strong. Move to probable theory answers next." : "Good diagnostic. Revise the weak points and try one more set."}
+                          </p>
+                        </section>
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          {examQuestions.map((question) => {
+                            const selected = examAnswers[question.id] || "not answered";
+                            const correct = selected === question.correct;
+                            return (
+                              <article key={`review-${question.id}`} className={`rounded-3xl border p-5 ${correct ? "border-emerald-200 bg-emerald-50/70" : "border-amber-200 bg-amber-50/70"}`}>
+                                <p className={`text-xs font-black uppercase tracking-[0.16em] ${correct ? "text-emerald-700" : "text-amber-700"}`}>
+                                  {correct ? "Correct" : "Needs review"}
+                                </p>
+                                <p className="mt-3 text-sm font-semibold leading-6 text-slate-900">{question.question}</p>
+                                <p className="mt-3 text-sm leading-6 text-slate-700">
+                                  Your answer: {selected}. Correct answer: {question.correct}.
+                                </p>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                  {question.explanation || "Check the exact keyword in the question, then match it with the core concept."}
+                                </p>
+                              </article>
+                            );
+                          })}
                         </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">5 marks</p>
-                        <div className="mt-2 space-y-2">
-                          {fiveMarkQuestions.map((question) => (
-                            <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/70 p-3 text-sm leading-6 text-slate-700">
-                              {question.question}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="mt-4 text-sm leading-6 text-slate-500">
-                      Probable 3-mark and 5-mark questions will appear after generating the exam pack.
-                    </p>
-                  )}
-                </section>
-              </aside> : null}
+                    ) : (
+                      <EmptyState
+                        icon="analytics"
+                        title="Submit MCQs to unlock review"
+                        detail="Answer all generated MCQs and submit once. This area will show score, mistakes, and explanations."
+                      />
+                    )
+                  ) : null}
+                </div>
+              </section>
             </div>
           </div>
         ) : null}
