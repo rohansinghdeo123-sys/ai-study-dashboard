@@ -1631,6 +1631,27 @@ body {
   letter-spacing: 0;
 }
 
+.study-formula-token {
+  white-space: nowrap;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.study-formula-token sub,
+.study-formula-token sup {
+  position: relative;
+  font-size: 0.68em;
+  line-height: 0;
+  vertical-align: baseline;
+}
+
+.study-formula-token sub {
+  bottom: -0.28em;
+}
+
+.study-formula-token sup {
+  top: -0.48em;
+}
+
 .study-density-mini-lab {
   display: grid;
   gap: 0.85rem;

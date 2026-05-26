@@ -1232,9 +1232,41 @@ function normalizeAnswerPayload(value: string) {
 }
 
 function renderInlineChemistry(value: string) {
-  const tokenRegex =
-    /(sp\d+|[A-Z][a-z]?(?:\d+)?(?:[A-Z][a-z]?(?:\d+)?)*(?:\^[+-]?\d+|\^[+-])?)/g;
+  const elementPattern = [
+    "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
+    "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb",
+    "Te", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf",
+    "Ta", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "Np", "Pu",
+    "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Nh", "Fl", "Mc",
+    "Lv", "Ts", "Og", "H", "B", "C", "N", "O", "F", "P", "S", "K", "V", "Y", "I", "W", "U",
+  ].join("|");
+  const subscriptPattern = "(?:\\d*n(?:[+-]\\d+)?|n|\\d+|[₀₁₂₃₄₅₆₇₈₉ₙ₊₋]+)";
+  const atomPattern = `(?:${elementPattern})(?:${subscriptPattern})?`;
+  const normalizeSubscriptText = (text: string) => {
+    const map: Record<string, string> = {
+      "₀": "0",
+      "₁": "1",
+      "₂": "2",
+      "₃": "3",
+      "₄": "4",
+      "₅": "5",
+      "₆": "6",
+      "₇": "7",
+      "₈": "8",
+      "₉": "9",
+      "ₙ": "n",
+      "₊": "+",
+      "₋": "-",
+    };
+    return text.replace(/[₀₁₂₃₄₅₆₇₈₉ₙ₊₋]/g, (char) => map[char] || char);
+  };
+
+  const tokenRegex = new RegExp(
+    `(sp\\d+|[a-zA-Z]\\^-?\\d+|(?:${atomPattern}){2,}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${elementPattern})${subscriptPattern}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${elementPattern})(?:\\^[+-]?\\d+|\\^[+-]))`,
+    "g",
+  );
   const pieces = value.split(tokenRegex);
+  const atomRegex = new RegExp(`(${elementPattern})(${subscriptPattern})?`, "g");
 
   return pieces.map((piece, index) => {
     if (!piece) return null;
@@ -1247,10 +1279,19 @@ function renderInlineChemistry(value: string) {
       );
     }
 
+    const variablePower = piece.match(/^([a-zA-Z])\^(-?\d+)$/);
+    if (variablePower) {
+      return (
+        <span key={index} className="study-formula-token">
+          {variablePower[1]}<sup>{variablePower[2]}</sup>
+        </span>
+      );
+    }
+
     const chargeMatch = piece.match(/^(.+)\^([+-]?\d+|[+-])$/);
     const formula = chargeMatch ? chargeMatch[1] : piece;
     const charge = chargeMatch ? chargeMatch[2] : null;
-    const atomMatches = [...formula.matchAll(/([A-Z][a-z]?)(\d*)/g)];
+    const atomMatches = [...formula.matchAll(atomRegex)];
     const matchedFormula = atomMatches.map((match) => match[0]).join("");
 
     if (!atomMatches.length || matchedFormula !== formula) {
@@ -1258,11 +1299,11 @@ function renderInlineChemistry(value: string) {
     }
 
     return (
-      <span key={index}>
+      <span key={index} className="study-formula-token">
         {atomMatches.map((match, atomIndex) => (
           <span key={`${index}-${atomIndex}`}>
             {match[1]}
-            {match[2] ? <sub>{match[2]}</sub> : null}
+            {match[2] ? <sub>{normalizeSubscriptText(match[2])}</sub> : null}
           </span>
         ))}
         {charge ? <sup>{charge}</sup> : null}
@@ -1351,15 +1392,15 @@ function ConceptMapArtifact({ artifact }: { artifact: StudyArtifact }) {
     <div className="study-concept-map">
       <div className="study-concept-core">
         <span className="agentify-muted-label">Core idea</span>
-        <h3>{core.label}</h3>
-        {core.description ? <p>{core.description}</p> : null}
+        <h3>{renderInlineChemistry(core.label)}</h3>
+        {core.description ? <p>{renderInlineChemistry(core.description)}</p> : null}
       </div>
       <div className="study-concept-node-grid">
         {relatedNodes.map((node) => (
           <article key={node.id} className={`study-concept-node is-${node.kind || "property"}`}>
             <span>{node.kind || "link"}</span>
-            <h4>{node.label}</h4>
-            {node.description ? <p>{node.description}</p> : null}
+            <h4>{renderInlineChemistry(node.label)}</h4>
+            {node.description ? <p>{renderInlineChemistry(node.description)}</p> : null}
           </article>
         ))}
       </div>
@@ -1367,7 +1408,7 @@ function ConceptMapArtifact({ artifact }: { artifact: StudyArtifact }) {
         <div className="study-artifact-routes">
           {edges.slice(0, 4).map((edge, index) => (
             <span key={`${edge.from}-${edge.to}-${index}`}>
-              {edge.label || "connects"}
+              {renderInlineChemistry(edge.label || "connects")}
             </span>
           ))}
         </div>
@@ -1397,8 +1438,8 @@ function FlipCardsArtifact({ artifact }: { artifact: StudyArtifact }) {
             className={`study-flip-card ${open ? "is-open" : ""}`}
           >
             <span className="study-flip-tag">{card.tag || "recall"}</span>
-            <span className="study-flip-front">{card.front}</span>
-            <span className="study-flip-back">{open ? card.back : "Tap to reveal the answer"}</span>
+            <span className="study-flip-front">{renderInlineChemistry(card.front)}</span>
+            <span className="study-flip-back">{renderInlineChemistry(open ? card.back : "Tap to reveal the answer")}</span>
           </button>
         );
       })}
@@ -1424,16 +1465,16 @@ function FormulaLabArtifact({ artifact }: { artifact: StudyArtifact }) {
       <div className="grid gap-3">
         {formulas.map((formula, index) => (
           <article key={`${formula.formula}-${index}`} className="study-formula-card">
-            <span className="agentify-muted-label">{formula.label}</span>
+            <span className="agentify-muted-label">{renderInlineChemistry(formula.label)}</span>
             <p className="study-formula-expression">{renderInlineChemistry(formula.formula)}</p>
             {formula.variables?.length ? (
               <div className="mt-3 flex flex-wrap gap-2">
                 {formula.variables.map((variable) => (
-                  <span key={variable} className="agentify-chip capitalize">{variable}</span>
+                  <span key={variable} className="agentify-chip capitalize">{renderInlineChemistry(variable)}</span>
                 ))}
               </div>
             ) : null}
-            {formula.hint ? <p className="mt-3 text-xs leading-5 text-slate-500">{formula.hint}</p> : null}
+            {formula.hint ? <p className="mt-3 text-xs leading-5 text-slate-500">{renderInlineChemistry(formula.hint)}</p> : null}
           </article>
         ))}
       </div>
@@ -1479,10 +1520,10 @@ function MistakeCardsArtifact({ artifact }: { artifact: StudyArtifact }) {
             <span className="agentify-muted-label">Trap {index + 1}</span>
             {item.frequency ? <span className="study-frequency-chip">{item.frequency}</span> : null}
           </div>
-          <p className="mt-3 font-semibold leading-6 text-slate-900">{item.mistake}</p>
+          <p className="mt-3 font-semibold leading-6 text-slate-900">{renderInlineChemistry(item.mistake)}</p>
           <div className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/8 p-3 text-sm leading-6 text-slate-600">
             <span className="font-bold text-emerald-700">Correct idea: </span>
-            {item.correction}
+            {renderInlineChemistry(item.correction)}
           </div>
         </article>
       ))}
@@ -1520,8 +1561,8 @@ function ArtifactViewer({
     <div className="study-artifact-viewer">
       <div className="rounded-[1.35rem] border border-slate-200/70 bg-white/58 p-4">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#0E7490]">{response.source.replace("_", " ")}</p>
-        <h3 className="mt-2 text-lg font-semibold tracking-tight text-slate-950">{response.title}</h3>
-        {response.student_goal ? <p className="mt-2 text-xs leading-5 text-slate-500">{response.student_goal}</p> : null}
+        <h3 className="mt-2 text-lg font-semibold tracking-tight text-slate-950">{renderInlineChemistry(response.title)}</h3>
+        {response.student_goal ? <p className="mt-2 text-xs leading-5 text-slate-500">{renderInlineChemistry(response.student_goal)}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
           <span className="agentify-chip">{response.quality?.key_points || 0} key points</span>
           <span className="agentify-chip">{response.quality?.formulas || 0} formulas</span>
@@ -1548,8 +1589,8 @@ function ArtifactViewer({
       <section className="study-artifact-stage">
         <div className="mb-4">
           <p className="agentify-label">{artifact.type.replace("_", " ")}</p>
-          <h3 className="mt-1 text-xl font-semibold text-slate-950">{artifact.title}</h3>
-          {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{artifact.subtitle}</p> : null}
+          <h3 className="mt-1 text-xl font-semibold text-slate-950">{renderInlineChemistry(artifact.title)}</h3>
+          {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{renderInlineChemistry(artifact.subtitle)}</p> : null}
         </div>
         {artifact.type === "concept_map" ? <ConceptMapArtifact artifact={artifact} /> : null}
         {artifact.type === "flip_cards" ? <FlipCardsArtifact artifact={artifact} /> : null}
