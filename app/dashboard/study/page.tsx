@@ -23,6 +23,7 @@ type AgentStageId = "received" | "understanding" | "drafting" | "reviewing" | "f
 type AgentStageStatus = "pending" | "active" | "done";
 type StudyMode = "coach" | "revision" | "exam" | "history";
 type RevisionType = "summary" | "explain" | "keypoints";
+type ArtifactType = "concept_map" | "flip_cards" | "formula_lab" | "mistake_cards";
 type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" | "curiosity";
 type LearningLevel = "beginner" | "intermediate" | "advanced";
 type EmotionalState = "steady" | "confused" | "anxious" | "curious" | "confident";
@@ -76,6 +77,64 @@ interface RevisionTool {
   detail: string;
   mode: "summary" | "explain" | "keypoints";
   prompt: (topic: string) => string;
+}
+
+interface ArtifactNode {
+  id: string;
+  label: string;
+  description?: string;
+  kind?: "core" | "property" | "related" | "prerequisite";
+}
+
+interface ArtifactEdge {
+  from: string;
+  to: string;
+  label?: string;
+}
+
+interface FlipCard {
+  front: string;
+  back: string;
+  tag?: string;
+}
+
+interface FormulaItem {
+  label: string;
+  formula: string;
+  variables?: string[];
+  hint?: string;
+}
+
+interface MistakeItem {
+  mistake: string;
+  correction: string;
+  frequency?: string;
+}
+
+interface StudyArtifact {
+  type: ArtifactType;
+  title: string;
+  subtitle?: string;
+  nodes?: ArtifactNode[];
+  edges?: ArtifactEdge[];
+  cards?: FlipCard[];
+  formulas?: FormulaItem[];
+  mistakes?: MistakeItem[];
+  empty_note?: string;
+}
+
+interface StudyArtifactResponse {
+  source: string;
+  section_id: string;
+  title: string;
+  subtitle?: string;
+  student_goal?: string;
+  quality?: {
+    key_points?: number;
+    formulas?: number;
+    mistakes?: number;
+  };
+  artifacts: StudyArtifact[];
 }
 
 interface MentorProfile {
@@ -190,6 +249,13 @@ const REVISION_TOOLS: RevisionTool[] = [
     mode: "keypoints",
     prompt: (topic) => `Extract the most important exam-relevant key points for ${topic}.`,
   },
+];
+
+const ARTIFACT_TABS: Array<{ id: ArtifactType; label: string; icon: AppIconName }> = [
+  { id: "concept_map", label: "Map", icon: "mission" },
+  { id: "flip_cards", label: "Cards", icon: "copy" },
+  { id: "formula_lab", label: "Formula", icon: "analytics" },
+  { id: "mistake_cards", label: "Mistakes", icon: "check" },
 ];
 
 function createDefaultMentorProfile(): MentorProfile {
@@ -328,6 +394,23 @@ function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
     webkitSpeechRecognition?: SpeechRecognitionConstructor;
   };
   return speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition || null;
+}
+
+function getArtifactByType(response: StudyArtifactResponse | null, type: ArtifactType) {
+  return response?.artifacts.find((artifact) => artifact.type === type) || null;
+}
+
+function artifactHasContent(artifact: StudyArtifact | null) {
+  if (!artifact) return false;
+  if (artifact.type === "concept_map") return Boolean(artifact.nodes?.length);
+  if (artifact.type === "flip_cards") return Boolean(artifact.cards?.length);
+  if (artifact.type === "formula_lab") return Boolean(artifact.formulas?.length);
+  if (artifact.type === "mistake_cards") return Boolean(artifact.mistakes?.length);
+  return false;
+}
+
+function firstArtifactTab(response: StudyArtifactResponse | null): ArtifactType {
+  return ARTIFACT_TABS.find((tab) => artifactHasContent(getArtifactByType(response, tab.id)))?.id || "concept_map";
 }
 
 function cleanSpeechText(value: string) {
@@ -598,6 +681,248 @@ function CoachAnswer({ value, streaming = false }: { value: string; streaming?: 
           </section>
         );
       })}
+    </div>
+  );
+}
+
+function ArtifactLoadingState() {
+  return (
+    <div className="study-artifact-loading" role="status" aria-live="polite">
+      <div className="flex items-center gap-3">
+        <span className="study-mini-pulse" />
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Building interactive artifact</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Mapping chapter data into visuals, cards, formulas, and traps.</p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3">
+        <span className="polished-skeleton h-3 w-5/6 rounded-full" />
+        <span className="polished-skeleton h-3 w-2/3 rounded-full" />
+        <span className="polished-skeleton h-24 rounded-[1.4rem]" />
+      </div>
+    </div>
+  );
+}
+
+function ConceptMapArtifact({ artifact }: { artifact: StudyArtifact }) {
+  const nodes = artifact.nodes || [];
+  const core = nodes.find((node) => node.kind === "core") || nodes[0];
+  const relatedNodes = nodes.filter((node) => node.id !== core?.id);
+  const edges = artifact.edges || [];
+
+  if (!core) {
+    return <ArtifactEmptyNote detail={artifact.empty_note || "Concept map data is not available for this topic yet."} />;
+  }
+
+  return (
+    <div className="study-concept-map">
+      <div className="study-concept-core">
+        <span className="agentify-muted-label">Core idea</span>
+        <h3>{core.label}</h3>
+        {core.description ? <p>{core.description}</p> : null}
+      </div>
+      <div className="study-concept-node-grid">
+        {relatedNodes.map((node) => (
+          <article key={node.id} className={`study-concept-node is-${node.kind || "property"}`}>
+            <span>{node.kind || "link"}</span>
+            <h4>{node.label}</h4>
+            {node.description ? <p>{node.description}</p> : null}
+          </article>
+        ))}
+      </div>
+      {edges.length ? (
+        <div className="study-artifact-routes">
+          {edges.slice(0, 4).map((edge, index) => (
+            <span key={`${edge.from}-${edge.to}-${index}`}>
+              {edge.label || "connects"}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FlipCardsArtifact({ artifact }: { artifact: StudyArtifact }) {
+  const [openCards, setOpenCards] = useState<Record<number, boolean>>({});
+  const cards = artifact.cards || [];
+
+  if (!cards.length) {
+    return <ArtifactEmptyNote detail={artifact.empty_note || "No flash cards are available for this topic yet."} />;
+  }
+
+  return (
+    <div className="study-flip-grid">
+      {cards.map((card, index) => {
+        const open = Boolean(openCards[index]);
+        return (
+          <button
+            key={`${card.front}-${index}`}
+            type="button"
+            aria-pressed={open}
+            onClick={() => setOpenCards((current) => ({ ...current, [index]: !current[index] }))}
+            className={`study-flip-card ${open ? "is-open" : ""}`}
+          >
+            <span className="study-flip-tag">{card.tag || "recall"}</span>
+            <span className="study-flip-front">{card.front}</span>
+            <span className="study-flip-back">{open ? card.back : "Tap to reveal the answer"}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function FormulaLabArtifact({ artifact }: { artifact: StudyArtifact }) {
+  const [mass, setMass] = useState("");
+  const [volume, setVolume] = useState("");
+  const formulas = artifact.formulas || [];
+  const densityFormula = formulas.find((formula) => /density/i.test(formula.formula) && /mass/i.test(formula.formula) && /volume/i.test(formula.formula));
+  const massValue = Number(mass);
+  const volumeValue = Number(volume);
+  const densityValue = Number.isFinite(massValue) && Number.isFinite(volumeValue) && volumeValue > 0 ? massValue / volumeValue : null;
+
+  if (!formulas.length) {
+    return <ArtifactEmptyNote detail={artifact.empty_note || "This topic does not need a formula lab yet."} />;
+  }
+
+  return (
+    <div className="study-formula-lab">
+      <div className="grid gap-3">
+        {formulas.map((formula, index) => (
+          <article key={`${formula.formula}-${index}`} className="study-formula-card">
+            <span className="agentify-muted-label">{formula.label}</span>
+            <p className="study-formula-expression">{renderInlineChemistry(formula.formula)}</p>
+            {formula.variables?.length ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {formula.variables.map((variable) => (
+                  <span key={variable} className="agentify-chip capitalize">{variable}</span>
+                ))}
+              </div>
+            ) : null}
+            {formula.hint ? <p className="mt-3 text-xs leading-5 text-slate-500">{formula.hint}</p> : null}
+          </article>
+        ))}
+      </div>
+
+      {densityFormula ? (
+        <div className="study-density-mini-lab">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Try density once</p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">Enter any mass and volume to see the relationship instantly.</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <label>
+              <span>Mass</span>
+              <input value={mass} onChange={(event) => setMass(event.target.value)} inputMode="decimal" placeholder="e.g. 20" />
+            </label>
+            <label>
+              <span>Volume</span>
+              <input value={volume} onChange={(event) => setVolume(event.target.value)} inputMode="decimal" placeholder="e.g. 5" />
+            </label>
+            <div className="study-density-result">
+              <span>Density</span>
+              <strong>{densityValue === null ? "--" : densityValue.toFixed(2)}</strong>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MistakeCardsArtifact({ artifact }: { artifact: StudyArtifact }) {
+  const mistakes = artifact.mistakes || [];
+
+  if (!mistakes.length) {
+    return <ArtifactEmptyNote detail={artifact.empty_note || "No mistake cards are available for this topic yet."} />;
+  }
+
+  return (
+    <div className="study-mistake-list">
+      {mistakes.map((item, index) => (
+        <article key={`${item.mistake}-${index}`} className="study-mistake-card">
+          <div className="flex items-start justify-between gap-3">
+            <span className="agentify-muted-label">Trap {index + 1}</span>
+            {item.frequency ? <span className="study-frequency-chip">{item.frequency}</span> : null}
+          </div>
+          <p className="mt-3 font-semibold leading-6 text-slate-900">{item.mistake}</p>
+          <div className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/8 p-3 text-sm leading-6 text-slate-600">
+            <span className="font-bold text-emerald-700">Correct idea: </span>
+            {item.correction}
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function ArtifactEmptyNote({ detail }: { detail: string }) {
+  return (
+    <div className="study-artifact-empty">
+      <AppIcon name="book" className="h-5 w-5" />
+      <p>{detail}</p>
+    </div>
+  );
+}
+
+function ArtifactViewer({
+  response,
+  activeTab,
+  onTabChange,
+}: {
+  response: StudyArtifactResponse;
+  activeTab: ArtifactType;
+  onTabChange: (tab: ArtifactType) => void;
+}) {
+  const availableTabs = ARTIFACT_TABS.filter((tab) => getArtifactByType(response, tab.id));
+  const selectedTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : availableTabs[0]?.id || "concept_map";
+  const artifact = getArtifactByType(response, selectedTab);
+
+  if (!artifact) {
+    return <ArtifactEmptyNote detail="Artifact data could not be prepared for this topic." />;
+  }
+
+  return (
+    <div className="study-artifact-viewer">
+      <div className="rounded-[1.35rem] border border-slate-200/70 bg-white/58 p-4">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#0E7490]">{response.source.replace("_", " ")}</p>
+        <h3 className="mt-2 text-lg font-semibold tracking-tight text-slate-950">{response.title}</h3>
+        {response.student_goal ? <p className="mt-2 text-xs leading-5 text-slate-500">{response.student_goal}</p> : null}
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="agentify-chip">{response.quality?.key_points || 0} key points</span>
+          <span className="agentify-chip">{response.quality?.formulas || 0} formulas</span>
+          <span className="agentify-chip">{response.quality?.mistakes || 0} traps</span>
+        </div>
+      </div>
+
+      <div className="study-artifact-tabs" role="tablist" aria-label="Interactive artifact views">
+        {availableTabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={selectedTab === tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`study-artifact-tab ${selectedTab === tab.id ? "is-active" : ""}`}
+          >
+            <AppIcon name={tab.icon} className="h-3.5 w-3.5" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <section className="study-artifact-stage">
+        <div className="mb-4">
+          <p className="agentify-label">{artifact.type.replace("_", " ")}</p>
+          <h3 className="mt-1 text-xl font-semibold text-slate-950">{artifact.title}</h3>
+          {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{artifact.subtitle}</p> : null}
+        </div>
+        {artifact.type === "concept_map" ? <ConceptMapArtifact artifact={artifact} /> : null}
+        {artifact.type === "flip_cards" ? <FlipCardsArtifact artifact={artifact} /> : null}
+        {artifact.type === "formula_lab" ? <FormulaLabArtifact artifact={artifact} /> : null}
+        {artifact.type === "mistake_cards" ? <MistakeCardsArtifact artifact={artifact} /> : null}
+      </section>
     </div>
   );
 }
@@ -1060,6 +1385,10 @@ export default function StudyPage() {
   const [revisionContent, setRevisionContent] = useState<Record<RevisionType, string>>({ summary: "", explain: "", keypoints: "" });
   const [revisionLoading, setRevisionLoading] = useState<Record<RevisionType, boolean>>({ summary: false, explain: false, keypoints: false });
   const [revisionError, setRevisionError] = useState("");
+  const [artifact, setArtifact] = useState<StudyArtifactResponse | null>(null);
+  const [artifactLoading, setArtifactLoading] = useState(false);
+  const [artifactError, setArtifactError] = useState("");
+  const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("concept_map");
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
   const [examAnswers, setExamAnswers] = useState<Record<string, string>>({});
@@ -1165,6 +1494,12 @@ export default function StudyPage() {
       return next;
     });
   }, [chapter, currentConversationId, messages, topic, userId]);
+
+  useEffect(() => {
+    setArtifact(null);
+    setArtifactError("");
+    setActiveArtifactTab("concept_map");
+  }, [topic]);
 
   useEffect(() => {
     if (!userId || authBusy) return;
@@ -1515,6 +1850,36 @@ export default function StudyPage() {
       setRevisionError("Revision could not be generated. Please try again.");
     } finally {
       setRevisionLoading((current) => ({ ...current, [tool.id]: false }));
+    }
+  };
+
+  const generateArtifact = async () => {
+    if (!userId || authBusy || artifactLoading) return;
+    setMode("revision");
+    setArtifactError("");
+    setArtifactLoading(true);
+    try {
+      const res = await fetch(`${backendURL}/artifacts/generate`, {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({
+          section_id: topic,
+          topic: selectedTopic.label,
+          artifact_type: "auto",
+        }),
+      });
+      const data = await res.json().catch(() => null) as StudyArtifactResponse | { detail?: string } | null;
+      if (!res.ok) {
+        throw new Error((data as { detail?: string } | null)?.detail || `Artifact failed: ${res.status}`);
+      }
+      const nextArtifact = data as StudyArtifactResponse;
+      setArtifact(nextArtifact);
+      setActiveArtifactTab(firstArtifactTab(nextArtifact));
+    } catch (caught) {
+      const detail = (caught as Error).message || "Artifact could not be generated.";
+      setArtifactError(detail.includes("not found") ? "Artifact data was not found for this topic yet." : "Artifact could not be generated. Please try again.");
+    } finally {
+      setArtifactLoading(false);
     }
   };
 
@@ -1915,7 +2280,7 @@ export default function StudyPage() {
 
         {mode === "revision" ? (
           <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto grid max-w-7xl gap-4 lg:grid-cols-3">
+            <div className="mx-auto grid max-w-[92rem] gap-4 md:grid-cols-2 xl:grid-cols-4">
               {REVISION_TOOLS.map((tool) => (
                 <article
                   key={tool.id}
@@ -1952,8 +2317,53 @@ export default function StudyPage() {
                   </div>
                 </article>
               ))}
+
+              <article className="study-content-card study-artifact-card flex min-h-[520px] flex-col rounded-[2rem] border border-white/60 bg-white/82 p-5 shadow-[0_18px_54px_rgba(15,23,42,0.09)] backdrop-blur-2xl md:col-span-2 xl:col-span-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Artifact</p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-950">Interactive Artifact</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      Visual map, tap cards, formula lab, and mistakes from your chapter data.
+                    </p>
+                  </div>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#0E7490]/16 bg-[#0E7490]/10 text-[#0E7490]">
+                    <AppIcon name="mission" className="h-5 w-5" />
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void generateArtifact()}
+                  disabled={artifactLoading}
+                  className="agentify-action agentify-action-primary mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
+                >
+                  <AppIcon name="spark" />
+                  <span>{artifactLoading ? "Building artifact..." : "Generate Artifact"}</span>
+                </button>
+
+                {artifactError ? <div className="mt-4"><AlertState message={artifactError} /></div> : null}
+
+                <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-4">
+                  {artifactLoading ? (
+                    <ArtifactLoadingState />
+                  ) : artifact ? (
+                    <ArtifactViewer
+                      response={artifact}
+                      activeTab={activeArtifactTab}
+                      onTabChange={setActiveArtifactTab}
+                    />
+                  ) : (
+                    <EmptyState
+                      icon="spark"
+                      title="No artifact yet"
+                      detail={`Generate one for ${selectedTopic.label}. It will turn notes into a student-friendly visual study tool.`}
+                    />
+                  )}
+                </div>
+              </article>
             </div>
-            {revisionError ? <div className="mx-auto mt-4 max-w-7xl"><AlertState message={revisionError} /></div> : null}
+            {revisionError ? <div className="mx-auto mt-4 max-w-[92rem]"><AlertState message={revisionError} /></div> : null}
           </div>
         ) : null}
 
