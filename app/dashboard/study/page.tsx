@@ -2676,6 +2676,7 @@ export default function StudyPage() {
 
   const renderChatComposer = (variant: "hero" | "dock") => {
     const isHero = variant === "hero";
+    const canSend = Boolean(input.trim()) || loadingAnswer;
 
     return (
       <div className={isHero ? "study-hero-composer w-full" : "mx-auto w-full max-w-[58rem]"}>
@@ -2738,12 +2739,14 @@ export default function StudyPage() {
               <button
                 type="button"
                 onClick={loadingAnswer ? stopGenerating : () => void sendMessage()}
-                disabled={!loadingAnswer && !input.trim()}
+                disabled={!canSend}
                 title={loadingAnswer ? "Stop response" : "Send message"}
-                className={`agentify-action study-chat-send-button disabled:cursor-not-allowed disabled:opacity-45 ${
+                className={`agentify-action study-chat-send-button disabled:cursor-not-allowed ${
                   loadingAnswer
                     ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
-                    : "bg-slate-950 text-white hover:bg-[#0E7490]"
+                    : input.trim()
+                      ? "bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-white shadow-[0_14px_34px_rgba(14,116,144,0.22)] hover:shadow-[0_18px_42px_rgba(14,116,144,0.26)]"
+                      : "border border-slate-200 bg-slate-100 text-slate-400"
                 }`}
               >
                 <AppIcon name={loadingAnswer ? "x" : "send"} />
@@ -2774,8 +2777,8 @@ export default function StudyPage() {
   return (
     <div className="study-lab-shell flex min-h-[calc(100svh-4.5rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl">
       <section className="study-lab-header border-b border-white/45 bg-white/64 px-3 py-2.5 backdrop-blur-2xl sm:px-5">
-        <div className="study-workspace-bar mx-auto flex w-full max-w-[104rem] flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
+        <div data-mode={mode} className="study-workspace-bar mx-auto flex w-full max-w-[104rem] flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+          <div className="study-workspace-identity flex min-w-0 items-center gap-3">
             <span className="study-workspace-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_42px_rgba(14,116,144,0.18)]">
               A
             </span>
@@ -2806,7 +2809,7 @@ export default function StudyPage() {
             ))}
           </div>
 
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+          <div className="study-header-actions flex flex-col gap-2 lg:flex-row lg:items-center">
             {needsTopicPicker ? (
               <div className="study-topic-strip flex min-w-0 flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/58 p-1.5 sm:flex-row">
                 <select
