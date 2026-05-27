@@ -1,12 +1,15 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import FeedbackModal from "./FeedbackModal";
 
 export default function BetaBanner() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(true);
   const [open, setOpen] = useState(false);
 
+  if (pathname?.startsWith("/dashboard/study")) return null;
   if (!visible) return null;
 
   return (

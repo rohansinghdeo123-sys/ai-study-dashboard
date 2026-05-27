@@ -24,6 +24,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const authReady = !loading && !claimsLoading;
   const isAdminRoute = pathname?.startsWith(ADMIN_ROUTE);
+  const isStudyRoute = pathname?.startsWith("/dashboard/study");
   const displayName = profile?.name || user?.displayName || user?.email?.split("@")[0] || "Student";
 
   useEffect(() => {
@@ -119,7 +120,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </button>
       </div>
 
-      <main className="relative z-10 min-h-[100svh] px-3 pb-6 pt-20 sm:px-5">
+      <main
+        className={
+          isStudyRoute
+            ? "relative z-10 h-[100svh] overflow-hidden px-0 py-0"
+            : "relative z-10 min-h-[100svh] px-3 pb-6 pt-20 sm:px-5"
+        }
+      >
         {children}
       </main>
     </div>

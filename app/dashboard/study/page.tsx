@@ -158,24 +158,14 @@ interface ExamQuestion {
   options: string[];
   correct: string;
   explanation?: string;
+  source?: string;
 }
 
 interface ProbableQuestion {
   id: string;
   marks: number;
   question: string;
-}
-
-interface ArtifactConceptSeed {
-  title: string;
-  definition: string;
-  keyPoints: string[];
-  properties?: string[];
-  formulas?: FormulaItem[];
-  examples?: string[];
-  related?: string[];
-  prerequisites?: string[];
-  mistakes?: MistakeItem[];
+  source?: string;
 }
 
 type SpeechRecognitionEventLike = {
@@ -232,362 +222,27 @@ const CHAPTERS = [
   },
 ];
 
-const ARTIFACT_CONCEPT_SEEDS: Record<string, ArtifactConceptSeed> = {
-  hydrocarbon: {
-    title: "Hydrocarbons",
-    definition: "Hydrocarbons are organic compounds made only of carbon and hydrogen atoms.",
-    keyPoints: [
-      "Hydrocarbons are classified mainly as alkanes, alkenes, alkynes, and aromatic hydrocarbons.",
-      "The type of carbon-carbon bond decides the family and reactivity.",
-      "Alkanes are saturated and contain only single bonds.",
-      "Alkenes and alkynes are unsaturated and contain double or triple bonds.",
-      "Aromatic hydrocarbons contain stable ring systems such as benzene.",
-    ],
-    properties: ["Carbon and hydrogen", "Alkanes", "Alkenes", "Alkynes", "Aromatic rings"],
-    formulas: [
-      { label: "Alkanes", formula: "CnH2n+2", variables: ["n"], hint: "Use for open-chain saturated hydrocarbons." },
-      { label: "Alkenes", formula: "CnH2n", variables: ["n"], hint: "Use for one double bond in an open chain." },
-      { label: "Alkynes", formula: "CnH2n-2", variables: ["n"], hint: "Use for one triple bond in an open chain." },
-    ],
-    related: ["Alkanes", "Alkenes", "Alkynes", "Aromatic Hydrocarbons"],
-    mistakes: [
-      { mistake: "Choosing formula before checking bond type.", correction: "First identify single, double, triple, or aromatic bonding.", frequency: "high" },
-      { mistake: "Treating all hydrocarbons as equally reactive.", correction: "Unsaturated hydrocarbons are generally more reactive than alkanes.", frequency: "medium" },
-    ],
-  },
-  matter: {
-    title: "Basic Concepts of Chemistry",
-    definition: "Basic concepts of chemistry introduce matter, its properties, states, classification, and chemistry's role in everyday life.",
-    keyPoints: [
-      "Chemistry studies the composition, structure, properties, and transformations of matter.",
-      "Matter is anything that has mass and occupies space.",
-      "Properties such as mass, volume, density, and compressibility help describe matter.",
-      "Matter exists mainly as solids, liquids, and gases.",
-      "Matter can be classified into mixtures and pure substances.",
-    ],
-    properties: ["Chemistry", "Matter", "Properties", "States", "Classification"],
-    related: ["Matter Definition", "Properties of Matter", "States of Matter", "Classification of Matter"],
-    mistakes: [
-      { mistake: "Studying definitions separately without connecting them.", correction: "Link chemistry to matter, matter to properties, and properties to classification.", frequency: "medium" },
-    ],
-  },
-  basic_concepts_of_chemistry: {
-    title: "Basic Concepts of Chemistry",
-    definition: "Basic concepts of chemistry introduce matter, its properties, states, classification, and chemistry's role in everyday life.",
-    keyPoints: [
-      "Chemistry studies the composition, structure, properties, and transformations of matter.",
-      "Matter is anything that has mass and occupies space.",
-      "Properties such as mass, volume, density, and compressibility help describe matter.",
-      "Matter exists mainly as solids, liquids, and gases.",
-      "Matter can be classified into mixtures and pure substances.",
-    ],
-    properties: ["Chemistry", "Matter", "Properties", "States", "Classification"],
-    related: ["Matter Definition", "Properties of Matter", "States of Matter", "Classification of Matter"],
-    mistakes: [
-      { mistake: "Studying definitions separately without connecting them.", correction: "Link chemistry to matter, matter to properties, and properties to classification.", frequency: "medium" },
-    ],
-  },
-  chemistry_definition: {
-    title: "Definition of Chemistry",
-    definition: "Chemistry is the branch of science that studies the preparation, properties, structure, and reactions of material substances.",
-    keyPoints: [
-      "Chemistry studies composition, structure, properties, and transformations of matter.",
-      "It is called the science of atoms and molecules.",
-      "Chemistry connects physics, biology, geology, and material science.",
-      "Everyday changes such as rusting, cooking, and curd formation involve chemistry.",
-    ],
-    properties: ["Matter", "Atoms", "Molecules", "Reactions", "Everyday changes"],
-    examples: ["Rusting of iron and curd formation from milk are common chemistry examples."],
-    related: ["Matter Definition", "Role and Importance of Chemistry"],
-    mistakes: [
-      { mistake: "Thinking chemistry is only about lab chemicals.", correction: "Chemistry explains everyday materials and changes too.", frequency: "medium" },
-    ],
-  },
-  historical_alchemy: {
-    title: "Alchemy and Iatrochemistry",
-    definition: "Alchemy and iatrochemistry were early forms of chemistry that mixed practical chemical techniques with older beliefs.",
-    keyPoints: [
-      "Alchemy aimed at metal transmutation and the search for the elixir of life.",
-      "Iatrochemistry focused on medicinal chemical preparations.",
-      "Many practical methods like distillation and metallurgy developed from early chemical traditions.",
-      "Modern chemistry later became evidence-based and quantitative.",
-    ],
-    properties: ["Alchemy", "Iatrochemistry", "Distillation", "Metallurgy", "Modern chemistry"],
-    related: ["Definition of Chemistry", "Ancient Indian Chemistry"],
-    mistakes: [
-      { mistake: "Thinking alchemy contributed nothing to chemistry.", correction: "Alchemy contributed practical techniques, even though its theories were not modern science.", frequency: "low" },
-    ],
-  },
-  ancient_indian_chemistry: {
-    title: "Ancient Indian Chemistry",
-    definition: "Ancient Indian chemistry, or Rasayan Shastra, included metallurgy, medicine, dyes, glass-making, and other applied chemical arts.",
-    keyPoints: [
-      "Ancient India had advanced knowledge of metallurgy, dyes, medicines, and materials.",
-      "Texts such as Arthashastra, Charaka Samhita, and Rasratnakar recorded chemical practices.",
-      "Processes like extraction of metals, making soaps, and preparing medicines were known.",
-      "The idea of atoms was discussed in ancient Indian thought.",
-    ],
-    properties: ["Metallurgy", "Medicine", "Dyes", "Materials", "Rasayan Shastra"],
-    related: ["Alchemy and Iatrochemistry", "Definition of Chemistry"],
-    mistakes: [
-      { mistake: "Thinking ancient chemistry was only mythology.", correction: "It included practical techniques in metallurgy, medicines, and materials.", frequency: "medium" },
-    ],
-  },
-  importance_of_chemistry: {
-    title: "Role and Importance of Chemistry",
-    definition: "Chemistry is important because it helps us understand natural phenomena and design useful materials, medicines, fuels, and products.",
-    keyPoints: [
-      "Chemistry supports medicine, agriculture, industry, food, fuels, and environment studies.",
-      "It explains changes such as rusting, digestion, cooking, and combustion.",
-      "It helps create useful products like soaps, polymers, fertilizers, and medicines.",
-      "Chemistry helps solve real-life problems through materials and processes.",
-    ],
-    properties: ["Medicine", "Agriculture", "Industry", "Environment", "Materials"],
-    examples: ["Fertilizers, medicines, soaps, and fuels are linked to chemistry."],
-    related: ["Definition of Chemistry", "Matter Definition"],
-    mistakes: [
-      { mistake: "Learning examples without connecting them to chemistry.", correction: "Ask what material or chemical change is involved in each example.", frequency: "medium" },
-    ],
-  },
-  matter_definition: {
-    title: "Matter Definition",
-    definition: "Matter is anything that has mass and occupies space.",
-    keyPoints: [
-      "Matter has mass, so it contains a measurable amount of substance.",
-      "Matter occupies space, which means it has volume.",
-      "Books, water, air, tables, and living things are examples of matter.",
-      "Light, heat, and sound are forms of energy, not matter.",
-      "Matter can exist as solid, liquid, or gas depending on particle arrangement and energy.",
-    ],
-    properties: ["Mass", "Volume", "Particles", "States", "Examples"],
-    examples: ["A balloon filled with air is matter because air has mass and occupies space."],
-    related: ["Properties of Matter", "States of Matter"],
-    mistakes: [
-      { mistake: "Thinking only visible things are matter.", correction: "Air is invisible but still matter because it has mass and volume.", frequency: "high" },
-      { mistake: "Calling light matter.", correction: "Light is energy; matter must have mass and occupy space.", frequency: "medium" },
-    ],
-  },
-  properties_of_matter: {
-    title: "Properties of Matter",
-    definition: "Properties of matter are observable or measurable features used to describe, compare, and identify substances.",
-    keyPoints: [
-      "Mass tells how much matter is present in a substance.",
-      "Volume tells how much space a substance occupies.",
-      "Density compares mass with volume and helps explain why some things sink or float.",
-      "Compressibility is high in gases, lower in liquids, and very low in solids.",
-      "Rigidity, fluidity, and diffusion help compare solids, liquids, and gases.",
-      "Melting point and boiling point help identify substances in experiments.",
-      "Physical properties can be observed without changing the substance into a new substance.",
-    ],
-    properties: ["Mass", "Volume", "Density", "Compressibility", "Rigidity", "Diffusion", "Melting point"],
-    formulas: [
-      { label: "Density", formula: "Density = Mass / Volume", variables: ["mass", "volume"], hint: "Keep units consistent before dividing." },
-    ],
-    examples: [
-      "A sponge can be compressed more easily than a stone because their material properties are different.",
-      "Perfume spreads through a room because gas particles diffuse.",
-    ],
-    prerequisites: ["Matter Definition", "States of Matter"],
-    related: ["Classification of Matter", "States of Matter"],
-    mistakes: [
-      { mistake: "Confusing mass with volume.", correction: "Mass is amount of matter; volume is occupied space.", frequency: "high" },
-      { mistake: "Thinking only solids have properties.", correction: "Liquids and gases also have measurable properties.", frequency: "medium" },
-      { mistake: "Treating density as only mass.", correction: "Density depends on both mass and volume.", frequency: "high" },
-    ],
-  },
-  states_of_matter: {
-    title: "States of Matter",
-    definition: "States of matter describe the physical forms in which matter exists, mainly solid, liquid, and gas.",
-    keyPoints: [
-      "Solids have fixed shape and fixed volume because particles are closely packed.",
-      "Liquids have fixed volume but take the shape of the container.",
-      "Gases have no fixed shape or volume and spread to fill available space.",
-      "Changing temperature or pressure can change the state of matter.",
-      "Particle spacing and motion explain most differences between solids, liquids, and gases.",
-    ],
-    properties: ["Solid", "Liquid", "Gas", "Particle motion", "Shape", "Volume"],
-    examples: ["Ice, water, and steam show the same substance in three different states."],
-    related: ["Properties of Matter", "Interconversion of Matter"],
-    mistakes: [
-      { mistake: "Thinking particles stop moving in solids.", correction: "Solid particles vibrate around fixed positions.", frequency: "medium" },
-      { mistake: "Thinking gases do not have mass.", correction: "Gases have mass, even if they are hard to see.", frequency: "high" },
-    ],
-  },
-  solid_state: {
-    title: "Solid State",
-    definition: "The solid state is a form of matter with fixed shape and fixed volume due to closely packed particles.",
-    keyPoints: [
-      "Solids have fixed shape and volume.",
-      "Particles in solids are closely packed and vibrate around fixed positions.",
-      "Solids are usually rigid and almost incompressible.",
-      "Strong inter-particle forces help solids keep their shape.",
-    ],
-    properties: ["Fixed shape", "Fixed volume", "Rigid", "Closely packed particles", "Low compressibility"],
-    related: ["States of Matter", "Properties of Matter"],
-    mistakes: [
-      { mistake: "Thinking solid particles do not move.", correction: "They vibrate around fixed positions.", frequency: "medium" },
-    ],
-  },
-  liquid_state: {
-    title: "Liquid State",
-    definition: "The liquid state is a form of matter with fixed volume but no fixed shape.",
-    keyPoints: [
-      "Liquids have fixed volume but take the shape of their container.",
-      "Liquid particles are less tightly packed than solids and can slide past one another.",
-      "Liquids are fluid and almost incompressible.",
-      "Diffusion occurs in liquids, but slower than in gases.",
-    ],
-    properties: ["Fixed volume", "No fixed shape", "Fluidity", "Low compressibility", "Diffusion"],
-    related: ["States of Matter", "Solid State", "Gaseous State"],
-    mistakes: [
-      { mistake: "Thinking liquids have no volume because they change shape.", correction: "Liquids change shape but keep nearly fixed volume.", frequency: "high" },
-    ],
-  },
-  gaseous_state: {
-    title: "Gaseous State",
-    definition: "The gaseous state is a form of matter with no fixed shape and no fixed volume.",
-    keyPoints: [
-      "Gases fill the complete space available to them.",
-      "Gas particles are far apart and move randomly at high speed.",
-      "Gases are highly compressible compared with solids and liquids.",
-      "Diffusion is fastest in gases due to large particle spacing.",
-    ],
-    properties: ["No fixed shape", "No fixed volume", "High compressibility", "Fast diffusion", "Random motion"],
-    related: ["States of Matter", "Properties of Matter"],
-    mistakes: [
-      { mistake: "Thinking gases are not matter because they are invisible.", correction: "Gases have mass and occupy space, so they are matter.", frequency: "high" },
-    ],
-  },
-  interconversion_of_states: {
-    title: "Interconversion of States of Matter",
-    definition: "Interconversion of states is the change of matter from one physical state to another by changing temperature or pressure.",
-    keyPoints: [
-      "Heating can change solid to liquid and liquid to gas.",
-      "Cooling can change gas to liquid and liquid to solid.",
-      "Pressure can also help change the state of matter.",
-      "During a physical state change, the substance usually remains chemically the same.",
-    ],
-    properties: ["Melting", "Freezing", "Evaporation", "Condensation", "Temperature", "Pressure"],
-    related: ["States of Matter", "Solid State", "Liquid State", "Gaseous State"],
-    mistakes: [
-      { mistake: "Thinking state change always creates a new substance.", correction: "Most state changes are physical changes; composition remains the same.", frequency: "medium" },
-    ],
-  },
-  classification_of_matter: {
-    title: "Classification of Matter",
-    definition: "Matter is classified into mixtures and pure substances; pure substances include elements and compounds.",
-    keyPoints: [
-      "At the macroscopic level, matter can be classified into mixtures and pure substances.",
-      "Pure substances have fixed composition.",
-      "Elements contain one type of atom, while compounds contain chemically combined elements.",
-      "Mixtures can be homogeneous or heterogeneous.",
-      "Classification helps identify and separate materials.",
-    ],
-    properties: ["Pure substances", "Mixtures", "Elements", "Compounds", "Homogeneous", "Heterogeneous"],
-    related: ["Matter Definition", "Properties of Matter"],
-    mistakes: [
-      { mistake: "Confusing compound with mixture.", correction: "Compounds have chemically combined elements; mixtures are physically combined.", frequency: "high" },
-      { mistake: "Thinking all mixtures look non-uniform.", correction: "Homogeneous mixtures look uniform throughout.", frequency: "medium" },
-    ],
-  },
-  alkanes: {
-    title: "Alkanes",
-    definition: "Alkanes are saturated hydrocarbons containing only single covalent bonds between carbon atoms.",
-    keyPoints: [
-      "Alkanes have the general formula CnH2n+2 for open-chain compounds.",
-      "They are saturated because carbon atoms form only single bonds.",
-      "They mainly undergo combustion and substitution reactions.",
-      "Boiling point generally increases with molecular size.",
-      "Methane, ethane, propane, and butane are common examples.",
-    ],
-    properties: ["Saturated", "Single bonds", "CnH2n+2", "Combustion", "Substitution"],
-    formulas: [{ label: "General formula", formula: "CnH2n+2", variables: ["n"], hint: "Use n as the number of carbon atoms." }],
-    related: ["Alkenes", "Alkynes", "Aromatic Hydrocarbons"],
-    mistakes: [{ mistake: "Mixing alkane and alkene formulas.", correction: "Alkanes use CnH2n+2; alkenes use CnH2n.", frequency: "high" }],
-  },
-  alkenes: {
-    title: "Alkenes",
-    definition: "Alkenes are unsaturated hydrocarbons containing at least one carbon-carbon double bond.",
-    keyPoints: [
-      "Alkenes usually follow the formula CnH2n for one double bond in an open chain.",
-      "The double bond makes alkenes more reactive than alkanes.",
-      "They commonly undergo addition reactions.",
-      "Ethene and propene are important examples.",
-      "Alkenes can decolourise bromine water because of the double bond.",
-    ],
-    properties: ["Unsaturated", "Double bond", "CnH2n", "Addition", "Bromine test"],
-    formulas: [{ label: "General formula", formula: "CnH2n", variables: ["n"], hint: "Use this for one double bond in an open chain." }],
-    related: ["Alkanes", "Alkynes", "Aromatic Hydrocarbons"],
-    mistakes: [{ mistake: "Forgetting the double bond position.", correction: "Number the chain so the double bond gets the lowest possible number.", frequency: "medium" }],
-  },
-  alkynes: {
-    title: "Alkynes",
-    definition: "Alkynes are unsaturated hydrocarbons containing at least one carbon-carbon triple bond.",
-    keyPoints: [
-      "Alkynes usually follow the formula CnH2n-2 for one triple bond in an open chain.",
-      "The triple bond makes alkynes reactive in addition reactions.",
-      "Ethyne is the simplest alkyne.",
-      "Alkynes are less saturated than alkenes and alkanes.",
-    ],
-    properties: ["Unsaturated", "Triple bond", "CnH2n-2", "Addition", "Ethyne"],
-    formulas: [{ label: "General formula", formula: "CnH2n-2", variables: ["n"], hint: "Use this for one triple bond in an open chain." }],
-    related: ["Alkanes", "Alkenes", "Aromatic Hydrocarbons"],
-    mistakes: [{ mistake: "Using alkene formula for alkynes.", correction: "Alkynes have two fewer hydrogens than alkenes for the same carbon count.", frequency: "high" }],
-  },
-  aromatics: {
-    title: "Aromatic Hydrocarbons",
-    definition: "Aromatic hydrocarbons are stable cyclic hydrocarbons with delocalised electrons, commonly based on benzene rings.",
-    keyPoints: [
-      "Benzene is the simplest and most important aromatic hydrocarbon.",
-      "Aromatic rings have delocalised electrons that increase stability.",
-      "They often undergo substitution rather than addition.",
-      "Aromatic compounds are important in fuels, dyes, medicines, and polymers.",
-    ],
-    properties: ["Benzene ring", "Delocalisation", "Stability", "Substitution", "Cyclic"],
-    related: ["Alkanes", "Alkenes", "Alkynes"],
-    mistakes: [{ mistake: "Drawing benzene as ordinary double bonds only.", correction: "Benzene is better understood through delocalised electrons.", frequency: "medium" }],
-  },
-};
-
-const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
-
-const STAGE_ICONS: Record<AgentStageId, AppIconName> = {
-  received: "study",
-  understanding: "spark",
-  drafting: "book",
-  reviewing: "check",
-  formatting: "copy",
-  delivering: "send",
-};
-
-const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
-  { id: "coach", label: "Chat", detail: "Ask and continue doubts", icon: "study" },
-  { id: "revision", label: "Revision", detail: "Summary, explain, key points", icon: "book" },
-  { id: "exam", label: "Exam", detail: "MCQs and probable questions", icon: "check" },
-  { id: "history", label: "History", detail: "Resume previous chats", icon: "history" },
-];
-
 const REVISION_TOOLS: RevisionTool[] = [
   {
     id: "summary",
     title: "Simple Notes",
-    detail: "High-yield notes for quick recall.",
+    detail: "A clean revision note from the selected chapter data.",
     mode: "summary",
-    prompt: (topic) => `Create simple, concise, exam-focused revision notes for ${topic}.`,
+    prompt: (topic) => `Create simple revision notes for ${topic} from the selected study material only.`,
   },
   {
     id: "explain",
     title: "Deep Explain",
-    detail: "Simple explanation with examples and mistakes.",
+    detail: "A deeper teacher-style explanation while staying grounded in the material.",
     mode: "explain",
-    prompt: (topic) => `Explain ${topic} deeply but simply, with examples and common mistakes.`,
+    prompt: (topic) => `Deeply explain ${topic} from the selected study material only, with examples if available in the data.`,
   },
   {
     id: "keypoints",
     title: "Key Points",
-    detail: "Flashcard-style important points.",
+    detail: "High-yield recall bullets for fast exam revision.",
     mode: "keypoints",
-    prompt: (topic) => `Extract the most important exam-relevant key points for ${topic}.`,
+    prompt: (topic) => `Extract the most important key points for ${topic} from the selected study material only.`,
   },
 ];
 
@@ -599,270 +254,50 @@ const ARTIFACT_TABS: Array<{ id: ArtifactType; label: string; icon: AppIconName 
 ];
 
 const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: AppIconName }> = [
-  { id: "mcq", label: "MCQs", detail: "Timed objective practice", icon: "check" },
-  { id: "probable", label: "Probable", detail: "Theory questions", icon: "book" },
-  { id: "practice", label: "Practice", detail: "Focused drills", icon: "study" },
-  { id: "review", label: "Review", detail: "Answers and mistakes", icon: "analytics" },
+  { id: "mcq", label: "MCQ", detail: "Attempt grounded multiple-choice questions.", icon: "check" },
+  { id: "probable", label: "Probable", detail: "Review likely theory questions from the chapter.", icon: "book" },
+  { id: "practice", label: "Practice", detail: "Use the same question set as a quick drill.", icon: "study" },
+  { id: "review", label: "Review", detail: "Check score, explanations, and sources.", icon: "analytics" },
 ];
 
-function normalizeArtifactId(value: string) {
+const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
+  { id: "coach", label: "Chat", detail: "Ask doubts and continue your study conversation.", icon: "study" },
+  { id: "revision", label: "Revision", detail: "Open notes, explanations, key points, and artifacts.", icon: "book" },
+  { id: "exam", label: "Exam", detail: "Generate grounded MCQs and probable questions.", icon: "check" },
+  { id: "history", label: "History", detail: "Review saved Study Lab conversations.", icon: "history" },
+];
+
+const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
+
+const STAGE_ICONS: Record<AgentStageId, AppIconName> = {
+  received: "study",
+  understanding: "analytics",
+  drafting: "study",
+  reviewing: "check",
+  formatting: "copy",
+  delivering: "send",
+};
+
+function normalizeTopicValue(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
-function titleFromId(value: string) {
-  return value
-    .split("_")
-    .filter(Boolean)
-    .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
-}
-
 function findChapterValueForTopic(topicValue: string) {
-  const normalizedTopic = normalizeArtifactId(topicValue);
+  const normalizedTopic = normalizeTopicValue(topicValue);
   return CHAPTERS.find((chapter) => chapter.topics.some((item) => item.value === normalizedTopic))?.value || "";
 }
 
-function getConceptSeed(sectionId: string, topicLabel: string): ArtifactConceptSeed {
-  const normalizedId = normalizeArtifactId(sectionId || topicLabel);
-  return ARTIFACT_CONCEPT_SEEDS[normalizedId] || {
-    title: topicLabel || titleFromId(normalizedId),
-    definition: `${topicLabel || titleFromId(normalizedId)} is the selected study topic.`,
-    keyPoints: [
-      `Start with the definition of ${topicLabel || titleFromId(normalizedId)}.`,
-      "Identify the key terms and what each term means.",
-      "Connect the idea with one school-level example.",
-      "Practice one recall question before moving ahead.",
-    ],
-    properties: ["Definition", "Key terms", "Example", "Recall"],
-    mistakes: [
-      {
-        mistake: "Reading the topic only once and assuming it is clear.",
-        correction: "Explain it back in your own words and check one example.",
-        frequency: "medium",
-      },
-    ],
-  };
-}
+const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material. Please upload or select the correct chapter/data.";
 
-function createFallbackArtifact(sectionId: string, topicLabel: string): StudyArtifactResponse {
-  const normalizedId = normalizeArtifactId(sectionId || topicLabel);
-  const seed = getConceptSeed(normalizedId, topicLabel);
-  const title = seed.title || topicLabel || titleFromId(normalizedId);
-  const points = seed.keyPoints.slice(0, 7);
-  const properties = (seed.properties?.length ? seed.properties : points.map((point, index) => point.split(/[.,;]/)[0] || `Point ${index + 1}`)).slice(0, 7);
-  const nodes: ArtifactNode[] = [
-    {
-      id: normalizedId,
-      label: title,
-      description: seed.definition,
-      kind: "core",
-    },
-    ...properties.map((property, index) => ({
-      id: `${normalizedId}-property-${index + 1}`,
-      label: property,
-      description: points[index] || `Important part of ${title}.`,
-      kind: "property" as const,
-    })),
-    ...(seed.prerequisites || []).slice(0, 2).map((item, index) => ({
-      id: `${normalizedId}-prerequisite-${index + 1}`,
-      label: item,
-      description: "Review this first if the main idea feels confusing.",
-      kind: "prerequisite" as const,
-    })),
-    ...(seed.related || []).slice(0, 3).map((item, index) => ({
-      id: `${normalizedId}-related-${index + 1}`,
-      label: item,
-      description: `Connected idea for ${title}.`,
-      kind: "related" as const,
-    })),
-  ];
-  const edges: ArtifactEdge[] = [
-    ...properties.map((_, index) => ({ from: normalizedId, to: `${normalizedId}-property-${index + 1}`, label: "includes" })),
-    ...(seed.prerequisites || []).slice(0, 2).map((_, index) => ({ from: `${normalizedId}-prerequisite-${index + 1}`, to: normalizedId, label: "supports" })),
-    ...(seed.related || []).slice(0, 3).map((_, index) => ({ from: normalizedId, to: `${normalizedId}-related-${index + 1}`, label: "connects" })),
-  ];
-  const cards: FlipCard[] = [
-    { front: `What is ${title}?`, back: seed.definition, tag: "definition" },
-    ...points.slice(0, 6).map((point, index) => ({
-      front: properties[index] || `Key point ${index + 1}`,
-      back: point,
-      tag: "key point",
-    })),
-    ...(seed.examples || []).slice(0, 2).map((example) => ({
-      front: "Can you connect this to real life?",
-      back: example,
-      tag: "example",
-    })),
-  ];
-  const formulas = seed.formulas || [];
-  const mistakes = seed.mistakes || [];
-
-  return {
-    source: "client_fallback",
-    section_id: normalizedId,
-    title,
-    subtitle: seed.definition,
-    student_goal: `Understand ${title}, recall the key points, and avoid common exam mistakes.`,
-    quality: {
-      key_points: points.length,
-      formulas: formulas.length,
-      mistakes: mistakes.length,
-    },
-    artifacts: [
-      {
-        type: "concept_map",
-        title: `${title} concept map`,
-        subtitle: "A quick visual route through the idea.",
-        nodes,
-        edges,
-      },
-      {
-        type: "flip_cards",
-        title: "Tap-to-reveal cards",
-        subtitle: "Fast recall without rereading long notes.",
-        cards,
-      },
-      {
-        type: "formula_lab",
-        title: "Formula lab",
-        subtitle: "Use formulas actively, not just as text.",
-        formulas,
-        empty_note: "This topic is concept-heavy, so focus on definitions, examples, and mistakes first.",
-      },
-      {
-        type: "mistake_cards",
-        title: "Mistake shield",
-        subtitle: "Common traps students should avoid.",
-        mistakes,
-        empty_note: "No common mistakes are listed for this topic yet.",
-      },
-    ],
-  };
-}
-
-function createFallbackRevision(sectionId: string, topicLabel: string, type: RevisionType) {
-  const seed = getConceptSeed(sectionId, topicLabel);
-  const title = seed.title || topicLabel;
-  const points = seed.keyPoints.slice(0, 7);
-  const mistakes = seed.mistakes || [];
-  const formulas = seed.formulas || [];
-
-  if (type === "summary") {
-    return [
-      `## ${title} - Simple Notes`,
-      seed.definition,
-      "",
-      "### Must Remember",
-      ...points.slice(0, 5).map((point) => `- ${point}`),
-      formulas.length ? "\n### Formula Check" : "",
-      ...formulas.map((item) => `- ${item.label}: ${item.formula}`),
-      mistakes.length ? "\n### Avoid This" : "",
-      ...mistakes.slice(0, 2).map((item) => `- ${item.mistake} Correct idea: ${item.correction}`),
-    ].filter(Boolean).join("\n");
-  }
-
-  if (type === "keypoints") {
-    return [
-      `## ${title} - Key Points`,
-      ...points.map((point, index) => `${index + 1}. ${point}`),
-      "",
-      "### Quick Self Check",
-      `- Can you define ${title} in one sentence?`,
-      "- Can you give one example and one common mistake?",
-    ].join("\n");
-  }
-
-  return [
-    `## ${title} - Deep Explain`,
-    seed.definition,
-    "",
-    "### How to Understand It",
-    ...points.slice(0, 4).map((point) => `- ${point}`),
-    seed.examples?.length ? "\n### Example" : "",
-    ...(seed.examples || []).slice(0, 2).map((example) => `- ${example}`),
-    mistakes.length ? "\n### Common Confusion" : "",
-    ...mistakes.slice(0, 2).map((item) => `- ${item.mistake} -> ${item.correction}`),
-    "",
-    "### Teacher Check",
-    `Explain ${title} back in your own words before moving to practice.`,
-  ].filter(Boolean).join("\n");
-}
-
-function createFallbackExamPack(sectionId: string, topicLabel: string) {
-  const seed = getConceptSeed(sectionId, topicLabel);
-  const title = seed.title || topicLabel;
-  const points = seed.keyPoints.length ? seed.keyPoints : [seed.definition];
-  const properties = seed.properties?.length ? seed.properties : ["definition", "example", "key point"];
-  const questions: ExamQuestion[] = [
-    {
-      id: "Q1",
-      question: `Which statement best describes ${title}?`,
-      options: [
-        `A. ${seed.definition}`,
-        "B. It is only a memorization topic with no examples.",
-        "C. It is unrelated to school science.",
-        "D. It can be understood without knowing any key terms.",
-      ],
-      correct: "A",
-      explanation: `The correct answer matches the core definition of ${title}.`,
-    },
-    {
-      id: "Q2",
-      question: `Which point is most closely connected with ${title}?`,
-      options: [
-        `A. ${properties[0] || "Core definition"}`,
-        `B. ${properties[1] || "Only spelling"}`,
-        "C. Ignoring examples",
-        "D. Guessing without reading the question",
-      ],
-      correct: "A",
-      explanation: "The first option is one of the main concept handles for this topic.",
-    },
-    {
-      id: "Q3",
-      question: `What is the best way to revise ${title}?`,
-      options: [
-        "A. Memorize one line and stop",
-        "B. Read the definition, example, key point, and common mistake together",
-        "C. Skip examples",
-        "D. Only read the heading",
-      ],
-      correct: "B",
-      explanation: "Good revision connects definition, example, and mistake prevention.",
-    },
-    {
-      id: "Q4",
-      question: `Which is a common trap while learning ${title}?`,
-      options: [
-        `A. ${seed.mistakes?.[0]?.mistake || "Reading once and assuming it is clear"}`,
-        "B. Checking the definition",
-        "C. Practicing one question",
-        "D. Giving a real example",
-      ],
-      correct: "A",
-      explanation: seed.mistakes?.[0]?.correction || "The trap is avoided by explaining the concept in your own words.",
-    },
-    {
-      id: "Q5",
-      question: `Which line is a strong exam-ready recall point for ${title}?`,
-      options: [
-        `A. ${points[0]}`,
-        "B. The topic is not important",
-        "C. There are no key terms",
-        "D. Examples should never be used",
-      ],
-      correct: "A",
-      explanation: "This option is directly taken from the core learning points.",
-    },
-  ];
-  const probable: ProbableQuestion[] = [
-    { id: "P1", marks: 3, question: `Define ${title} and write two important points.` },
-    { id: "P2", marks: 3, question: `Give one example related to ${title} and explain it briefly.` },
-    { id: "P3", marks: 5, question: `Explain ${title} in detail with key points and one common mistake to avoid.` },
-    { id: "P4", marks: 5, question: `Compare the important ideas connected with ${title} and write an exam-ready answer.` },
-  ];
-  return { questions, probable };
-}
+const DATA_GROUNDED_TUTOR_GUARDRAIL = [
+  "You are AgentifyAI's study tutor working inside a data-grounded learning app.",
+  "Use only the uploaded or ingested study material, selected subject, selected chapter, selected topic, and retrieved context supplied by the backend.",
+  "Do not use outside knowledge, generic LLM memory, or guesses.",
+  "If the retrieved context does not contain the answer, reply exactly: I could not find this in your study material. Please upload or select the correct chapter/data.",
+  "Preserve conversation continuity. Follow-up words like this, it, explain again, simplify, more examples, and simple words refer to the previous user question and previous tutor answer unless the student clearly changes topic.",
+  "Never switch topic unless the student clearly asks for a new topic.",
+  "Keep answers exam-focused, clear, and traceable to the study material.",
+].join(" ");
 
 function safeJsonResponse(response: Response) {
   return response.json().catch(() => null);
@@ -879,6 +314,12 @@ function isBackendFailureText(value: unknown) {
     "no response generated",
     "no revision generated",
     "option unavailable",
+    "not enough context",
+    "insufficient context",
+    "insufficient study material",
+    "not present in the data",
+    "not in your study material",
+    "could not find this in your study material",
   ].some((marker) => text.includes(marker));
 }
 
@@ -888,22 +329,135 @@ function getUsableBackendAnswer(data: unknown) {
   return isBackendFailureText(answer) ? "" : answer;
 }
 
+function isFollowUpPrompt(value: string) {
+  const lower = value.toLowerCase().trim();
+  if (!lower) return false;
+  const followUpPatterns = [
+    /\b(this|that|it|these|those|same topic|above|previous|last answer|your answer)\b/,
+    /\b(simple words|simplify|explain again|again|more examples?|another example|explain more|in short|make it easy)\b/,
+    /\b(can you explain|please explain|what does it mean|why is that|how so)\b/,
+  ];
+  return followUpPatterns.some((pattern) => pattern.test(lower));
+}
+
+function significantTerms(value: string) {
+  const stopWords = new Set([
+    "define", "explain", "simple", "words", "please", "can", "you", "this", "that", "what", "why", "how",
+    "the", "and", "with", "from", "into", "about", "again", "more", "example", "examples", "tell", "me",
+  ]);
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 4 && !stopWords.has(term))
+    .slice(0, 8);
+}
+
+function getPreviousStudyContext(history: CoachMessage[]) {
+  const previousUser = [...history].reverse().find((message) => message.role === "user" && message.content.trim());
+  const previousCoach = [...history].reverse().find((message) => message.role === "coach" && message.content.trim());
+  const previousQuestion = previousUser?.content.trim() || "";
+  const previousAnswer = previousCoach?.content.trim() || "";
+  return {
+    previousQuestion,
+    previousAnswer,
+    anchorTerms: significantTerms(`${previousQuestion} ${previousAnswer}`),
+  };
+}
+
+function buildGroundedTutorMessage(prompt: string, history: CoachMessage[], topicLabel: string, chapterLabel: string) {
+  const previous = getPreviousStudyContext(history);
+  const followUp = isFollowUpPrompt(prompt) && Boolean(previous.previousQuestion || previous.previousAnswer);
+
+  if (!followUp) {
+    return {
+      message: prompt,
+      isFollowUp: false,
+      previousQuestion: previous.previousQuestion,
+      previousAnswer: previous.previousAnswer,
+      anchorTerms: significantTerms(prompt),
+    };
+  }
+
+  return {
+    message: [
+      "The student is asking a follow-up. Preserve the previous topic and do not switch topics.",
+      `Current follow-up: ${prompt}`,
+      previous.previousQuestion ? `Previous user question: ${previous.previousQuestion}` : "",
+      previous.previousAnswer ? `Previous tutor answer: ${previous.previousAnswer.slice(0, 1400)}` : "",
+      `Selected chapter/topic: ${chapterLabel} / ${topicLabel}`,
+      "Answer the follow-up only from retrieved study material. If retrieval does not support the previous topic, use the required not-found message.",
+    ].filter(Boolean).join("\n"),
+    isFollowUp: true,
+    previousQuestion: previous.previousQuestion,
+    previousAnswer: previous.previousAnswer,
+    anchorTerms: previous.anchorTerms,
+  };
+}
+
+function answerDriftedFromFollowUp(answer: string, anchorTerms: string[]) {
+  if (!answer || !anchorTerms.length || answer === MATERIAL_NOT_FOUND_MESSAGE) return false;
+  const lower = answer.toLowerCase();
+  const hasAnchor = anchorTerms.some((term) => lower.includes(term));
+  if (hasAnchor) return false;
+
+  const knownFallbackTopicWords = [
+    "matter", "solid", "liquid", "gas", "states of matter", "mass", "volume",
+    "alkane", "alkene", "alkyne", "hydrocarbon", "aromatic",
+  ];
+  return knownFallbackTopicWords.some((term) => lower.includes(term));
+}
+
+function normalizeCorrectOption(correctValue: unknown, options: string[]) {
+  const correct = String(correctValue || "").trim();
+  const letter = correct.slice(0, 1).toUpperCase();
+  if (/^[A-D]$/.test(letter)) return letter;
+  const optionIndex = options.findIndex((option) => option.trim().toLowerCase() === correct.toLowerCase());
+  return optionIndex >= 0 ? String.fromCharCode(65 + optionIndex) : "";
+}
+
+function normalizeExamQuestion(raw: unknown, index: number, fallbackSource: string): ExamQuestion | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  const question = String(record.question || record.text || "").trim();
+  const options = Array.isArray(record.options)
+    ? record.options.map((option) => String(option || "").trim()).filter(Boolean).slice(0, 4)
+    : [];
+  const correct = normalizeCorrectOption(record.correct ?? record.correct_answer ?? record.answer, options);
+  const explanation = String(record.explanation || record.ai_explanation || "").trim();
+  const source = String(record.source || record.reference || record.topic || record.section_id || fallbackSource || "").trim();
+
+  if (!question || options.length !== 4 || !correct || !explanation) return null;
+  if (isBackendFailureText(question) || options.some((option) => isBackendFailureText(option)) || isBackendFailureText(explanation)) return null;
+
+  return {
+    id: String(record.id || `Q${index + 1}`),
+    question,
+    options,
+    correct,
+    explanation,
+    source,
+  };
+}
+
+function normalizeProbableQuestion(raw: unknown, index: number, fallbackSource: string): ProbableQuestion | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  const question = String(record.question || record.text || "").trim();
+  if (!question || isBackendFailureText(question)) return null;
+  return {
+    id: String(record.id || `P${index + 1}`),
+    marks: Number(record.marks || (index < 2 ? 3 : 5)),
+    question,
+    source: String(record.source || record.reference || record.topic || record.section_id || fallbackSource || "").trim(),
+  };
+}
+
 function isUsableArtifactResponse(data: unknown): data is StudyArtifactResponse {
   if (!data || typeof data !== "object") return false;
   const response = data as StudyArtifactResponse;
   return Array.isArray(response.artifacts) && response.artifacts.some((item) => artifactHasContent(item));
-}
-
-function isUsableExamQuestion(question: ExamQuestion) {
-  return Boolean(question.question?.trim())
-    && Array.isArray(question.options)
-    && question.options.length >= 4
-    && question.options.every((option) => !isBackendFailureText(option))
-    && /^[A-D]$/.test(String(question.correct || "").trim().toUpperCase());
-}
-
-function isUsableProbableQuestion(question: ProbableQuestion) {
-  return Boolean(question.question?.trim()) && !isBackendFailureText(question.question);
 }
 
 function hasAny(value: string, words: string[]) {
@@ -995,6 +549,7 @@ function inferMentorProfile(prompt: string, history: CoachMessage[]): MentorProf
 
 function buildMentorDirective(profile: MentorProfile) {
   return [
+    DATA_GROUNDED_TUTOR_GUARDRAIL,
     "Act as a world-class private school tutor, not a static chatbot.",
     `Detected intent: ${profile.intent}. Student level: ${profile.level}. Emotional state: ${profile.emotion}.`,
     `Use this style: ${profile.answerStyle}. Learning speed: ${profile.speed}.`,
@@ -1231,55 +786,60 @@ function normalizeAnswerPayload(value: string) {
   return payload;
 }
 
-function renderInlineChemistry(value: string) {
-  const elementPattern = [
-    "He", "Li", "Be", "Ne", "Na", "Mg", "Al", "Si", "Cl", "Ar", "Ca", "Sc", "Ti", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-    "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb",
-    "Te", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf",
-    "Ta", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "Np", "Pu",
-    "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds", "Rg", "Nh", "Fl", "Mc",
-    "Lv", "Ts", "Og", "H", "B", "C", "N", "O", "F", "P", "S", "K", "V", "Y", "I", "W", "U",
-  ].join("|");
-  const subscriptPattern = "(?:\\d*n(?:[+-]\\d+)?|n|\\d+|[₀₁₂₃₄₅₆₇₈₉ₙ₊₋]+)";
-  const atomPattern = `(?:${elementPattern})(?:${subscriptPattern})?`;
-  const normalizeSubscriptText = (text: string) => {
-    const map: Record<string, string> = {
-      "₀": "0",
-      "₁": "1",
-      "₂": "2",
-      "₃": "3",
-      "₄": "4",
-      "₅": "5",
-      "₆": "6",
-      "₇": "7",
-      "₈": "8",
-      "₉": "9",
-      "ₙ": "n",
-      "₊": "+",
-      "₋": "-",
-    };
-    return text.replace(/[₀₁₂₃₄₅₆₇₈₉ₙ₊₋]/g, (char) => map[char] || char);
-  };
+const CHEMICAL_ELEMENTS = new Set([
+  "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
+  "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr",
+  "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba",
+  "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",
+  "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U",
+  "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt",
+  "Ds", "Rg", "Nh", "Fl", "Mc", "Lv", "Ts", "Og",
+]);
 
-  const tokenRegex = new RegExp(
-    `(sp\\d+|[a-zA-Z]\\^-?\\d+|(?:${atomPattern}){2,}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${elementPattern})${subscriptPattern}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${elementPattern})(?:\\^[+-]?\\d+|\\^[+-]))`,
-    "g",
-  );
+const CHEMICAL_ELEMENT_PATTERN = Array.from(CHEMICAL_ELEMENTS).sort((left, right) => right.length - left.length).join("|");
+
+const SUBSCRIPT_TEXT: Record<string, string> = {
+  "\u2080": "0",
+  "\u2081": "1",
+  "\u2082": "2",
+  "\u2083": "3",
+  "\u2084": "4",
+  "\u2085": "5",
+  "\u2086": "6",
+  "\u2087": "7",
+  "\u2088": "8",
+  "\u2089": "9",
+  "\u2099": "n",
+  "\u208A": "+",
+  "\u208B": "-",
+};
+
+function normalizeSubscriptGlyphs(value: string) {
+  return value.replace(/[\u2080-\u2089\u2099\u208A\u208B]/g, (char) => SUBSCRIPT_TEXT[char] || char);
+}
+
+function renderInlineChemistry(value: string) {
+  const subscriptPattern = "(?:\\d*n(?:[+-]\\d+)?|n|\\d+|[\\u2080-\\u2089\\u2099\\u208A\\u208B]+)";
+  const atomPattern = `(?:${CHEMICAL_ELEMENT_PATTERN})(?:${subscriptPattern})?`;
+  const formulaCandidate = `sp\\d+|[a-zA-Z]\\^-?\\d+|(?:${atomPattern}){2,}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${CHEMICAL_ELEMENT_PATTERN})${subscriptPattern}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${CHEMICAL_ELEMENT_PATTERN})(?:\\^[+-]?\\d+|\\^[+-])`;
+  const tokenRegex = new RegExp(`(?<![A-Za-z])(${formulaCandidate})(?![A-Za-z])`, "g");
+  const atomRegex = new RegExp(`^(${CHEMICAL_ELEMENT_PATTERN})(\\d*n(?:[+-]\\d+)?|n|\\d+)?`);
   const pieces = value.split(tokenRegex);
-  const atomRegex = new RegExp(`(${elementPattern})(${subscriptPattern})?`, "g");
 
   return pieces.map((piece, index) => {
     if (!piece) return null;
-    const sp = piece.match(/^sp(\d+)$/);
+    const normalizedPiece = normalizeSubscriptGlyphs(piece);
+
+    const sp = normalizedPiece.match(/^sp(\d+)$/);
     if (sp) {
       return (
-        <span key={index}>
+        <span key={index} className="study-formula-token">
           sp<sup>{sp[1]}</sup>
         </span>
       );
     }
 
-    const variablePower = piece.match(/^([a-zA-Z])\^(-?\d+)$/);
+    const variablePower = normalizedPiece.match(/^([a-zA-Z])\^(-?\d+)$/);
     if (variablePower) {
       return (
         <span key={index} className="study-formula-token">
@@ -1288,28 +848,69 @@ function renderInlineChemistry(value: string) {
       );
     }
 
-    const chargeMatch = piece.match(/^(.+)\^([+-]?\d+|[+-])$/);
-    const formula = chargeMatch ? chargeMatch[1] : piece;
+    const chargeMatch = normalizedPiece.match(/^(.+)\^([+-]?\d+|[+-])$/);
+    const formula = chargeMatch ? chargeMatch[1] : normalizedPiece;
     const charge = chargeMatch ? chargeMatch[2] : null;
-    const atomMatches = [...formula.matchAll(atomRegex)];
-    const matchedFormula = atomMatches.map((match) => match[0]).join("");
+    const atoms: Array<{ symbol: string; subscript: string }> = [];
+    let cursor = 0;
 
-    if (!atomMatches.length || matchedFormula !== formula) {
-      return <span key={index}>{piece}</span>;
+    while (cursor < formula.length) {
+      const match = formula.slice(cursor).match(atomRegex);
+      if (!match || !CHEMICAL_ELEMENTS.has(match[1])) break;
+      atoms.push({ symbol: match[1], subscript: match[2] || "" });
+      cursor += match[0].length;
+    }
+
+    const hasSubscript = atoms.some((atom) => atom.subscript);
+    const isFormula = cursor === formula.length && atoms.length > 0 && (atoms.length > 1 || hasSubscript || Boolean(charge));
+
+    if (!isFormula) {
+      return <span key={index}>{normalizedPiece}</span>;
     }
 
     return (
       <span key={index} className="study-formula-token">
-        {atomMatches.map((match, atomIndex) => (
+        {atoms.map((atom, atomIndex) => (
           <span key={`${index}-${atomIndex}`}>
-            {match[1]}
-            {match[2] ? <sub>{normalizeSubscriptText(match[2])}</sub> : null}
+            {atom.symbol}
+            {atom.subscript ? <sub>{atom.subscript}</sub> : null}
           </span>
         ))}
         {charge ? <sup>{charge}</sup> : null}
       </span>
     );
   });
+}
+
+function readableArtifactText(value?: string) {
+  if (!value) return "";
+  const normalized = normalizeSubscriptGlyphs(value).replace(/\s+/g, " ").trim();
+  const letters = normalized.match(/[A-Za-z]/g) || [];
+  const uppercaseLetters = letters.filter((letter) => letter === letter.toUpperCase() && letter !== letter.toLowerCase()).length;
+  const lowercaseLetters = letters.length - uppercaseLetters;
+  const readsLikeShouting = letters.length > 3 && uppercaseLetters > lowercaseLetters * 1.7;
+  const preservedAcronyms = new Set(["DNA", "RNA", "ATP", "IUPAC", "MCQ"]);
+
+  if (readsLikeShouting) {
+    const softened = normalized.replace(/\b[A-Z][A-Z-]{1,}\b/g, (word) => {
+      if (preservedAcronyms.has(word)) return word;
+      return word.toLowerCase();
+    });
+
+    return softened.replace(/(^|[.!?]\s+)([a-z])/g, (_, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+  }
+
+  if (
+    normalized.length > 3 &&
+    !/[a-z]/.test(normalized) &&
+    /[A-Z]/.test(normalized) &&
+    !/[0-9=]/.test(normalized)
+  ) {
+    const lowered = normalized.toLowerCase();
+    return lowered.replace(/(^|[.!?]\s+)([a-z])/g, (_, prefix: string, letter: string) => `${prefix}${letter.toUpperCase()}`);
+  }
+
+  return normalized;
 }
 
 function CoachAnswer({ value, streaming = false }: { value: string; streaming?: boolean }) {
@@ -1321,7 +922,13 @@ function CoachAnswer({ value, streaming = false }: { value: string; streaming?: 
     <div className="study-answer-flow">
       {blocks.map((block, blockIndex) => {
         const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-        const heading = lines[0]?.endsWith(":") && lines[0].length <= 72 ? lines[0].replace(/:$/, "") : null;
+        const firstLine = lines[0] || "";
+        const markdownHeading = firstLine.match(/^#{1,6}\s+(.*)$/);
+        const heading = markdownHeading
+          ? markdownHeading[1]
+          : firstLine.endsWith(":") && firstLine.length <= 72
+            ? firstLine.replace(/:$/, "")
+            : null;
         const body = heading ? lines.slice(1) : lines;
 
         return (
@@ -1338,7 +945,7 @@ function CoachAnswer({ value, streaming = false }: { value: string; streaming?: 
                     <div key={lineIndex} className="study-answer-list-item">
                       <span aria-hidden="true">-</span>
                       <p className="min-w-0">
-                        {renderInlineChemistry(bullet[1])}
+                        {renderInlineChemistry(bullet[1].replace(/^#{1,6}\s+/, ""))}
                         {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
                       </p>
                     </div>
@@ -1346,7 +953,7 @@ function CoachAnswer({ value, streaming = false }: { value: string; streaming?: 
                 }
                 return (
                   <p key={lineIndex}>
-                    {renderInlineChemistry(line)}
+                    {renderInlineChemistry(line.replace(/^#{1,6}\s+/, ""))}
                     {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
                   </p>
                 );
@@ -1378,6 +985,26 @@ function ArtifactLoadingState() {
   );
 }
 
+function RevisionLoadingState({ title }: { title: string }) {
+  return (
+    <div className="study-artifact-loading" role="status" aria-live="polite">
+      <div className="flex items-center gap-3">
+        <span className="study-mini-pulse" />
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Preparing {title.toLowerCase()}</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Turning the selected topic into clean, readable revision notes.</p>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3">
+        <span className="polished-skeleton h-3 w-5/6 rounded-full" />
+        <span className="polished-skeleton h-3 w-3/4 rounded-full" />
+        <span className="polished-skeleton h-3 w-2/3 rounded-full" />
+        <span className="polished-skeleton h-20 rounded-[1.4rem]" />
+      </div>
+    </div>
+  );
+}
+
 function ConceptMapArtifact({ artifact }: { artifact: StudyArtifact }) {
   const nodes = artifact.nodes || [];
   const core = nodes.find((node) => node.kind === "core") || nodes[0];
@@ -1390,19 +1017,24 @@ function ConceptMapArtifact({ artifact }: { artifact: StudyArtifact }) {
 
   return (
     <div className="study-concept-map">
-      <div className="study-concept-core">
-        <span className="agentify-muted-label">Core idea</span>
-        <h3>{renderInlineChemistry(core.label)}</h3>
-        {core.description ? <p>{renderInlineChemistry(core.description)}</p> : null}
-      </div>
-      <div className="study-concept-node-grid">
-        {relatedNodes.map((node) => (
-          <article key={node.id} className={`study-concept-node is-${node.kind || "property"}`}>
-            <span>{node.kind || "link"}</span>
-            <h4>{renderInlineChemistry(node.label)}</h4>
-            {node.description ? <p>{renderInlineChemistry(node.description)}</p> : null}
-          </article>
-        ))}
+      <div className="study-concept-stage">
+        <div className="study-concept-core">
+          <span className="agentify-muted-label">Core idea</span>
+          <h3>{renderInlineChemistry(readableArtifactText(core.label))}</h3>
+          {core.description ? <p>{renderInlineChemistry(readableArtifactText(core.description))}</p> : null}
+        </div>
+        <div className="study-concept-node-grid">
+          {relatedNodes.map((node, index) => (
+            <article key={node.id} className={`study-concept-node is-${node.kind || "property"}`}>
+              <div className="study-node-topline">
+                <span className="study-node-kind">{readableArtifactText(node.kind || "link")}</span>
+                <span className="study-node-index">{String(index + 1).padStart(2, "0")}</span>
+              </div>
+              <h4>{renderInlineChemistry(readableArtifactText(node.label))}</h4>
+              {node.description ? <p>{renderInlineChemistry(readableArtifactText(node.description))}</p> : null}
+            </article>
+          ))}
+        </div>
       </div>
       {edges.length ? (
         <div className="study-artifact-routes">
@@ -1420,29 +1052,45 @@ function ConceptMapArtifact({ artifact }: { artifact: StudyArtifact }) {
 function FlipCardsArtifact({ artifact }: { artifact: StudyArtifact }) {
   const [openCards, setOpenCards] = useState<Record<number, boolean>>({});
   const cards = artifact.cards || [];
+  const openedCount = Object.values(openCards).filter(Boolean).length;
+  const progress = cards.length ? Math.round((openedCount / cards.length) * 100) : 0;
 
   if (!cards.length) {
     return <ArtifactEmptyNote detail={artifact.empty_note || "No flash cards are available for this topic yet."} />;
   }
 
   return (
-    <div className="study-flip-grid">
-      {cards.map((card, index) => {
-        const open = Boolean(openCards[index]);
-        return (
-          <button
-            key={`${card.front}-${index}`}
-            type="button"
-            aria-pressed={open}
-            onClick={() => setOpenCards((current) => ({ ...current, [index]: !current[index] }))}
-            className={`study-flip-card ${open ? "is-open" : ""}`}
-          >
-            <span className="study-flip-tag">{card.tag || "recall"}</span>
-            <span className="study-flip-front">{renderInlineChemistry(card.front)}</span>
-            <span className="study-flip-back">{renderInlineChemistry(open ? card.back : "Tap to reveal the answer")}</span>
-          </button>
-        );
-      })}
+    <div className="study-flip-deck">
+      <div className="study-artifact-progress">
+        <div>
+          <span className="agentify-muted-label">Recall deck</span>
+          <strong>{openedCount}/{cards.length} revealed</strong>
+        </div>
+        <div className="study-artifact-progress-bar" aria-hidden="true">
+          <span style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+      <div className="study-flip-grid">
+        {cards.map((card, index) => {
+          const open = Boolean(openCards[index]);
+          return (
+            <button
+              key={`${card.front}-${index}`}
+              type="button"
+              aria-pressed={open}
+              onClick={() => setOpenCards((current) => ({ ...current, [index]: !current[index] }))}
+              className={`study-flip-card ${open ? "is-open" : ""}`}
+            >
+            <span className="study-flip-card-head">
+                <span className="study-flip-tag">{readableArtifactText(card.tag || "recall")}</span>
+                <span>{index + 1}/{cards.length}</span>
+              </span>
+              <span className="study-flip-front">{renderInlineChemistry(readableArtifactText(card.front))}</span>
+              <span className="study-flip-back">{renderInlineChemistry(readableArtifactText(open ? card.back : "Tap to reveal the answer"))}</span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1462,10 +1110,22 @@ function FormulaLabArtifact({ artifact }: { artifact: StudyArtifact }) {
 
   return (
     <div className="study-formula-lab">
-      <div className="grid gap-3">
+      <div className="study-formula-lab-head">
+        <span className="study-artifact-icon">
+          <AppIcon name="analytics" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Formula board</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Scan the pattern, variables, and shortcut hint before using the calculator.</p>
+        </div>
+      </div>
+      <div className="study-formula-grid">
         {formulas.map((formula, index) => (
           <article key={`${formula.formula}-${index}`} className="study-formula-card">
-            <span className="agentify-muted-label">{renderInlineChemistry(formula.label)}</span>
+            <div className="flex items-start justify-between gap-3">
+              <span className="agentify-muted-label">{renderInlineChemistry(formula.label)}</span>
+              <span className="study-node-index">{String(index + 1).padStart(2, "0")}</span>
+            </div>
             <p className="study-formula-expression">{renderInlineChemistry(formula.formula)}</p>
             {formula.variables?.length ? (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -1513,20 +1173,31 @@ function MistakeCardsArtifact({ artifact }: { artifact: StudyArtifact }) {
   }
 
   return (
-    <div className="study-mistake-list">
-      {mistakes.map((item, index) => (
-        <article key={`${item.mistake}-${index}`} className="study-mistake-card">
-          <div className="flex items-start justify-between gap-3">
-            <span className="agentify-muted-label">Trap {index + 1}</span>
-            {item.frequency ? <span className="study-frequency-chip">{item.frequency}</span> : null}
-          </div>
-          <p className="mt-3 font-semibold leading-6 text-slate-900">{renderInlineChemistry(item.mistake)}</p>
-          <div className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/8 p-3 text-sm leading-6 text-slate-600">
-            <span className="font-bold text-emerald-700">Correct idea: </span>
-            {renderInlineChemistry(item.correction)}
-          </div>
-        </article>
-      ))}
+    <div className="study-mistake-stack">
+      <div className="study-mistake-banner">
+        <span className="study-artifact-icon">
+          <AppIcon name="check" />
+        </span>
+        <div>
+          <p className="text-sm font-semibold text-slate-900">Mistake shield</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">These are the traps to check before an exam answer is final.</p>
+        </div>
+      </div>
+      <div className="study-mistake-list">
+        {mistakes.map((item, index) => (
+          <article key={`${item.mistake}-${index}`} className="study-mistake-card">
+            <div className="flex items-start justify-between gap-3">
+              <span className="agentify-muted-label">Trap {index + 1}</span>
+              {item.frequency ? <span className="study-frequency-chip">{item.frequency}</span> : null}
+            </div>
+            <p className="mt-3 font-semibold leading-6 text-slate-900">{renderInlineChemistry(readableArtifactText(item.mistake))}</p>
+            <div className="mt-3 rounded-2xl border border-emerald-400/15 bg-emerald-400/8 p-3 text-sm leading-6 text-slate-600">
+              <span className="font-bold text-emerald-700">Correct idea: </span>
+              {renderInlineChemistry(readableArtifactText(item.correction))}
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1552,6 +1223,11 @@ function ArtifactViewer({
   const availableTabs = ARTIFACT_TABS.filter((tab) => getArtifactByType(response, tab.id));
   const selectedTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : availableTabs[0]?.id || "concept_map";
   const artifact = getArtifactByType(response, selectedTab);
+  const mapCount = getArtifactByType(response, "concept_map")?.nodes?.length || 0;
+  const cardCount = getArtifactByType(response, "flip_cards")?.cards?.length || 0;
+  const formulaCount = getArtifactByType(response, "formula_lab")?.formulas?.length || 0;
+  const mistakeCount = getArtifactByType(response, "mistake_cards")?.mistakes?.length || 0;
+  const activeLabel = ARTIFACT_TABS.find((tab) => tab.id === selectedTab)?.label || "Artifact";
 
   if (!artifact) {
     return <ArtifactEmptyNote detail="Artifact data could not be prepared for this topic." />;
@@ -1559,16 +1235,41 @@ function ArtifactViewer({
 
   return (
     <div className="study-artifact-viewer">
-      <div className="rounded-[1.35rem] border border-slate-200/70 bg-white/58 p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#0E7490]">{response.source.replace("_", " ")}</p>
-        <h3 className="mt-2 text-lg font-semibold tracking-tight text-slate-950">{renderInlineChemistry(response.title)}</h3>
-        {response.student_goal ? <p className="mt-2 text-xs leading-5 text-slate-500">{renderInlineChemistry(response.student_goal)}</p> : null}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="agentify-chip">{response.quality?.key_points || 0} key points</span>
-          <span className="agentify-chip">{response.quality?.formulas || 0} formulas</span>
-          <span className="agentify-chip">{response.quality?.mistakes || 0} traps</span>
+      <aside className="study-artifact-brief">
+        <div className="study-artifact-brief-head">
+          <span className="study-artifact-icon">
+            <AppIcon name="spark" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold capitalize tracking-normal text-slate-500">{readableArtifactText(response.source.replace("_", " "))}</p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-950">{renderInlineChemistry(readableArtifactText(response.title))}</h3>
+          </div>
         </div>
-      </div>
+        {response.student_goal ? <p className="mt-4 text-xs leading-5 text-slate-500">{renderInlineChemistry(readableArtifactText(response.student_goal))}</p> : null}
+        <div className="study-artifact-metrics">
+          <span>
+            <strong>{mapCount}</strong>
+            <small>nodes</small>
+          </span>
+          <span>
+            <strong>{cardCount}</strong>
+            <small>cards</small>
+          </span>
+          <span>
+            <strong>{formulaCount}</strong>
+            <small>formula</small>
+          </span>
+          <span>
+            <strong>{mistakeCount}</strong>
+            <small>traps</small>
+          </span>
+        </div>
+        <div className="study-artifact-checklist" aria-label="Artifact quality signals">
+          <span><AppIcon name="check" /> {response.quality?.key_points || 0} key points</span>
+          <span><AppIcon name="check" /> {response.quality?.formulas || 0} formulas</span>
+          <span><AppIcon name="check" /> {response.quality?.mistakes || 0} mistakes</span>
+        </div>
+      </aside>
 
       <div className="study-artifact-tabs" role="tablist" aria-label="Interactive artifact views">
         {availableTabs.map((tab) => (
@@ -1588,9 +1289,9 @@ function ArtifactViewer({
 
       <section className="study-artifact-stage">
         <div className="mb-4">
-          <p className="agentify-label">{artifact.type.replace("_", " ")}</p>
-          <h3 className="mt-1 text-xl font-semibold text-slate-950">{renderInlineChemistry(artifact.title)}</h3>
-          {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{renderInlineChemistry(artifact.subtitle)}</p> : null}
+          <p className="agentify-label">{activeLabel} workspace</p>
+          <h3 className="mt-1 text-xl font-semibold text-slate-950">{renderInlineChemistry(readableArtifactText(artifact.title))}</h3>
+          {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{renderInlineChemistry(readableArtifactText(artifact.subtitle))}</p> : null}
         </div>
         {artifact.type === "concept_map" ? <ConceptMapArtifact artifact={artifact} /> : null}
         {artifact.type === "flip_cards" ? <FlipCardsArtifact artifact={artifact} /> : null}
@@ -1702,7 +1403,7 @@ function AgentActivitySummary({
     stages[stages.length - 1];
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="w-full">
       <button
         type="button"
         onClick={onToggle}
@@ -1757,8 +1458,8 @@ function StarterPromptCard({
 function StudentPromptCard({ content, timestamp }: { content: string; timestamp: string }) {
   return (
     <div className="flex justify-end">
-      <article className="max-w-[760px] rounded-[1.55rem] rounded-tr-md bg-[linear-gradient(135deg,#0F172A,#0E7490)] px-5 py-4 text-white shadow-[0_20px_54px_rgba(14,116,144,0.20)]">
-        <div className="mb-2 flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/66">
+      <article className="study-user-message max-w-[760px] rounded-[1.55rem] rounded-tr-md bg-[linear-gradient(135deg,#0F172A,#0E7490)] px-5 py-4 text-white shadow-[0_20px_54px_rgba(14,116,144,0.20)]">
+        <div className="study-user-message-meta mb-2 flex items-center justify-end gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/66">
           <span>You</span>
           {timestamp ? <span>{timestamp}</span> : null}
         </div>
@@ -1891,13 +1592,13 @@ function TutorResponseCard({
 
   return (
     <div className="flex justify-start">
-      <div className="grid w-full max-w-5xl grid-cols-[40px_minmax(0,1fr)] gap-3 sm:grid-cols-[44px_minmax(0,1fr)]">
+      <div className="study-message-row grid w-full grid-cols-[40px_minmax(0,1fr)] gap-3 sm:grid-cols-[44px_minmax(0,1fr)]">
         <div className="study-message-avatar flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)] sm:h-11 sm:w-11">
           {coachName[0]}
         </div>
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
-            <p className="font-semibold tracking-tight text-slate-950">{coachName}</p>
+            <p className="font-semibold text-slate-950">{coachName}</p>
             <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.15em] text-emerald-600">
               Tutor
             </span>
@@ -2034,7 +1735,7 @@ export default function StudyPage() {
   const [artifactLoading, setArtifactLoading] = useState(false);
   const [artifactError, setArtifactError] = useState("");
   const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("concept_map");
-  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("summary");
+  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("artifact");
   const [activeExamPanel, setActiveExamPanel] = useState<ExamPanel>("mcq");
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
@@ -2100,6 +1801,7 @@ export default function StudyPage() {
   useEffect(() => {
     setRevisionContent({ summary: "", explain: "", keypoints: "" });
     setRevisionError("");
+    setActiveRevisionPanel("artifact");
     setArtifact(null);
     setArtifactError("");
     setActiveArtifactTab("concept_map");
@@ -2268,7 +1970,7 @@ export default function StudyPage() {
     const answer = normalizeAnswerPayload(raw);
     if (answer) {
       const safeAnswer = isBackendFailureText(answer)
-        ? "I could not get a clean tutor response from the backend. Please try again in a moment."
+        ? MATERIAL_NOT_FOUND_MESSAGE
         : answer;
       updateLastCoachMessage(safeAnswer);
       setShowPipeline(false);
@@ -2288,6 +1990,7 @@ export default function StudyPage() {
         ? messages.slice(0, -1)
         : messages;
     const adaptiveProfile = inferMentorProfile(prompt, contextMessages);
+    const groundedPrompt = buildGroundedTutorMessage(prompt, contextMessages, selectedTopic.label, selectedChapter.label);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -2324,10 +2027,21 @@ export default function StudyPage() {
         body: JSON.stringify({
           user_id: userId,
           message: prompt,
+          original_message: prompt,
+          grounding_context_prompt: groundedPrompt.message,
           mode: "coach",
           intent: adaptiveProfile.intent,
           session_id: `coach-${userId}`,
           mentor_directive: buildMentorDirective(adaptiveProfile),
+          system_guardrail: DATA_GROUNDED_TUTOR_GUARDRAIL,
+          retrieval_required: true,
+          strict_grounding: true,
+          fallback_to_general_knowledge: false,
+          required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
+          subject: "Chemistry",
+          chapter: selectedChapter.label,
+          topic: selectedTopic.label,
+          section_id: selectedTopicValue,
           student_state: {
             knowledge_level: adaptiveProfile.level,
             emotional_state: adaptiveProfile.emotion,
@@ -2342,9 +2056,18 @@ export default function StudyPage() {
             weak_signals: adaptiveProfile.weakSignals,
           },
           learning_context: {
-            scope: "open_tutor",
-            recent_messages: contextMessages.slice(-6),
+            scope: "selected_study_material_only",
+            selected_subject: "Chemistry",
+            selected_chapter: selectedChapter.label,
+            selected_topic: selectedTopic.label,
+            section_id: selectedTopicValue,
+            is_follow_up: groundedPrompt.isFollowUp,
+            previous_user_question: groundedPrompt.previousQuestion,
+            previous_ai_answer: groundedPrompt.previousAnswer,
+            anchor_terms: groundedPrompt.anchorTerms,
+            recent_messages: contextMessages.slice(-10),
             saved_conversations: conversations.length,
+            answer_policy: "Use retrieved study material only. If unsupported, return the required not-found response.",
           },
         }),
       });
@@ -2354,7 +2077,7 @@ export default function StudyPage() {
         const text = normalizeAnswerPayload(await res.text());
         finalAnswer = text && !isBackendFailureText(text)
           ? text
-          : "I could not read a clean tutor response. Please try again.";
+          : MATERIAL_NOT_FOUND_MESSAGE;
         updateLastCoachMessage(finalAnswer);
         return;
       }
@@ -2383,13 +2106,18 @@ export default function StudyPage() {
       }
 
       if (isBackendFailureText(finalAnswer)) {
-        finalAnswer = "I could not get a clean tutor response from the backend. Please try again in a moment.";
+        finalAnswer = MATERIAL_NOT_FOUND_MESSAGE;
+        updateLastCoachMessage(finalAnswer);
+      }
+
+      if (groundedPrompt.isFollowUp && answerDriftedFromFollowUp(finalAnswer, groundedPrompt.anchorTerms)) {
+        finalAnswer = MATERIAL_NOT_FOUND_MESSAGE;
         updateLastCoachMessage(finalAnswer);
       }
     } catch (caught) {
       if ((caught as Error).name !== "AbortError") {
-        setError("The tutor could not connect. Please try again.");
-        finalAnswer = "I could not connect to the tutor service. Please try again in a moment.";
+        setError("The tutor could not verify this against your study material.");
+        finalAnswer = MATERIAL_NOT_FOUND_MESSAGE;
         updateLastCoachMessage(finalAnswer);
       }
     } finally {
@@ -2507,8 +2235,7 @@ export default function StudyPage() {
     setActiveRevisionPanel(tool.id);
     setRevisionError("");
     setRevisionLoading((current) => ({ ...current, [tool.id]: true }));
-    const fallbackRevision = createFallbackRevision(selectedTopicValue, selectedTopic.label, tool.id);
-    setRevisionContent((current) => ({ ...current, [tool.id]: fallbackRevision }));
+    setRevisionContent((current) => ({ ...current, [tool.id]: "" }));
     try {
       const res = await fetch(`${backendURL}/section-ai`, {
         method: "POST",
@@ -2519,16 +2246,23 @@ export default function StudyPage() {
           session_id: `revision-${userId}-${selectedTopicValue}-${tool.id}`,
           mode: tool.mode,
           difficulty: "medium",
+          subject: "Chemistry",
+          chapter: selectedChapter.label,
+          topic: selectedTopic.label,
+          strict_grounding: true,
+          retrieval_required: true,
+          fallback_to_general_knowledge: false,
+          system_guardrail: DATA_GROUNDED_TUTOR_GUARDRAIL,
+          required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
         }),
       });
       if (!res.ok) throw new Error(`Revision failed: ${res.status}`);
       const data = await safeJsonResponse(res);
       const backendAnswer = getUsableBackendAnswer(data);
-      if (backendAnswer) {
-        setRevisionContent((current) => ({ ...current, [tool.id]: backendAnswer }));
-      }
+      setRevisionContent((current) => ({ ...current, [tool.id]: backendAnswer || MATERIAL_NOT_FOUND_MESSAGE }));
     } catch {
-      setRevisionError("");
+      setRevisionError(MATERIAL_NOT_FOUND_MESSAGE);
+      setRevisionContent((current) => ({ ...current, [tool.id]: MATERIAL_NOT_FOUND_MESSAGE }));
     } finally {
       setRevisionLoading((current) => ({ ...current, [tool.id]: false }));
     }
@@ -2539,9 +2273,8 @@ export default function StudyPage() {
     setMode("revision");
     setActiveRevisionPanel("artifact");
     setArtifactError("");
-    const fallbackArtifact = createFallbackArtifact(selectedTopicValue, selectedTopic.label);
-    setArtifact(fallbackArtifact);
-    setActiveArtifactTab(firstArtifactTab(fallbackArtifact));
+    setArtifact(null);
+    setActiveArtifactTab("concept_map");
     setArtifactLoading(true);
     try {
       const res = await fetch(`${backendURL}/artifacts/generate`, {
@@ -2550,7 +2283,14 @@ export default function StudyPage() {
         body: JSON.stringify({
           section_id: selectedTopicValue,
           topic: selectedTopic.label,
+          subject: "Chemistry",
+          chapter: selectedChapter.label,
           artifact_type: "auto",
+          strict_grounding: true,
+          retrieval_required: true,
+          fallback_to_general_knowledge: false,
+          system_guardrail: DATA_GROUNDED_TUTOR_GUARDRAIL,
+          required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
         }),
       });
       const data = await safeJsonResponse(res) as StudyArtifactResponse | { detail?: string } | null;
@@ -2561,9 +2301,11 @@ export default function StudyPage() {
         const nextArtifact = data as StudyArtifactResponse;
         setArtifact(nextArtifact);
         setActiveArtifactTab(firstArtifactTab(nextArtifact));
+      } else {
+        setArtifactError(MATERIAL_NOT_FOUND_MESSAGE);
       }
     } catch {
-      setArtifactError("");
+      setArtifactError(MATERIAL_NOT_FOUND_MESSAGE);
     } finally {
       setArtifactLoading(false);
     }
@@ -2577,9 +2319,8 @@ export default function StudyPage() {
     setExamError("");
     setExamSubmitted(false);
     setExamAnswers({});
-    const fallbackExam = createFallbackExamPack(selectedTopicValue, selectedTopic.label);
-    setExamQuestions(fallbackExam.questions);
-    setProbableQuestions(fallbackExam.probable);
+    setExamQuestions([]);
+    setProbableQuestions([]);
     try {
       const headers = await getAuthHeaders();
       const [mcqRes, probableRes] = await Promise.all([
@@ -2592,6 +2333,16 @@ export default function StudyPage() {
             session_id: `exam-${userId}-${selectedTopicValue}-${Date.now()}`,
             difficulty: "medium",
             count: 5,
+            subject: "Chemistry",
+            chapter: selectedChapter.label,
+            strict_grounding: true,
+            retrieval_required: true,
+            fallback_to_general_knowledge: false,
+            include_source: true,
+            require_four_options: true,
+            require_explanation: true,
+            system_guardrail: DATA_GROUNDED_TUTOR_GUARDRAIL,
+            required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
           }),
         }),
         fetch(`${backendURL}/generate-probable-questions`, {
@@ -2602,18 +2353,41 @@ export default function StudyPage() {
             section_id: selectedTopicValue,
             session_id: `probable-${userId}-${selectedTopicValue}-${Date.now()}`,
             difficulty: "medium",
+            subject: "Chemistry",
+            chapter: selectedChapter.label,
+            strict_grounding: true,
+            retrieval_required: true,
+            fallback_to_general_knowledge: false,
+            include_source: true,
+            system_guardrail: DATA_GROUNDED_TUTOR_GUARDRAIL,
+            required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
           }),
         }),
       ]);
       if (!mcqRes.ok || !probableRes.ok) throw new Error("Exam generation failed");
       const mcqData = await safeJsonResponse(mcqRes);
       const probableData = await safeJsonResponse(probableRes);
-      const nextQuestions = Array.isArray(mcqData?.questions) ? mcqData.questions.filter(isUsableExamQuestion) : [];
-      const nextProbable = Array.isArray(probableData?.questions) ? probableData.questions.filter(isUsableProbableQuestion) : [];
-      if (nextQuestions.length) setExamQuestions(nextQuestions);
-      if (nextProbable.length) setProbableQuestions(nextProbable);
+      const sourceLabel = `${selectedChapter.label} / ${selectedTopic.label}`;
+      const nextQuestions = Array.isArray(mcqData?.questions)
+        ? mcqData.questions.map((question: unknown, index: number) => normalizeExamQuestion(question, index, sourceLabel)).filter((question: ExamQuestion | null): question is ExamQuestion => Boolean(question))
+        : [];
+      const nextProbable = Array.isArray(probableData?.questions)
+        ? probableData.questions.map((question: unknown, index: number) => normalizeProbableQuestion(question, index, sourceLabel)).filter((question: ProbableQuestion | null): question is ProbableQuestion => Boolean(question))
+        : [];
+
+      if (nextQuestions.length < 5) {
+        setExamError("I could not generate enough grounded MCQs from your selected study material. Please upload or select the correct chapter/data.");
+        setExamQuestions([]);
+        setProbableQuestions([]);
+        return;
+      }
+
+      setExamQuestions(nextQuestions.slice(0, 5));
+      setProbableQuestions(nextProbable);
     } catch {
-      setExamError("");
+      setExamError("I could not generate grounded MCQs from your selected study material. Please upload or select the correct chapter/data.");
+      setExamQuestions([]);
+      setProbableQuestions([]);
     } finally {
       setExamLoading(false);
     }
@@ -2679,7 +2453,7 @@ export default function StudyPage() {
     const canSend = Boolean(input.trim()) || loadingAnswer;
 
     return (
-      <div className={isHero ? "study-hero-composer w-full" : "mx-auto w-full max-w-[58rem]"}>
+      <div className={isHero ? "study-hero-composer w-full" : "w-full"}>
         {!isHero ? (
           <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-400">
             <span className="truncate">
@@ -2775,15 +2549,15 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="study-lab-shell flex min-h-[calc(100svh-4.5rem)] w-full flex-col overflow-hidden border border-white/50 bg-white/70 backdrop-blur-2xl">
+    <div className="study-lab-shell flex h-full min-h-0 w-full flex-col overflow-hidden bg-white/70 backdrop-blur-2xl">
       <section className="study-lab-header border-b border-white/45 bg-white/64 px-3 py-2.5 backdrop-blur-2xl sm:px-5">
-        <div data-mode={mode} className="study-workspace-bar mx-auto flex w-full max-w-[104rem] flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div data-mode={mode} className="study-workspace-bar flex w-full flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
           <div className="study-workspace-identity flex min-w-0 items-center gap-3">
             <span className="study-workspace-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_42px_rgba(14,116,144,0.18)]">
               A
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight text-slate-950">
+              <p className="truncate text-sm font-semibold text-slate-950">
                 {mode === "coach" ? `AI Tutor with ${coachName}` : mode === "revision" ? "Revision Workspace" : mode === "exam" ? "Exam Workspace" : "Study History"}
               </p>
               <p className="truncate text-[11px] font-medium text-slate-500">
@@ -2804,7 +2578,12 @@ export default function StudyPage() {
                 label={item.label}
                 detail={item.detail}
                 icon={item.icon}
-                onClick={() => setMode(item.id)}
+                onClick={() => {
+                  setMode(item.id);
+                  if (item.id === "revision") {
+                    setActiveRevisionPanel("artifact");
+                  }
+                }}
               />
             ))}
           </div>
@@ -2869,13 +2648,13 @@ export default function StudyPage() {
       <section className="study-lab-main flex min-h-0 flex-1 flex-col">
         {mode === "coach" ? (
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6">
+            <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
               {messages.length === 0 ? (
-                <div className="study-empty-state study-chat-landing mx-auto flex min-h-[68svh] w-full max-w-[58rem] flex-col items-center justify-center text-center">
+                <div className="study-empty-state study-chat-landing flex min-h-[68svh] w-full flex-col items-center justify-center text-center">
                   <div className="study-chat-orb">
                     {coachName[0]}
                   </div>
-                  <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+                  <h2 className="mt-6 text-3xl font-semibold text-slate-950 sm:text-5xl">
                     What should we learn today?
                   </h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
@@ -2899,7 +2678,7 @@ export default function StudyPage() {
                   </div>
                 </div>
               ) : (
-                <div className="mx-auto w-full max-w-[60rem] space-y-6">
+                <div className="w-full space-y-6">
                   {messages.map((message, index) => {
                     const isLatestMessage = index === messages.length - 1;
 
@@ -2949,13 +2728,13 @@ export default function StudyPage() {
         ) : null}
 
         {mode === "revision" ? (
-          <div className="flex-1 overflow-y-auto p-3 sm:p-5">
-            <div className="study-focus-workspace mx-auto flex min-h-full max-w-[96rem] flex-col gap-4">
+          <div className="study-mode-fullscreen flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+            <div className="study-focus-workspace flex min-h-0 flex-1 flex-col gap-4">
               <div className="study-focus-toolbar rounded-[1.7rem] border border-white/60 bg-white/76 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Revision canvas</p>
-                    <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{selectedTopic.label}</h2>
+                    <h2 className="mt-1 text-2xl font-semibold text-slate-950">{selectedTopic.label}</h2>
                     <p className="mt-1 text-sm leading-6 text-slate-500">Open one focused workspace at a time so notes and artifacts have room to breathe.</p>
                   </div>
                   <div className="study-panel-tabs" role="tablist" aria-label="Revision workspaces">
@@ -2986,7 +2765,7 @@ export default function StudyPage() {
                 </div>
               </div>
 
-              <section className={`study-content-card study-focus-panel ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-[640px] flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl`}>
+              <section className={`study-content-card study-focus-panel ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-0 flex-1 flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl`}>
                 {activeRevisionTool ? (
                   <>
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -3009,8 +2788,10 @@ export default function StudyPage() {
                       </div>
                     </div>
 
-                    <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
-                      {revisionContent[activeRevisionTool.id] ? (
+                    <div className="study-scroll-pane mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                      {revisionLoading[activeRevisionTool.id] ? (
+                        <RevisionLoadingState title={activeRevisionTool.title} />
+                      ) : revisionContent[activeRevisionTool.id] ? (
                         <CoachAnswer value={revisionContent[activeRevisionTool.id]} />
                       ) : (
                         <EmptyState
@@ -3044,7 +2825,7 @@ export default function StudyPage() {
 
                     {artifactError ? <div className="mt-4"><AlertState message={artifactError} /></div> : null}
 
-                    <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                    <div className="study-scroll-pane study-artifact-scroll mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
                       {artifact ? (
                         <ArtifactViewer
                           response={artifact}
@@ -3065,18 +2846,18 @@ export default function StudyPage() {
                 )}
               </section>
             </div>
-            {revisionError ? <div className="mx-auto mt-4 max-w-[92rem]"><AlertState message={revisionError} /></div> : null}
+            {revisionError ? <div className="mt-4 w-full px-6"><AlertState message={revisionError} /></div> : null}
           </div>
         ) : null}
 
         {mode === "exam" ? (
-          <div className="flex-1 overflow-y-auto p-3 sm:p-5">
-            <div className="study-focus-workspace mx-auto flex min-h-full max-w-[96rem] flex-col gap-4">
+          <div className="study-mode-fullscreen flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+            <div className="study-focus-workspace flex min-h-0 flex-1 flex-col gap-4">
               <div className="study-focus-toolbar rounded-[1.7rem] border border-white/60 bg-white/76 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
                 <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Exam prep canvas</p>
-                    <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">{selectedTopic.label}</h2>
+                    <h2 className="mt-1 text-2xl font-semibold text-slate-950">{selectedTopic.label}</h2>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className="agentify-chip">Answered {answeredExamCount}/{examQuestions.length || 5}</span>
                       <span className="agentify-chip">{examSubmitted ? `Score ${examScore}/${examQuestions.length}` : `${progressPercent}% ready`}</span>
@@ -3104,7 +2885,7 @@ export default function StudyPage() {
                 </div>
               </div>
 
-              <section className="study-content-card study-focus-panel flex min-h-[640px] flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+              <section className="study-content-card study-focus-panel flex min-h-0 flex-1 flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{EXAM_TABS.find((tab) => tab.id === activeExamPanel)?.label}</p>
@@ -3140,7 +2921,7 @@ export default function StudyPage() {
 
                 {examError ? <div className="mt-4"><AlertState message={examError} /></div> : null}
 
-                <div className="mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                <div className="study-scroll-pane mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
                   {activeExamPanel === "mcq" ? (
                     examQuestions.length ? (
                       <>
@@ -3156,9 +2937,12 @@ export default function StudyPage() {
                                   </span>
                                   <div className="min-w-0 flex-1">
                                     <p className="text-base font-semibold leading-7 text-slate-900">{question.question}</p>
+                                    {question.source ? (
+                                      <p className="mt-2 text-xs font-semibold text-slate-500">Source: {question.source}</p>
+                                    ) : null}
                                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                                      {question.options.map((option) => {
-                                        const optionKey = option.trim().slice(0, 1).toUpperCase();
+                                      {question.options.map((option, optionIndex) => {
+                                        const optionKey = String.fromCharCode(65 + optionIndex);
                                         const isSelected = selected === optionKey;
                                         const isCorrectOption = examSubmitted && question.correct === optionKey;
                                         return (
@@ -3176,10 +2960,10 @@ export default function StudyPage() {
                                                 ? "border-emerald-300 bg-emerald-50 text-emerald-700"
                                                 : isSelected
                                                   ? "border-[#0E7490]/40 bg-[#0E7490]/10 text-[#0E7490]"
-                                                  : "border-slate-200 bg-white/75 text-slate-700 hover:border-[#0E7490]/30"
+                                                : "border-slate-200 bg-white/75 text-slate-700 hover:border-[#0E7490]/30"
                                             }`}
                                           >
-                                            {option}
+                                            <span className="font-bold">{optionKey}.</span> {option.replace(/^[A-D][.)]\s*/i, "")}
                                           </button>
                                         );
                                       })}
@@ -3235,6 +3019,7 @@ export default function StudyPage() {
                               {threeMarkQuestions.map((question) => (
                                 <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/74 p-4 text-sm leading-6 text-slate-700">
                                   {question.question}
+                                  {question.source ? <span className="mt-2 block text-xs font-semibold text-slate-500">Source: {question.source}</span> : null}
                                 </p>
                               ))}
                             </div>
@@ -3245,6 +3030,7 @@ export default function StudyPage() {
                               {fiveMarkQuestions.map((question) => (
                                 <p key={question.id} className="rounded-2xl border border-slate-200 bg-white/74 p-4 text-sm leading-6 text-slate-700">
                                   {question.question}
+                                  {question.source ? <span className="mt-2 block text-xs font-semibold text-slate-500">Source: {question.source}</span> : null}
                                 </p>
                               ))}
                             </div>
@@ -3270,6 +3056,7 @@ export default function StudyPage() {
                               <span className="agentify-chip">Try first</span>
                             </div>
                             <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{question.question}</p>
+                            {question.source ? <p className="mt-2 text-xs font-semibold text-slate-500">Source: {question.source}</p> : null}
                             <p className="mt-3 text-sm leading-6 text-slate-500">
                               Write your answer in rough work first. Then open MCQs or Review to compare with the options and explanation.
                             </p>
@@ -3308,6 +3095,7 @@ export default function StudyPage() {
                                   {correct ? "Correct" : "Needs review"}
                                 </p>
                                 <p className="mt-3 text-sm font-semibold leading-6 text-slate-900">{question.question}</p>
+                                {question.source ? <p className="mt-2 text-xs font-semibold text-slate-500">Source: {question.source}</p> : null}
                                 <p className="mt-3 text-sm leading-6 text-slate-700">
                                   Your answer: {selected}. Correct answer: {question.correct}.
                                 </p>
@@ -3334,9 +3122,9 @@ export default function StudyPage() {
         ) : null}
 
         {mode === "history" ? (
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-            <div className="mx-auto max-w-6xl">
-              <div className="study-content-card rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+          <div className="study-mode-fullscreen flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+            <div className="study-focus-workspace flex min-h-0 flex-1 flex-col gap-4">
+              <div className="study-focus-toolbar rounded-[1.7rem] border border-white/60 bg-white/76 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Conversation history</p>
@@ -3354,46 +3142,50 @@ export default function StudyPage() {
                     Start fresh chat
                   </IconButton>
                 </div>
-
-                <div className="mt-6 grid gap-3">
-                  {conversations.length ? (
-                    conversations.map((conversation) => (
-                      <button
-                        key={conversation.id}
-                        type="button"
-                        onClick={() => resumeConversation(conversation)}
-                        className="rounded-3xl border border-slate-200 bg-white/74 p-4 text-left transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="min-w-0">
-                            <p className="truncate text-base font-semibold text-slate-900">{conversation.title}</p>
-                            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
-                              {conversation.chapter} / {conversation.topic}
-                            </p>
-                          </div>
-                          <div className="flex gap-2 text-xs text-slate-500">
-                            <span>{conversation.messages.length} messages</span>
-                            <span>
-                              {new Date(conversation.updatedAt).toLocaleString([], {
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  ) : (
-                    <EmptyState
-                      icon="history"
-                      title="No study history yet"
-                      detail="Ask your first question in Coach mode. It will be saved here automatically."
-                    />
-                  )}
-                </div>
               </div>
+
+              <section className="study-content-card study-focus-panel flex min-h-0 flex-1 flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+                <div className="study-scroll-pane min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                  <div className="grid gap-3">
+                    {conversations.length ? (
+                      conversations.map((conversation) => (
+                        <button
+                          key={conversation.id}
+                          type="button"
+                          onClick={() => resumeConversation(conversation)}
+                          className="rounded-3xl border border-slate-200 bg-white/74 p-4 text-left transition hover:-translate-y-0.5 hover:border-[#0E7490]/25 hover:shadow-[0_18px_50px_rgba(15,23,42,0.08)]"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="truncate text-base font-semibold text-slate-900">{conversation.title}</p>
+                              <p className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
+                                {conversation.chapter} / {conversation.topic}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 text-xs text-slate-500">
+                              <span>{conversation.messages.length} messages</span>
+                              <span>
+                                {new Date(conversation.updatedAt).toLocaleString([], {
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <EmptyState
+                        icon="history"
+                        title="No study history yet"
+                        detail="Ask your first question in Coach mode. It will be saved here automatically."
+                      />
+                    )}
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         ) : null}
