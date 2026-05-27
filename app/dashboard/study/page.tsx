@@ -1745,11 +1745,11 @@ function StarterPromptCard({
     <button
       type="button"
       onClick={onClick}
-      className="group rounded-[1.7rem] border border-slate-200/80 bg-white/76 p-4 text-left shadow-[0_18px_45px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:border-[#0E7490]/28 hover:bg-white hover:shadow-[0_24px_70px_rgba(14,116,144,0.13)]"
+      title={detail}
+      className="study-starter-chip group inline-flex min-h-10 items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/70 px-4 py-2.5 text-left text-sm font-bold text-slate-700 shadow-[0_14px_36px_rgba(15,23,42,0.05)] transition duration-300 hover:-translate-y-0.5 hover:border-[#0E7490]/28 hover:bg-white hover:text-[#0E7490] hover:shadow-[0_22px_54px_rgba(14,116,144,0.11)]"
     >
-      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E7490]">{label}</span>
-      <span className="mt-3 block text-base font-black tracking-tight text-slate-950">{title}</span>
-      <span className="mt-2 block text-xs leading-5 text-slate-500">{detail}</span>
+      <span className="rounded-xl bg-[#0E7490]/10 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[#0E7490]">{label}</span>
+      <span>{title}</span>
     </button>
   );
 }
@@ -2669,6 +2669,99 @@ export default function StudyPage() {
     }
   };
 
+  const fillStarterPrompt = (prompt: string) => {
+    setInput(prompt);
+    window.setTimeout(() => inputRef.current?.focus(), 20);
+  };
+
+  const renderChatComposer = (variant: "hero" | "dock") => {
+    const isHero = variant === "hero";
+
+    return (
+      <div className={isHero ? "study-hero-composer w-full" : "mx-auto w-full max-w-[58rem]"}>
+        {!isHero ? (
+          <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-400">
+            <span className="truncate">
+              {loadingAnswer ? `${coachName} is responding...` : "Ask naturally. Enter to send, Shift+Enter for a new line."}
+            </span>
+            <span className="hidden shrink-0 sm:inline">
+              {speechSupported ? "Voice available" : "Text ready"}
+            </span>
+          </div>
+        ) : null}
+
+        <div className={`study-composer-card ${isHero ? "is-hero" : ""}`}>
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(event) => setInput(event.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={isHero ? 2 : 1}
+            placeholder={listening ? "Listening..." : isHero ? "Ask anything you want to learn..." : `Message ${coachName}...`}
+            className="study-textarea min-h-14 flex-1 resize-none bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:px-2"
+          />
+
+          <div className="study-composer-toolbar">
+            <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMode("revision")}
+                className="study-chat-pill"
+              >
+                <AppIcon name="book" className="h-3.5 w-3.5" />
+                <span>Revision</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("exam")}
+                className="study-chat-pill"
+              >
+                <AppIcon name="check" className="h-3.5 w-3.5" />
+                <span>Exam</span>
+              </button>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={listening ? stopVoiceInput : startVoiceInput}
+                disabled={!speechSupported || loadingAnswer}
+                title={listening ? "Stop voice input" : "Start voice input"}
+                className={`agentify-action study-chat-icon-button ${
+                  listening
+                    ? "bg-emerald-500 text-white"
+                    : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
+                } disabled:cursor-not-allowed disabled:opacity-45`}
+              >
+                <AppIcon name={listening ? "x" : "mic"} />
+              </button>
+              <button
+                type="button"
+                onClick={loadingAnswer ? stopGenerating : () => void sendMessage()}
+                disabled={!loadingAnswer && !input.trim()}
+                title={loadingAnswer ? "Stop response" : "Send message"}
+                className={`agentify-action study-chat-send-button disabled:cursor-not-allowed disabled:opacity-45 ${
+                  loadingAnswer
+                    ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
+                    : "bg-slate-950 text-white hover:bg-[#0E7490]"
+                }`}
+              >
+                <AppIcon name={loadingAnswer ? "x" : "send"} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {!speechSupported && !isHero ? (
+          <p className="mt-2 text-xs text-slate-500">
+            Voice is available in browsers that support speech recognition and speech synthesis.
+          </p>
+        ) : null}
+        {error ? <div className="mt-2"><AlertState message={error} /></div> : null}
+      </div>
+    );
+  };
+
   const threeMarkQuestions = probableQuestions.filter((question) => question.marks !== 5);
   const fiveMarkQuestions = probableQuestions.filter((question) => question.marks === 5);
 
@@ -2775,59 +2868,35 @@ export default function StudyPage() {
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6">
               {messages.length === 0 ? (
-                <div className="study-empty-state mx-auto flex min-h-[58svh] max-w-[72rem] flex-col items-center justify-center text-center">
-                  <div className="study-coach-avatar flex h-14 w-14 items-center justify-center rounded-[1.2rem] bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-lg font-black text-white shadow-[0_18px_48px_rgba(14,116,144,0.22)]">
+                <div className="study-empty-state study-chat-landing mx-auto flex min-h-[68svh] w-full max-w-[58rem] flex-col items-center justify-center text-center">
+                  <div className="study-chat-orb">
                     {coachName[0]}
                   </div>
-                  <p className="mt-5 text-xs font-black uppercase tracking-[0.22em] text-[#0E7490]">
-                    Open AI tutor
-                  </p>
-                  <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                    What do you want to learn today?
+                  <h2 className="mt-6 text-3xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
+                    What should we learn today?
                   </h2>
-                  <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
-                    Hi {displayName.split(" ")[0]}, ask naturally across any subject, chapter, doubt, or follow-up. {coachName} will infer the topic and teach at your level.
+                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
+                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt, request a simple explanation, or prepare for an exam.
                   </p>
-                  <div className="mt-8 grid w-full gap-3 md:grid-cols-3">
+
+                  <div className="mt-8 w-full">
+                    {renderChatComposer("hero")}
+                  </div>
+
+                  <div className="mt-5 flex w-full flex-wrap justify-center gap-2">
                     {starterPrompts.map((starter) => (
                       <StarterPromptCard
                         key={starter.label}
                         label={starter.label}
                         title={starter.title}
                         detail={starter.detail}
-                        onClick={() => setInput(starter.prompt)}
+                        onClick={() => fillStarterPrompt(starter.prompt)}
                       />
                     ))}
                   </div>
-                  <div className="mt-5 flex flex-wrap justify-center gap-2">
-                    <IconButton
-                      label="Open revision tools"
-                      icon="book"
-                      onClick={() => setMode("revision")}
-                      className="min-h-9 rounded-full bg-white/70 px-4 py-2 text-xs"
-                    >
-                      Revision tools
-                    </IconButton>
-                    <IconButton
-                      label="Open exam practice"
-                      icon="check"
-                      onClick={() => setMode("exam")}
-                      className="min-h-9 rounded-full bg-white/70 px-4 py-2 text-xs"
-                    >
-                      Exam practice
-                    </IconButton>
-                    <IconButton
-                      label="Open study history"
-                      icon="history"
-                      onClick={() => setMode("history")}
-                      className="min-h-9 rounded-full bg-white/70 px-4 py-2 text-xs"
-                    >
-                      History ({conversations.length})
-                    </IconButton>
-                  </div>
                 </div>
               ) : (
-                <div className="mx-auto w-full max-w-[76rem] space-y-6">
+                <div className="mx-auto w-full max-w-[60rem] space-y-6">
                   {messages.map((message, index) => {
                     const isLatestMessage = index === messages.length - 1;
 
@@ -2868,66 +2937,11 @@ export default function StudyPage() {
               )}
             </div>
 
-            <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
-              <div className="mx-auto w-full max-w-[76rem]">
-                <div className="mb-2 flex items-center justify-between gap-3 px-1 text-xs text-slate-400">
-                  <span className="truncate">
-                    {loadingAnswer ? `${coachName} is responding...` : "Ask naturally. Enter to send, Shift+Enter for a new line."}
-                  </span>
-                  <span className="hidden shrink-0 sm:inline">
-                    {speechSupported ? "Voice available" : "Text ready"}
-                  </span>
-                </div>
-
-                <div className="rounded-[1.8rem] border border-slate-200 bg-white p-2 shadow-[0_22px_70px_rgba(15,23,42,0.10)]">
-                  <div className="flex items-end gap-2 sm:gap-3">
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={(event) => setInput(event.target.value)}
-                      onKeyDown={handleKeyDown}
-                      rows={1}
-                      placeholder={listening ? "Listening..." : `Message ${coachName}...`}
-                      className="study-textarea max-h-40 min-h-12 flex-1 resize-none rounded-2xl bg-transparent px-3 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                    />
-                    <button
-                      type="button"
-                      onClick={listening ? stopVoiceInput : startVoiceInput}
-                      disabled={!speechSupported || loadingAnswer}
-                      title={listening ? "Stop voice input" : "Start voice input"}
-                      className={`agentify-action inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
-                        listening
-                          ? "bg-emerald-500 text-white"
-                          : "border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490]"
-                      } disabled:cursor-not-allowed disabled:opacity-45`}
-                    >
-                      <AppIcon name={listening ? "x" : "mic"} />
-                      <span className="hidden sm:inline">{listening ? "Stop" : "Voice"}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={loadingAnswer ? stopGenerating : () => void sendMessage()}
-                      disabled={!loadingAnswer && !input.trim()}
-                      title={loadingAnswer ? "Stop response" : "Send message"}
-                      className={`agentify-action inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45 ${
-                        loadingAnswer
-                          ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
-                          : "bg-[#0E7490] text-white hover:bg-[#0B5F76]"
-                      }`}
-                    >
-                      <AppIcon name={loadingAnswer ? "x" : "send"} />
-                      <span>{loadingAnswer ? "Stop" : "Send"}</span>
-                    </button>
-                  </div>
-                </div>
-                {!speechSupported ? (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Voice is available in browsers that support speech recognition and speech synthesis.
-                  </p>
-                ) : null}
-                {error ? <div className="mt-2"><AlertState message={error} /></div> : null}
+            {messages.length ? (
+              <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
+                {renderChatComposer("dock")}
               </div>
-            </div>
+            ) : null}
           </div>
         ) : null}
 
