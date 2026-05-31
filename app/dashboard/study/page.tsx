@@ -2352,7 +2352,7 @@ export default function StudyPage() {
     setProbableQuestions([]);
     try {
       const headers = await getAuthHeaders();
-      const [mcqRes, probableRes] = await Promise.all([
+      const [mcqResult, probableResult] = await Promise.allSettled([
         apiFetch(`${backendURL}/generate-mcqs`, {
           method: "POST",
           headers,
@@ -2397,9 +2397,11 @@ export default function StudyPage() {
           }),
         }),
       ]);
-      if (!mcqRes.ok || !probableRes.ok) throw new Error("Exam generation failed");
+      const mcqRes = mcqResult.status === "fulfilled" ? mcqResult.value : null;
+      const probableRes = probableResult.status === "fulfilled" ? probableResult.value : null;
+      if (!mcqRes?.ok) throw new Error("MCQ generation failed");
       const mcqData = await safeJsonResponse(mcqRes);
-      const probableData = await safeJsonResponse(probableRes);
+      const probableData = probableRes?.ok ? await safeJsonResponse(probableRes) : null;
       const sourceLabel = `${selectedChapter.label} / ${selectedTopic.label}`;
       const nextQuestions = Array.isArray(mcqData?.questions)
         ? mcqData.questions.map((question: unknown, index: number) => normalizeExamQuestion(question, index, sourceLabel)).filter((question: ExamQuestion | null): question is ExamQuestion => Boolean(question))
@@ -2409,7 +2411,7 @@ export default function StudyPage() {
         : [];
 
       if (nextQuestions.length < 5) {
-        setExamError("I could not generate enough grounded MCQs from your selected study material. Please upload or select the correct chapter/data.");
+        setExamError(String(mcqData?.error || "The exam generator could not create a complete MCQ pack. Please try again."));
         setExamQuestions([]);
         setProbableQuestions([]);
         return;
@@ -2417,8 +2419,11 @@ export default function StudyPage() {
 
       setExamQuestions(nextQuestions.slice(0, 5));
       setProbableQuestions(nextProbable);
+      if (nextProbable.length < 5) {
+        setExamError("Your MCQ pack is ready. Probable questions could not be completed right now, so please regenerate when you want that section.");
+      }
     } catch {
-      setExamError("I could not generate grounded MCQs from your selected study material. Please upload or select the correct chapter/data.");
+      setExamError("The exam generator could not complete the request right now. Please try again.");
       setExamQuestions([]);
       setProbableQuestions([]);
     } finally {
