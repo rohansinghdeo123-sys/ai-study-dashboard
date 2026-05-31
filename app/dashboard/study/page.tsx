@@ -1770,19 +1770,19 @@ export default function StudyPage() {
         label: "Explain",
         title: "Explain a concept",
         detail: "Get a simple explanation with one clear example.",
-        prompt: "Teach me photosynthesis from the basics with one simple example.",
+        prompt: "Explain matter from the basics with one simple example.",
       },
       {
         label: "Doubt",
         title: "Solve a doubt",
         detail: "Ask any confusing question and get a step-by-step answer.",
-        prompt: "I am confused about why objects fall at the same acceleration. Explain it simply.",
+        prompt: "Why are alkenes more reactive than alkanes? Explain it simply.",
       },
       {
         label: "Practice",
         title: "Test me",
         detail: "Try one question, answer it, and get feedback.",
-        prompt: "Ask me one intelligent practice question on quadratic equations, wait for my answer, then evaluate it.",
+        prompt: "Ask me one intelligent practice question about states of matter, wait for my answer, then evaluate it.",
       },
     ],
     [],
@@ -1990,7 +1990,7 @@ export default function StudyPage() {
         ? messages.slice(0, -1)
         : messages;
     const adaptiveProfile = inferMentorProfile(prompt, contextMessages);
-    const groundedPrompt = buildGroundedTutorMessage(prompt, contextMessages, selectedTopic.label, selectedChapter.label);
+    const groundedPrompt = buildGroundedTutorMessage(prompt, contextMessages, "Detected from study data", "Open coach");
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -2039,9 +2039,9 @@ export default function StudyPage() {
           fallback_to_general_knowledge: false,
           required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
           subject: "Chemistry",
-          chapter: selectedChapter.label,
-          topic: selectedTopic.label,
-          section_id: selectedTopicValue,
+          chapter: "",
+          topic: "",
+          section_id: "general",
           student_state: {
             knowledge_level: adaptiveProfile.level,
             emotional_state: adaptiveProfile.emotion,
@@ -2056,18 +2056,18 @@ export default function StudyPage() {
             weak_signals: adaptiveProfile.weakSignals,
           },
           learning_context: {
-            scope: "selected_study_material_only",
+            scope: "ingested_study_material_only",
             selected_subject: "Chemistry",
-            selected_chapter: selectedChapter.label,
-            selected_topic: selectedTopic.label,
-            section_id: selectedTopicValue,
+            selected_chapter: "",
+            selected_topic: "",
+            section_id: "general",
             is_follow_up: groundedPrompt.isFollowUp,
             previous_user_question: groundedPrompt.previousQuestion,
             previous_ai_answer: groundedPrompt.previousAnswer,
             anchor_terms: groundedPrompt.anchorTerms,
             recent_messages: contextMessages.slice(-10),
             saved_conversations: conversations.length,
-            answer_policy: "Use retrieved study material only. If unsupported, return the required not-found response.",
+            answer_policy: "Search ingested platform study material only. If unsupported, return the required not-found response.",
           },
         }),
       });
@@ -2658,7 +2658,7 @@ export default function StudyPage() {
                     What should we learn today?
                   </h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt, request a simple explanation, or prepare for an exam.
+                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt from your study material, request a simple explanation, or prepare for an exam.
                   </p>
 
                   <div className="mt-8 w-full">
