@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { apiFetch, apiJson } from "@/lib/apiClient";
 
 // ─── Types (same as study page) ────────────────────────────────────────────
 interface CoachMessage {
@@ -80,37 +81,34 @@ export default function CoachWidget() {
     async function loadCoach() {
       try {
         const token = await activeUser.getIdToken();
-        const [coachRes, progressRes] = await Promise.all([
-          fetch(`${backendURL}/coach/${activeUser.uid}`, {
+        const [coachData, progressData] = await Promise.all([
+          apiJson<{ profile?: CoachProfile }>(`${backendURL}/coach/${activeUser.uid}`, {
             headers: { Authorization: `Bearer ${token}` },
-            cache: "no-store",
-          }),
-          fetch(`${backendURL}/get-progress/${activeUser.uid}`, {
+            cacheKey: `coach:${activeUser.uid}`,
+            cacheTtlMs: 30000,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch((): { profile?: CoachProfile } => ({ profile: {} })),
+          apiJson<{ accuracy?: number; total_tests?: number }>(`${backendURL}/get-progress/${activeUser.uid}`, {
             headers: { Authorization: `Bearer ${token}` },
-            cache: "no-store",
-          }),
+            cacheKey: `progress:${activeUser.uid}`,
+            cacheTtlMs: 30000,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch((): { accuracy?: number; total_tests?: number } => ({})),
         ]);
 
         if (cancelled) return;
 
-        if (coachRes.ok) {
-          const data = await coachRes.json();
-          if (cancelled) return;
-          const profile: CoachProfile = data.profile ?? {};
-          setCoachName(profile.coach_name || "AI Coach");
-          setNextBestAction(
-            profile.next_best_action || profile.daily_strategy || "Ask me anything about your study plan."
-          );
-        }
-
-        if (progressRes.ok) {
-          const prog = await progressRes.json();
-          if (cancelled) return;
-          setProgress({
-            accuracy: prog.accuracy ?? 0,
-            total_tests: prog.total_tests ?? 0,
-          });
-        }
+        const profile: CoachProfile = coachData.profile ?? {};
+        setCoachName(profile.coach_name || "AI Coach");
+        setNextBestAction(
+          profile.next_best_action || profile.daily_strategy || "Ask me anything about your study plan."
+        );
+        setProgress({
+          accuracy: progressData.accuracy ?? 0,
+          total_tests: progressData.total_tests ?? 0,
+        });
 
         const hour = new Date().getHours();
         const timeGreet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -153,7 +151,7 @@ export default function CoachWidget() {
 
     try {
       const token = await user.getIdToken();
-      const res = await fetch(`${backendURL}/coach/chat`, {
+      const res = await apiFetch(`${backendURL}/coach/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -166,6 +164,8 @@ export default function CoachWidget() {
           intent: "quick_chat",
           session_id: `widget-${user.uid}`,
         }),
+        retries: 1,
+        timeoutMs: 12000,
       });
       if (res.ok) {
         const data = await res.json();

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { apiFetch, apiJson } from "@/lib/apiClient";
 
 function useTypingEffect(text: string, speed = 48) {
   const [displayed, setDisplayed] = useState("");
@@ -55,34 +56,36 @@ export default function AgentifiedNotification({ onDismiss }: AgentNotificationP
     const fetchCoach = async () => {
       try {
         const headers = await getAuthHeaders();
-        const response = await fetch(`${backendURL}/coach/${user.uid}`, {
+        const data: { profile?: Record<string, string> } = await apiJson<{ profile?: Record<string, string> }>(`${backendURL}/coach/${user.uid}`, {
           headers,
-          cache: "no-store",
-        });
+          cacheKey: `coach:${user.uid}`,
+          cacheTtlMs: 30000,
+          retries: 1,
+          timeoutMs: 7000,
+        }).catch(() => ({ profile: {} }));
 
-        if (response.ok) {
-          const data = await response.json();
-          const profile = data.profile;
-          if (profile?.coach_name) {
-            setAgent({
-              name: profile.coach_name,
-              description:
-                profile.long_term_summary ||
-                profile.daily_strategy ||
-                FALLBACK_DESCRIPTION,
-            });
-            setLoadingCoach(false);
-            return;
-          }
+        const profile = data.profile;
+        if (profile?.coach_name) {
+          setAgent({
+            name: profile.coach_name,
+            description:
+              profile.long_term_summary ||
+              profile.daily_strategy ||
+              FALLBACK_DESCRIPTION,
+          });
+          setLoadingCoach(false);
+          return;
         }
 
-        const bootstrapRes = await fetch(`${backendURL}/coach/bootstrap`, {
+        const bootstrapRes = await apiFetch(`${backendURL}/coach/bootstrap`, {
           method: "POST",
           headers,
           body: JSON.stringify({
             user_id: user.uid,
             student_display_name: user.displayName || "Student",
           }),
+          retries: 1,
+          timeoutMs: 12000,
         });
 
         if (bootstrapRes.ok) {

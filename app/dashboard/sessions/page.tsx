@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { AlertState, EmptyState as PolishedEmptyState, ErrorState, LoadingState } from "@/components/ui/Polished";
+import { apiJson } from "@/lib/apiClient";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
@@ -195,12 +196,14 @@ export default function SessionsPage() {
       setLoadingData(true);
       setError("");
       try {
-        const response = await fetch(`${backendURL}/sessions/${uid}`, {
-          cache: "no-store",
+        const payload = await apiJson<unknown>(`${backendURL}/sessions/${uid}`, {
           headers: await getAuthHeaders(),
+          cacheKey: `sessions:${uid}`,
+          cacheTtlMs: 30000,
+          retries: 1,
+          timeoutMs: 7000,
         });
-        if (!response.ok) throw new Error(`Failed to load sessions: ${response.status}`);
-        const data = normalizeSessions(await response.json());
+        const data = normalizeSessions(payload);
         if (!active) return;
         setSessions(data);
         setSelectedId((current) => current ?? data[0]?.id ?? null);

@@ -3,7 +3,8 @@
 import { useEffect, useState, useMemo, type ComponentType } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/context/AuthContext";
-import { EmptyState, ErrorState, LoadingState } from "@/components/ui/Polished";
+import { EmptyState, ErrorState, LoadingSkeleton, LoadingState } from "@/components/ui/Polished";
+import { apiFetch, apiJson } from "@/lib/apiClient";
 
 
 const Plot = dynamic(() => import("react-plotly.js"), { ssr: false }) as ComponentType<Record<string, unknown>>;
@@ -513,12 +514,13 @@ export default function AnalyticsPage() {
       try {
         setLoadingAnalytics(true);
         setAnalyticsError("");
-        const res = await fetch(`${backendURL}/analytics/${user.uid}`, {
-          cache: "no-store",
+        const data = await apiJson<AnalyticsData>(`${backendURL}/analytics/${user.uid}`, {
           headers: await getAuthHeaders(),
+          cacheKey: `analytics:${user.uid}`,
+          cacheTtlMs: 30000,
+          retries: 1,
+          timeoutMs: 7000,
         });
-        if (!res.ok) throw new Error(`Analytics failed: ${res.status}`);
-        const data = (await res.json()) as AnalyticsData;
         if (active) setAnalytics(data);
       } catch {
         if (active) {
@@ -534,9 +536,23 @@ export default function AnalyticsPage() {
     return () => { active = false; };
   }, [authLoading, backendURL, getAuthHeaders, user?.uid]);
 
-  if (authLoading || loadingAnalytics) {
+  if (authLoading) {
     return (
       <LoadingState title="Loading analytics..." detail="Preparing performance charts, weak topics, and recommendations." />
+    );
+  }
+
+  if (loadingAnalytics) {
+    return (
+      <main className="mx-auto min-h-[calc(100svh-105px)] w-full max-w-7xl space-y-5 p-6">
+        <LoadingSkeleton className="h-28 rounded-[2rem]" />
+        <section className="grid gap-5 lg:grid-cols-3">
+          <LoadingSkeleton className="h-52 rounded-[2rem]" />
+          <LoadingSkeleton className="h-52 rounded-[2rem]" />
+          <LoadingSkeleton className="h-52 rounded-[2rem]" />
+        </section>
+        <LoadingSkeleton className="h-80 rounded-[2rem]" />
+      </main>
     );
   }
 
@@ -584,7 +600,7 @@ export default function AnalyticsPage() {
       setAgentResponse(null);
       setCurrentMode(mode);
 
-      const res = await fetch(`${backendURL}/agent`, {
+      const res = await apiFetch(`${backendURL}/agent`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({
@@ -594,6 +610,8 @@ export default function AnalyticsPage() {
           mode: mode,
           difficulty: mode === "test" ? "hard" : "medium",
         }),
+        retries: 1,
+        timeoutMs: 18000,
       });
 
       const data = (await res.json()) as AgentApiResponse;

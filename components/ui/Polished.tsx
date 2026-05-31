@@ -241,6 +241,26 @@ export function LoadingState({ title, detail }: { title: string; detail?: string
   );
 }
 
+export function LoadingSkeleton({
+  rows = 3,
+  className,
+}: {
+  rows?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("space-y-3", className)} role="status" aria-label="Loading content">
+      {Array.from({ length: rows }, (_, index) => (
+        <span
+          key={index}
+          className="polished-skeleton block h-3 rounded-full"
+          style={{ width: `${Math.max(52, 92 - index * 11)}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function EmptyState({
   icon = "spark",
   title,

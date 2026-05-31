@@ -2,6 +2,7 @@
 
 import ThemeToggle from "@/components/ThemeToggle";
 import StudentGuide from "@/components/StudentGuide";
+import BackendStatus from "@/components/BackendStatus";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -89,6 +90,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
 
       <div className="fixed right-4 top-4 z-50 flex items-center gap-2 sm:right-6">
+        <BackendStatus />
         <StudentGuide isAdmin={isAdmin} />
         <Link
           href="/dashboard/progress"

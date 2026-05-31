@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/ui/Button";
 import { AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
+import { apiFetch } from "@/lib/apiClient";
 
 // ─── Types (unchanged) ─────────────────────────────────────────────────────
 interface AgentStatus {
@@ -441,10 +442,12 @@ export default function InternalOpsPage() {
   const adminFetch = useCallback(
     async (path: string, init?: RequestInit) => {
       const headers = await getAuthHeaders();
-      const response = await fetch(`${API_BASE}${path}`, {
+      const response = await apiFetch(`${API_BASE}${path}`, {
         ...init,
         headers: { ...headers, ...(init?.headers ?? {}) },
         cache: "no-store",
+        retries: 1,
+        timeoutMs: 6500,
       });
       if (response.status === 401 || response.status === 403 || response.status === 404) {
         throw new Error("ADMIN_AUTH_REJECTED");

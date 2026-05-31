@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import ArtifactCanvas, { ARTIFACT_UNAVAILABLE_MESSAGE } from "@/components/study/ArtifactCanvas";
+import RevisionModeTabs from "@/components/study/RevisionModeTabs";
 import {
   AlertState,
   AppIcon,
@@ -9,6 +11,7 @@ import {
   LoadingState,
   type AppIconName,
 } from "@/components/ui/Polished";
+import { apiFetch, apiJson } from "@/lib/apiClient";
 import { useSearchParams } from "next/navigation";
 import {
   useEffect,
@@ -126,8 +129,13 @@ interface StudyArtifact {
 }
 
 interface StudyArtifactResponse {
+  available?: boolean;
   source: string;
   section_id: string;
+  subject?: string;
+  chapter?: string;
+  topic?: string;
+  generated_at?: string;
   title: string;
   subtitle?: string;
   student_goal?: string;
@@ -1735,7 +1743,7 @@ export default function StudyPage() {
   const [artifactLoading, setArtifactLoading] = useState(false);
   const [artifactError, setArtifactError] = useState("");
   const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("concept_map");
-  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("artifact");
+  const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("summary");
   const [activeExamPanel, setActiveExamPanel] = useState<ExamPanel>("mcq");
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
@@ -1752,11 +1760,14 @@ export default function StudyPage() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const activityCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activityCollapseScheduledRef = useRef(false);
+  const revisionCacheRef = useRef(new Map<string, string>());
+  const artifactCacheRef = useRef(new Map<string, StudyArtifactResponse>());
 
   const authBusy = loading || authLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const selectedTopicValue = selectedTopic.value;
+  const revisionSelectionKey = `${selectedChapter.value}:${selectedTopicValue}`;
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
@@ -1799,10 +1810,13 @@ export default function StudyPage() {
   }, [chapter, topic, selectedChapter, selectedTopic]);
 
   useEffect(() => {
-    setRevisionContent({ summary: "", explain: "", keypoints: "" });
+    setRevisionContent({
+      summary: revisionCacheRef.current.get(`${revisionSelectionKey}:summary`) || "",
+      explain: revisionCacheRef.current.get(`${revisionSelectionKey}:explain`) || "",
+      keypoints: revisionCacheRef.current.get(`${revisionSelectionKey}:keypoints`) || "",
+    });
     setRevisionError("");
-    setActiveRevisionPanel("artifact");
-    setArtifact(null);
+    setArtifact(artifactCacheRef.current.get(revisionSelectionKey) || null);
     setArtifactError("");
     setActiveArtifactTab("concept_map");
     setExamQuestions([]);
@@ -1810,7 +1824,7 @@ export default function StudyPage() {
     setExamAnswers({});
     setExamSubmitted(false);
     setExamError("");
-  }, [selectedTopicValue]);
+  }, [revisionSelectionKey]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -1875,12 +1889,14 @@ export default function StudyPage() {
 
     async function loadCoach() {
       try {
-        const res = await fetch(`${backendURL}/coach/${userId}`, {
-          cache: "no-store",
+        const data = await apiJson<{ profile?: { coach_name?: string } }>(`${backendURL}/coach/${userId}`, {
           headers: await getAuthHeaders(),
+          cacheKey: `coach-profile:${userId}`,
+          cacheTtlMs: 60000,
+          retries: 1,
+          timeoutMs: 7000,
         });
-        if (!res.ok || !active) return;
-        const data = await res.json();
+        if (!active) return;
         setCoachName(data?.profile?.coach_name || "Aria");
       } catch {
         if (active) setCoachName("Aria");
@@ -2020,10 +2036,11 @@ export default function StudyPage() {
     });
 
     try {
-      const res = await fetch(`${backendURL}/coach/chat/stream`, {
+      const res = await apiFetch(`${backendURL}/coach/chat/stream`, {
         method: "POST",
         headers: await getAuthHeaders(),
         signal: controller.signal,
+        timeoutMs: 12000,
         body: JSON.stringify({
           user_id: userId,
           message: prompt,
@@ -2231,15 +2248,23 @@ export default function StudyPage() {
 
   const runRevision = async (tool: RevisionTool) => {
     if (!userId || authBusy) return;
+    const cacheKey = `${revisionSelectionKey}:${tool.id}`;
+    const cached = revisionCacheRef.current.get(cacheKey);
     setMode("revision");
     setActiveRevisionPanel(tool.id);
     setRevisionError("");
+    if (cached) {
+      setRevisionContent((current) => ({ ...current, [tool.id]: cached }));
+      return;
+    }
     setRevisionLoading((current) => ({ ...current, [tool.id]: true }));
     setRevisionContent((current) => ({ ...current, [tool.id]: "" }));
     try {
-      const res = await fetch(`${backendURL}/section-ai`, {
+      const data = await apiJson<{ answer?: unknown }>(`${backendURL}/section-ai`, {
         method: "POST",
         headers: await getAuthHeaders(),
+        retries: 1,
+        timeoutMs: 24000,
         body: JSON.stringify({
           question: tool.prompt(selectedTopic.label),
           section_id: selectedTopicValue,
@@ -2256,10 +2281,10 @@ export default function StudyPage() {
           required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
         }),
       });
-      if (!res.ok) throw new Error(`Revision failed: ${res.status}`);
-      const data = await safeJsonResponse(res);
       const backendAnswer = getUsableBackendAnswer(data);
-      setRevisionContent((current) => ({ ...current, [tool.id]: backendAnswer || MATERIAL_NOT_FOUND_MESSAGE }));
+      const nextContent = backendAnswer || MATERIAL_NOT_FOUND_MESSAGE;
+      if (backendAnswer) revisionCacheRef.current.set(cacheKey, backendAnswer);
+      setRevisionContent((current) => ({ ...current, [tool.id]: nextContent }));
     } catch {
       setRevisionError(MATERIAL_NOT_FOUND_MESSAGE);
       setRevisionContent((current) => ({ ...current, [tool.id]: MATERIAL_NOT_FOUND_MESSAGE }));
@@ -2270,16 +2295,26 @@ export default function StudyPage() {
 
   const generateArtifact = async () => {
     if (!userId || authBusy || artifactLoading) return;
+    const cached = artifactCacheRef.current.get(revisionSelectionKey);
     setMode("revision");
     setActiveRevisionPanel("artifact");
     setArtifactError("");
-    setArtifact(null);
     setActiveArtifactTab("concept_map");
+    if (cached) {
+      setArtifact(cached);
+      setActiveArtifactTab(firstArtifactTab(cached));
+      return;
+    }
+    setArtifact(null);
     setArtifactLoading(true);
     try {
-      const res = await fetch(`${backendURL}/artifacts/generate`, {
+      const data = await apiJson<StudyArtifactResponse>(`${backendURL}/artifacts/generate`, {
         method: "POST",
         headers: await getAuthHeaders(),
+        cacheKey: `artifact:${userId}:${revisionSelectionKey}`,
+        cacheTtlMs: 10 * 60 * 1000,
+        retries: 1,
+        timeoutMs: 12000,
         body: JSON.stringify({
           section_id: selectedTopicValue,
           topic: selectedTopic.label,
@@ -2293,19 +2328,16 @@ export default function StudyPage() {
           required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
         }),
       });
-      const data = await safeJsonResponse(res) as StudyArtifactResponse | { detail?: string } | null;
-      if (!res.ok) {
-        throw new Error((data as { detail?: string } | null)?.detail || `Artifact failed: ${res.status}`);
-      }
       if (isUsableArtifactResponse(data)) {
-        const nextArtifact = data as StudyArtifactResponse;
+        const nextArtifact = data;
+        artifactCacheRef.current.set(revisionSelectionKey, nextArtifact);
         setArtifact(nextArtifact);
         setActiveArtifactTab(firstArtifactTab(nextArtifact));
       } else {
-        setArtifactError(MATERIAL_NOT_FOUND_MESSAGE);
+        setArtifactError(ARTIFACT_UNAVAILABLE_MESSAGE);
       }
     } catch {
-      setArtifactError(MATERIAL_NOT_FOUND_MESSAGE);
+      setArtifactError(ARTIFACT_UNAVAILABLE_MESSAGE);
     } finally {
       setArtifactLoading(false);
     }
@@ -2324,9 +2356,11 @@ export default function StudyPage() {
     try {
       const headers = await getAuthHeaders();
       const [mcqRes, probableRes] = await Promise.all([
-        fetch(`${backendURL}/generate-mcqs`, {
+        apiFetch(`${backendURL}/generate-mcqs`, {
           method: "POST",
           headers,
+          timeoutMs: 24000,
+          retries: 1,
           body: JSON.stringify({
             topic: selectedTopic.label,
             section_id: selectedTopicValue,
@@ -2345,9 +2379,11 @@ export default function StudyPage() {
             required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
           }),
         }),
-        fetch(`${backendURL}/generate-probable-questions`, {
+        apiFetch(`${backendURL}/generate-probable-questions`, {
           method: "POST",
           headers,
+          timeoutMs: 24000,
+          retries: 1,
           body: JSON.stringify({
             topic: selectedTopic.label,
             section_id: selectedTopicValue,
@@ -2399,7 +2435,7 @@ export default function StudyPage() {
     if (!userId) return;
     setExamSaving(true);
     try {
-      await fetch(`${backendURL}/submit-session`, {
+      await apiFetch(`${backendURL}/submit-session`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({
@@ -2428,6 +2464,8 @@ export default function StudyPage() {
             probable_questions: probableQuestions,
           },
         }),
+        retries: 1,
+        timeoutMs: 9000,
       });
     } catch {
       setExamError("Feedback is ready, but the session could not be saved.");
@@ -2581,7 +2619,7 @@ export default function StudyPage() {
                 onClick={() => {
                   setMode(item.id);
                   if (item.id === "revision") {
-                    setActiveRevisionPanel("artifact");
+                    setActiveRevisionPanel("summary");
                   }
                 }}
               />
@@ -2736,32 +2774,14 @@ export default function StudyPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Revision canvas</p>
                     <h2 className="mt-1 text-2xl font-semibold text-slate-950">{selectedTopic.label}</h2>
                     <p className="mt-1 text-sm leading-6 text-slate-500">Open one focused workspace at a time so notes and artifacts have room to breathe.</p>
+                    <ol className="study-revision-path mt-3 flex flex-wrap items-center gap-2" aria-label="Revision setup">
+                      <li><span>1</span> Chemistry</li>
+                      <li><span>2</span> {selectedChapter.label}</li>
+                      <li><span>3</span> {selectedTopic.label}</li>
+                      <li><span>4</span> Choose a revision tool</li>
+                    </ol>
                   </div>
-                  <div className="study-panel-tabs" role="tablist" aria-label="Revision workspaces">
-                    {REVISION_TOOLS.map((tool) => (
-                      <button
-                        key={tool.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeRevisionPanel === tool.id}
-                        onClick={() => setActiveRevisionPanel(tool.id)}
-                        className={`study-panel-tab ${activeRevisionPanel === tool.id ? "is-active" : ""}`}
-                      >
-                        <AppIcon name={tool.id === "summary" ? "book" : tool.id === "explain" ? "study" : "copy"} className="h-3.5 w-3.5" />
-                        <span>{tool.title.replace("Revision ", "")}</span>
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={activeRevisionPanel === "artifact"}
-                      onClick={() => setActiveRevisionPanel("artifact")}
-                      className={`study-panel-tab ${activeRevisionPanel === "artifact" ? "is-active" : ""}`}
-                    >
-                      <AppIcon name="mission" className="h-3.5 w-3.5" />
-                      <span>Artifact</span>
-                    </button>
-                  </div>
+                  <RevisionModeTabs activeTab={activeRevisionPanel} onChange={setActiveRevisionPanel} />
                 </div>
               </div>
 
@@ -2819,13 +2839,16 @@ export default function StudyPage() {
                         className="agentify-action agentify-action-primary inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
                       >
                         <AppIcon name="spark" />
-                        <span>{artifactLoading ? "Building artifact..." : "Generate Artifact"}</span>
+                        <span>{artifactLoading ? "Building artifact..." : artifact ? "Artifact ready" : "Generate Artifact"}</span>
                       </button>
                     </div>
 
-                    {artifactError ? <div className="mt-4"><AlertState message={artifactError} /></div> : null}
-
-                    <div className="study-scroll-pane study-artifact-scroll mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                    <ArtifactCanvas
+                      topic={selectedTopic.label}
+                      loading={artifactLoading}
+                      error={artifactError}
+                      onRetry={() => void generateArtifact()}
+                    >
                       {artifact ? (
                         <ArtifactViewer
                           response={artifact}
@@ -2834,14 +2857,8 @@ export default function StudyPage() {
                         />
                       ) : artifactLoading ? (
                         <ArtifactLoadingState />
-                      ) : (
-                        <EmptyState
-                          icon="spark"
-                          title="No artifact yet"
-                          detail={`Generate one for ${selectedTopic.label}. It will turn notes into a student-friendly visual study tool.`}
-                        />
-                      )}
-                    </div>
+                      ) : null}
+                    </ArtifactCanvas>
                   </>
                 )}
               </section>

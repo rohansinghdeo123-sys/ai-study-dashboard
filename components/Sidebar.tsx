@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { apiJson } from "@/lib/apiClient";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -43,12 +44,13 @@ function useLiveStats(
 
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${backendURL}/get-progress/${userId}`, {
-          cache: "no-store",
+        const data = await apiJson<Record<string, number>>(`${backendURL}/get-progress/${userId}`, {
           headers: await getAuthHeaders(),
+          cacheKey: `progress:${userId}`,
+          cacheTtlMs: 30000,
+          retries: 1,
+          timeoutMs: 7000,
         });
-        if (!res.ok) return;
-        const data = await res.json();
         if (!active) return;
 
         const xp = data.xp ?? 0;

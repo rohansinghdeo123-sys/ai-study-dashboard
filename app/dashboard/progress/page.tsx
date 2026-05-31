@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { LoadingState } from "@/components/ui/Polished";
+import { LoadingSkeleton } from "@/components/ui/Polished";
+import { apiJson } from "@/lib/apiClient";
 import { useRouter } from "next/navigation";
 
 // Types
@@ -402,9 +403,13 @@ function buildLeaderboard({
 
 async function safeReadJson(url: string, headers?: HeadersInit) {
   try {
-    const response = await fetch(url, { cache: "no-store", headers });
-    if (!response.ok) return null;
-    return response.json();
+    return await apiJson<unknown>(url, {
+      headers,
+      cacheKey: `analytics-read:${url}`,
+      cacheTtlMs: 30000,
+      retries: 1,
+      timeoutMs: 7000,
+    });
   } catch {
     return null;
   }
@@ -859,7 +864,14 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <LoadingState title="Loading analytics..." detail="Reading sessions, weak topics, XP trends, and leaderboard data." />
+      <main className="mx-auto min-h-[calc(100svh-105px)] w-full max-w-[1880px] space-y-5 py-5">
+        <LoadingSkeleton className="h-28 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
+        <section className="grid gap-5 lg:grid-cols-2">
+          <LoadingSkeleton className="h-64 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
+          <LoadingSkeleton className="h-64 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
+        </section>
+        <LoadingSkeleton className="h-72 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
+      </main>
     );
   }
 

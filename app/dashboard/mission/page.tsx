@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { AlertState, AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
+import { apiFetch } from "@/lib/apiClient";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
@@ -228,7 +229,7 @@ export default function MissionPage() {
     setSelectedAnswer("");
 
     try {
-      const res = await fetch(`${backendURL}/coach/autonomous-study/${userId}`, {
+      const res = await apiFetch(`${backendURL}/coach/autonomous-study/${userId}`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({
@@ -242,6 +243,8 @@ export default function MissionPage() {
           preferred_style: profile.preferredStyle,
           prerequisite_confidence: profile.prerequisiteConfidence,
         }),
+        retries: 1,
+        timeoutMs: 18000,
       });
 
       if (!res.ok) throw new Error(`Mission failed: ${res.status}`);
@@ -261,7 +264,7 @@ export default function MissionPage() {
     if (!userId || !mission) return;
     setSaving(true);
     try {
-      await fetch(`${backendURL}/submit-session`, {
+      await apiFetch(`${backendURL}/submit-session`, {
         method: "POST",
         headers: await getAuthHeaders(),
         body: JSON.stringify({
@@ -292,6 +295,8 @@ export default function MissionPage() {
             ],
           },
         }),
+        retries: 1,
+        timeoutMs: 9000,
       });
     } catch {
       setError("Answer saved locally in the mission, but the session could not be logged.");

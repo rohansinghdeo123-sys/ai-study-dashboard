@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { LoadingState } from "@/components/ui/Polished";
+import { apiJson } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -250,18 +251,35 @@ export default function DashboardPage() {
       setLoadingData(true);
       try {
         const headers = await getAuthHeaders();
-        const [progressRes, sessionsRes, leaderboardRes, analyticsRes] = await Promise.all([
-          fetch(`${backendURL}/get-progress/${userId}`, { cache: "no-store", headers }),
-          fetch(`${backendURL}/sessions/${userId}`, { cache: "no-store", headers }),
-          fetch(`${backendURL}/leaderboard`, { cache: "no-store", headers }),
-          fetch(`${backendURL}/analytics/${userId}`, { cache: "no-store", headers }),
-        ]);
-
         const [progressJson, sessionsJson, leaderboardJson, analyticsJson] = await Promise.all([
-          progressRes.ok ? progressRes.json() : null,
-          sessionsRes.ok ? sessionsRes.json() : null,
-          leaderboardRes.ok ? leaderboardRes.json() : null,
-          analyticsRes.ok ? analyticsRes.json() : null,
+          apiJson<unknown>(`${backendURL}/get-progress/${userId}`, {
+            headers,
+            cacheKey: `progress:${userId}`,
+            cacheTtlMs: 30000,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch(() => null),
+          apiJson<unknown>(`${backendURL}/sessions/${userId}`, {
+            headers,
+            cacheKey: `sessions:${userId}`,
+            cacheTtlMs: 30000,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch(() => null),
+          apiJson<unknown>(`${backendURL}/leaderboard`, {
+            headers,
+            cacheKey: "leaderboard",
+            cacheTtlMs: 45000,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch(() => null),
+          apiJson<unknown>(`${backendURL}/analytics/${userId}`, {
+            headers,
+            cacheKey: `analytics:${userId}`,
+            cacheTtlMs: 30000,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch(() => null),
         ]);
 
         if (!active) return;
