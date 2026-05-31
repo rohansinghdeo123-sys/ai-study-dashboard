@@ -296,6 +296,7 @@ function findChapterValueForTopic(topicValue: string) {
 }
 
 const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material. Please upload or select the correct chapter/data.";
+const TUTOR_TEMPORARY_ERROR_MESSAGE = "I could not complete that response right now. Please try again.";
 
 const DATA_GROUNDED_TUTOR_GUARDRAIL = [
   "You are AgentifyAI's study tutor working inside a data-grounded learning app.",
@@ -305,6 +306,16 @@ const DATA_GROUNDED_TUTOR_GUARDRAIL = [
   "Preserve conversation continuity. Follow-up words like this, it, explain again, simplify, more examples, and simple words refer to the previous user question and previous tutor answer unless the student clearly changes topic.",
   "Never switch topic unless the student clearly asks for a new topic.",
   "Keep answers exam-focused, clear, and traceable to the study material.",
+].join(" ");
+
+const REASONING_FIRST_TUTOR_GUARDRAIL = [
+  "You are AgentifyAI's reasoning-first private tutor for school students.",
+  "Understand the student's intent, resolve follow-up context, choose the best teaching strategy, and then answer.",
+  "Use conversation memory and reliable subject reasoning naturally. Do not behave like a keyword-search bot.",
+  "Use retrieved study material only when the student asks for notes, textbook, syllabus, uploaded data, or source-grounded verification.",
+  "If source grounding is explicitly requested and the material is unavailable, explain that clearly and ask for the missing material.",
+  "Preserve conversation continuity. Follow-up words like this, it, explain again, simplify, more examples, and simple words refer to the previous user question and previous tutor answer unless the student clearly changes topic.",
+  "Remain subject-agnostic, calm, accurate, student-friendly, and clear.",
 ].join(" ");
 
 function safeJsonResponse(response: Response) {
@@ -335,6 +346,15 @@ function getUsableBackendAnswer(data: unknown) {
   if (!data || typeof data !== "object") return "";
   const answer = String((data as { answer?: unknown }).answer || "").trim();
   return isBackendFailureText(answer) ? "" : answer;
+}
+
+function getCoachSafeAnswer(value: unknown) {
+  const answer = String(value || "").trim();
+  if (!answer) return TUTOR_TEMPORARY_ERROR_MESSAGE;
+  if (answer.toLowerCase().includes("could not find this in your study material")) {
+    return MATERIAL_NOT_FOUND_MESSAGE;
+  }
+  return isBackendFailureText(answer) ? TUTOR_TEMPORARY_ERROR_MESSAGE : answer;
 }
 
 function isFollowUpPrompt(value: string) {
@@ -374,7 +394,7 @@ function getPreviousStudyContext(history: CoachMessage[]) {
   };
 }
 
-function buildGroundedTutorMessage(prompt: string, history: CoachMessage[], topicLabel: string, chapterLabel: string) {
+function buildTutorContextMessage(prompt: string, history: CoachMessage[]) {
   const previous = getPreviousStudyContext(history);
   const followUp = isFollowUpPrompt(prompt) && Boolean(previous.previousQuestion || previous.previousAnswer);
 
@@ -390,31 +410,17 @@ function buildGroundedTutorMessage(prompt: string, history: CoachMessage[], topi
 
   return {
     message: [
-      "The student is asking a follow-up. Preserve the previous topic and do not switch topics.",
+      "The student is asking a follow-up. Resolve the reference from the recent conversation before answering.",
       `Current follow-up: ${prompt}`,
       previous.previousQuestion ? `Previous user question: ${previous.previousQuestion}` : "",
       previous.previousAnswer ? `Previous tutor answer: ${previous.previousAnswer.slice(0, 1400)}` : "",
-      `Selected chapter/topic: ${chapterLabel} / ${topicLabel}`,
-      "Answer the follow-up only from retrieved study material. If retrieval does not support the previous topic, use the required not-found message.",
+      "Continue the previous lesson naturally unless the student clearly asks to change topic.",
     ].filter(Boolean).join("\n"),
     isFollowUp: true,
     previousQuestion: previous.previousQuestion,
     previousAnswer: previous.previousAnswer,
     anchorTerms: previous.anchorTerms,
   };
-}
-
-function answerDriftedFromFollowUp(answer: string, anchorTerms: string[]) {
-  if (!answer || !anchorTerms.length || answer === MATERIAL_NOT_FOUND_MESSAGE) return false;
-  const lower = answer.toLowerCase();
-  const hasAnchor = anchorTerms.some((term) => lower.includes(term));
-  if (hasAnchor) return false;
-
-  const knownFallbackTopicWords = [
-    "matter", "solid", "liquid", "gas", "states of matter", "mass", "volume",
-    "alkane", "alkene", "alkyne", "hydrocarbon", "aromatic",
-  ];
-  return knownFallbackTopicWords.some((term) => lower.includes(term));
 }
 
 function normalizeCorrectOption(correctValue: unknown, options: string[]) {
@@ -557,7 +563,7 @@ function inferMentorProfile(prompt: string, history: CoachMessage[]): MentorProf
 
 function buildMentorDirective(profile: MentorProfile) {
   return [
-    DATA_GROUNDED_TUTOR_GUARDRAIL,
+    REASONING_FIRST_TUTOR_GUARDRAIL,
     "Act as a world-class private school tutor, not a static chatbot.",
     `Detected intent: ${profile.intent}. Student level: ${profile.level}. Emotional state: ${profile.emotion}.`,
     `Use this style: ${profile.answerStyle}. Learning speed: ${profile.speed}.`,
@@ -1985,9 +1991,7 @@ export default function StudyPage() {
 
     const answer = normalizeAnswerPayload(raw);
     if (answer) {
-      const safeAnswer = isBackendFailureText(answer)
-        ? MATERIAL_NOT_FOUND_MESSAGE
-        : answer;
+      const safeAnswer = getCoachSafeAnswer(answer);
       updateLastCoachMessage(safeAnswer);
       setShowPipeline(false);
       setShowAgentSummary(true);
@@ -2006,7 +2010,7 @@ export default function StudyPage() {
         ? messages.slice(0, -1)
         : messages;
     const adaptiveProfile = inferMentorProfile(prompt, contextMessages);
-    const groundedPrompt = buildGroundedTutorMessage(prompt, contextMessages, "Detected from study data", "Open coach");
+    const tutorContext = buildTutorContextMessage(prompt, contextMessages);
 
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -2045,17 +2049,17 @@ export default function StudyPage() {
           user_id: userId,
           message: prompt,
           original_message: prompt,
-          grounding_context_prompt: groundedPrompt.message,
+          grounding_context_prompt: tutorContext.message,
           mode: "coach",
           intent: adaptiveProfile.intent,
           session_id: `coach-${userId}`,
           mentor_directive: buildMentorDirective(adaptiveProfile),
-          system_guardrail: DATA_GROUNDED_TUTOR_GUARDRAIL,
-          retrieval_required: true,
-          strict_grounding: true,
-          fallback_to_general_knowledge: false,
+          system_guardrail: REASONING_FIRST_TUTOR_GUARDRAIL,
+          retrieval_required: false,
+          strict_grounding: false,
+          fallback_to_general_knowledge: true,
           required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
-          subject: "Chemistry",
+          subject: "",
           chapter: "",
           topic: "",
           section_id: "general",
@@ -2073,18 +2077,18 @@ export default function StudyPage() {
             weak_signals: adaptiveProfile.weakSignals,
           },
           learning_context: {
-            scope: "ingested_study_material_only",
-            selected_subject: "Chemistry",
+            scope: "open_tutor_reasoning_first",
+            selected_subject: "",
             selected_chapter: "",
             selected_topic: "",
             section_id: "general",
-            is_follow_up: groundedPrompt.isFollowUp,
-            previous_user_question: groundedPrompt.previousQuestion,
-            previous_ai_answer: groundedPrompt.previousAnswer,
-            anchor_terms: groundedPrompt.anchorTerms,
+            is_follow_up: tutorContext.isFollowUp,
+            previous_user_question: tutorContext.previousQuestion,
+            previous_ai_answer: tutorContext.previousAnswer,
+            anchor_terms: tutorContext.anchorTerms,
             recent_messages: contextMessages.slice(-10),
             saved_conversations: conversations.length,
-            answer_policy: "Search ingested platform study material only. If unsupported, return the required not-found response.",
+            answer_policy: "Reason first from reliable subject knowledge, lesson memory, and conversation context. Retrieve study material when the student's question explicitly needs source-grounded verification.",
           },
         }),
       });
@@ -2092,9 +2096,7 @@ export default function StudyPage() {
       if (!res.ok) throw new Error(`Coach failed: ${res.status}`);
       if (!res.body) {
         const text = normalizeAnswerPayload(await res.text());
-        finalAnswer = text && !isBackendFailureText(text)
-          ? text
-          : MATERIAL_NOT_FOUND_MESSAGE;
+        finalAnswer = getCoachSafeAnswer(text);
         updateLastCoachMessage(finalAnswer);
         return;
       }
@@ -2123,18 +2125,13 @@ export default function StudyPage() {
       }
 
       if (isBackendFailureText(finalAnswer)) {
-        finalAnswer = MATERIAL_NOT_FOUND_MESSAGE;
-        updateLastCoachMessage(finalAnswer);
-      }
-
-      if (groundedPrompt.isFollowUp && answerDriftedFromFollowUp(finalAnswer, groundedPrompt.anchorTerms)) {
-        finalAnswer = MATERIAL_NOT_FOUND_MESSAGE;
+        finalAnswer = getCoachSafeAnswer(finalAnswer);
         updateLastCoachMessage(finalAnswer);
       }
     } catch (caught) {
       if ((caught as Error).name !== "AbortError") {
-        setError("The tutor could not verify this against your study material.");
-        finalAnswer = MATERIAL_NOT_FOUND_MESSAGE;
+        setError("The tutor could not complete that response. Please try again.");
+        finalAnswer = TUTOR_TEMPORARY_ERROR_MESSAGE;
         updateLastCoachMessage(finalAnswer);
       }
     } finally {
