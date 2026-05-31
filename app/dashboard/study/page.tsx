@@ -33,11 +33,19 @@ type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" 
 type LearningLevel = "beginner" | "intermediate" | "advanced";
 type EmotionalState = "steady" | "confused" | "anxious" | "curious" | "confident";
 type LearningSpeed = "slow" | "balanced" | "fast";
+type AdaptiveAnswerBlockKind = "explanation" | "example" | "formula" | "mistake" | "checkpoint" | "recall";
+
+interface AdaptiveAnswerBlock {
+  kind: AdaptiveAnswerBlockKind | string;
+  title: string;
+  content: string;
+}
 
 interface CoachMessage {
   role: CoachRole;
   content: string;
   timestamp: string;
+  blocks?: AdaptiveAnswerBlock[];
 }
 
 interface StudyConversation {
@@ -69,6 +77,15 @@ interface AgentStagePayload {
 interface AnswerDeltaPayload {
   type: "answer_delta";
   delta: string;
+}
+
+interface TurnEventPayload {
+  type: "turn_event";
+  event: string;
+  turn_id?: string;
+  answer?: string;
+  blocks?: AdaptiveAnswerBlock[];
+  metadata?: Record<string, unknown>;
 }
 
 type StreamProcessResult =
@@ -272,7 +289,6 @@ const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: A
   { id: "coach", label: "Chat", detail: "Ask doubts and continue your study conversation.", icon: "study" },
   { id: "revision", label: "Revision", detail: "Open notes, explanations, key points, and artifacts.", icon: "book" },
   { id: "exam", label: "Exam", detail: "Generate grounded MCQs and probable questions.", icon: "check" },
-  { id: "history", label: "History", detail: "Review saved Study Lab conversations.", icon: "history" },
 ];
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
@@ -785,6 +801,22 @@ function parseAnswerDeltaPayload(value: string): AnswerDeltaPayload | null {
   return null;
 }
 
+function parseTurnEventPayload(value: string): TurnEventPayload | null {
+  const payload = stripDataPrefix(value);
+  if (!payload.startsWith("{")) return null;
+
+  try {
+    const parsed = JSON.parse(payload) as Partial<TurnEventPayload>;
+    if (parsed.type === "turn_event" && typeof parsed.event === "string") {
+      return parsed as TurnEventPayload;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function normalizeAnswerPayload(value: string) {
   const payload = stripDataPrefix(value);
   if (!payload || payload === "[DONE]" || payload.startsWith("{")) return "";
@@ -927,14 +959,22 @@ function readableArtifactText(value?: string) {
   return normalized;
 }
 
-function CoachAnswer({ value, streaming = false }: { value: string; streaming?: boolean }) {
-  const blocks = value.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
-
-  if (!blocks.length) return null;
-
-  return (
-    <div className="study-answer-flow">
-      {blocks.map((block, blockIndex) => {
+function CoachAnswer({
+  value,
+  streaming = false,
+  adaptiveBlocks = [],
+}: {
+  value: string;
+  streaming?: boolean;
+  adaptiveBlocks?: AdaptiveAnswerBlock[];
+}) {
+  const blocks = adaptiveBlocks.length
+    ? adaptiveBlocks.map((block) => ({
+        kind: block.kind || "explanation",
+        title: String(block.title || "").trim(),
+        lines: String(block.content || "").split("\n").map((line) => line.trim()).filter(Boolean),
+      }))
+    : value.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean).map((block) => {
         const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
         const firstLine = lines[0] || "";
         const markdownHeading = firstLine.match(/^#{1,6}\s+(.*)$/);
@@ -942,11 +982,25 @@ function CoachAnswer({ value, streaming = false }: { value: string; streaming?: 
           ? markdownHeading[1]
           : firstLine.endsWith(":") && firstLine.length <= 72
             ? firstLine.replace(/:$/, "")
-            : null;
-        const body = heading ? lines.slice(1) : lines;
+            : "";
+
+        return {
+          kind: "explanation",
+          title: heading,
+          lines: heading ? lines.slice(1) : lines,
+        };
+      });
+
+  if (!blocks.length) return null;
+
+  return (
+    <div className="study-answer-flow">
+      {blocks.map((block, blockIndex) => {
+        const heading = block.title;
+        const body = block.lines;
 
         return (
-          <section key={`${heading || "answer"}-${blockIndex}`} className="study-answer-text-block">
+          <section key={`${heading || "answer"}-${blockIndex}`} className={`study-answer-text-block is-${block.kind}`}>
             {heading ? (
               <h3 className="study-answer-heading">{heading}</h3>
             ) : null}
@@ -1580,6 +1634,7 @@ function TutorActionDock({
 function TutorResponseCard({
   coachName,
   content,
+  blocks,
   timestamp,
   topicLabel,
   stages,
@@ -1592,6 +1647,7 @@ function TutorResponseCard({
 }: {
   coachName: string;
   content: string;
+  blocks?: AdaptiveAnswerBlock[];
   timestamp: string;
   topicLabel: string;
   stages: AgentStageState[];
@@ -1641,7 +1697,7 @@ function TutorResponseCard({
             ) : (
               <>
                 <div className="study-answer-stream">
-                  <CoachAnswer value={content} streaming={streaming} />
+                  <CoachAnswer value={content} streaming={streaming} adaptiveBlocks={blocks} />
                 </div>
                 {!streaming ? (
                   <TutorActionDock
@@ -1720,6 +1776,113 @@ function getTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function getRelativeConversationTime(value: string) {
+  const time = new Date(value).getTime();
+  if (!Number.isFinite(time)) return "";
+  const minutes = Math.max(0, Math.round((Date.now() - time) / 60000));
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.round(hours / 24);
+  return days < 7 ? `${days}d` : `${Math.round(days / 7)}w`;
+}
+
+function CoachHistorySidebar({
+  conversations,
+  currentConversationId,
+  search,
+  coachName,
+  onSearchChange,
+  onSelect,
+  onNewChat,
+  onCollapse,
+  onRevision,
+  onExam,
+}: {
+  conversations: StudyConversation[];
+  currentConversationId: string;
+  search: string;
+  coachName: string;
+  onSearchChange: (value: string) => void;
+  onSelect: (conversation: StudyConversation) => void;
+  onNewChat: () => void;
+  onCollapse: () => void;
+  onRevision: () => void;
+  onExam: () => void;
+}) {
+  return (
+    <aside className="study-coach-sidebar flex min-h-0 shrink-0 flex-col" aria-label="Tutor chat history">
+      <div className="study-sidebar-topline flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="study-sidebar-mark">A</span>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">AgentifyAI</p>
+            <p className="truncate text-[11px]">Tutor with {coachName}</p>
+          </div>
+        </div>
+        <button type="button" className="study-sidebar-icon" onClick={onCollapse} title="Hide history sidebar" aria-label="Hide history sidebar">
+          <AppIcon name="panelLeft" />
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-1.5">
+        <button type="button" onClick={onNewChat} className="study-sidebar-action">
+          <AppIcon name="plus" />
+          <span>New chat</span>
+        </button>
+        <label className="study-sidebar-search">
+          <AppIcon name="search" />
+          <span className="sr-only">Search conversations</span>
+          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder="Search" />
+        </label>
+      </div>
+
+      <div className="mt-6">
+        <p className="study-sidebar-section-label">Study spaces</p>
+        <div className="mt-2 grid gap-1">
+          <button type="button" onClick={onRevision} className="study-sidebar-action is-muted">
+            <AppIcon name="book" />
+            <span>Revision workspace</span>
+          </button>
+          <button type="button" onClick={onExam} className="study-sidebar-action is-muted">
+            <AppIcon name="check" />
+            <span>Exam workspace</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-6 flex min-h-0 flex-1 flex-col">
+        <p className="study-sidebar-section-label">Chats</p>
+        <div className="study-sidebar-conversations mt-2 min-h-0 flex-1 overflow-y-auto">
+          {conversations.length ? conversations.map((conversation) => (
+            <button
+              key={conversation.id}
+              type="button"
+              onClick={() => onSelect(conversation)}
+              className={`study-sidebar-thread ${conversation.id === currentConversationId ? "is-active" : ""}`}
+              title={conversation.title}
+            >
+              <span className="truncate">{conversation.title}</span>
+              <small>{getRelativeConversationTime(conversation.updatedAt)}</small>
+            </button>
+          )) : (
+            <p className="study-sidebar-empty">{search ? "No matching chats" : "Your study chats will appear here."}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="study-sidebar-footer">
+        <AppIcon name="spark" />
+        <div>
+          <p>Lesson memory active</p>
+          <span>Follow-up context stays connected</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 export default function StudyPage() {
   const { user, userId, authLoading, loading, getAuthHeaders } = useAuth() as ReturnType<typeof useAuth> & { authLoading?: boolean };
   const searchParams = useSearchParams();
@@ -1733,6 +1896,8 @@ export default function StudyPage() {
   const [coachName, setCoachName] = useState("Aria");
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [conversations, setConversations] = useState<StudyConversation[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [historySearch, setHistorySearch] = useState("");
   const [currentConversationId, setCurrentConversationId] = useState(createConversationId);
   const [input, setInput] = useState("");
   const [loadingAnswer, setLoadingAnswer] = useState(false);
@@ -1780,6 +1945,14 @@ export default function StudyPage() {
   const needsTopicPicker = mode === "revision" || mode === "exam";
   const activeRevisionTool = activeRevisionPanel === "artifact" ? null : REVISION_TOOLS.find((tool) => tool.id === activeRevisionPanel) || REVISION_TOOLS[0];
   const progressPercent = examQuestions.length ? Math.round((answeredExamCount / examQuestions.length) * 100) : 0;
+  const filteredConversations = useMemo(() => {
+    const query = historySearch.trim().toLowerCase();
+    if (!query) return conversations;
+    return conversations.filter((conversation) => {
+      const searchable = `${conversation.title} ${conversation.chapter} ${conversation.topic}`.toLowerCase();
+      return searchable.includes(query);
+    });
+  }, [conversations, historySearch]);
 
   const starterPrompts = useMemo(
     () => [
@@ -1956,18 +2129,40 @@ export default function StudyPage() {
     });
   };
 
-  const updateLastCoachMessage = (content: string) => {
+  const updateLastCoachMessage = (content: string, blocks?: AdaptiveAnswerBlock[]) => {
     setMessages((current) => {
       const next = [...current];
       const last = next[next.length - 1];
       if (last?.role === "coach") {
-        next[next.length - 1] = { ...last, content, timestamp: getTime() };
+        next[next.length - 1] = {
+          ...last,
+          content,
+          timestamp: getTime(),
+          ...(blocks ? { blocks } : {}),
+        };
       }
       return next;
     });
   };
 
   const processSseEvent = (raw: string): StreamProcessResult => {
+    const turnEvent = parseTurnEventPayload(raw);
+    if (turnEvent) {
+      if (turnEvent.event === "turn.started") {
+        setShowPipeline(true);
+        return { kind: "none" };
+      }
+      if (turnEvent.event === "answer.completed") {
+        const safeAnswer = getCoachSafeAnswer(turnEvent.answer || "");
+        updateLastCoachMessage(safeAnswer, turnEvent.blocks || []);
+        setShowPipeline(false);
+        setShowAgentSummary(true);
+        setAgentSummaryExpanded(false);
+        return { kind: "answer", value: safeAnswer };
+      }
+      return { kind: "none" };
+    }
+
     const stagePayload = parseStagePayload(raw);
     if (stagePayload) {
       handleStagePayload(stagePayload);
@@ -2663,14 +2858,16 @@ export default function StudyPage() {
             ) : null}
 
             <div className="flex gap-2">
-              <IconButton
-                label="Start a new chat"
-                icon="plus"
-                onClick={startNewChat}
-                className="min-h-10 rounded-xl bg-white/78 px-3 py-2 text-slate-700"
-              >
-                New
-              </IconButton>
+              {mode !== "coach" ? (
+                <IconButton
+                  label="Start a new chat"
+                  icon="plus"
+                  onClick={startNewChat}
+                  className="min-h-10 rounded-xl bg-white/78 px-3 py-2 text-slate-700"
+                >
+                  New
+                </IconButton>
+              ) : null}
               <IconButton
                 label="Clear current chat"
                 icon="trash"
@@ -2687,8 +2884,39 @@ export default function StudyPage() {
 
       <section className="study-lab-main flex min-h-0 flex-1 flex-col">
         {mode === "coach" ? (
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+          <div className="study-coach-layout flex min-h-0 flex-1">
+            {sidebarOpen ? (
+              <CoachHistorySidebar
+                conversations={filteredConversations}
+                currentConversationId={currentConversationId}
+                search={historySearch}
+                coachName={coachName}
+                onSearchChange={setHistorySearch}
+                onSelect={resumeConversation}
+                onNewChat={startNewChat}
+                onCollapse={() => setSidebarOpen(false)}
+                onRevision={() => {
+                  setMode("revision");
+                  setActiveRevisionPanel("summary");
+                }}
+                onExam={() => setMode("exam")}
+              />
+            ) : null}
+
+            <div className="study-chat-workspace relative flex min-h-0 min-w-0 flex-1 flex-col">
+              {!sidebarOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen(true)}
+                  className="study-sidebar-restore"
+                  title="Show history sidebar"
+                  aria-label="Show history sidebar"
+                >
+                  <AppIcon name="panelLeft" />
+                </button>
+              ) : null}
+
+              <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
               {messages.length === 0 ? (
                 <div className="study-empty-state study-chat-landing flex min-h-[68svh] w-full flex-col items-center justify-center text-center">
                   <div className="study-chat-orb">
@@ -2718,7 +2946,7 @@ export default function StudyPage() {
                   </div>
                 </div>
               ) : (
-                <div className="w-full space-y-6">
+                <div className="study-chat-thread w-full space-y-6">
                   {messages.map((message, index) => {
                     const isLatestMessage = index === messages.length - 1;
 
@@ -2733,6 +2961,7 @@ export default function StudyPage() {
                         key={`${message.role}-${index}`}
                         coachName={coachName}
                         content={message.content}
+                        blocks={message.blocks}
                         timestamp={message.timestamp}
                         topicLabel="Open tutor"
                         stages={stages}
@@ -2757,13 +2986,16 @@ export default function StudyPage() {
                   <div ref={endRef} />
                 </div>
               )}
-            </div>
-
-            {messages.length ? (
-              <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
-                {renderChatComposer("dock")}
               </div>
-            ) : null}
+
+              {messages.length ? (
+                <div className="study-composer border-t border-slate-200/70 bg-white/86 p-4 backdrop-blur-xl">
+                  <div className="study-composer-inner">
+                    {renderChatComposer("dock")}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         ) : null}
 

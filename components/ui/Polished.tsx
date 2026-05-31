@@ -14,7 +14,9 @@ export type AppIconName =
   | "home"
   | "mic"
   | "mission"
+  | "panelLeft"
   | "plus"
+  | "search"
   | "send"
   | "spark"
   | "study"
@@ -61,6 +63,24 @@ export function AppIcon({ name, className }: { name: AppIconName; className?: st
         <path d="M12 8v5l3 2" />
         <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
         <path d="M4.5 5.5v4h4" />
+      </svg>
+    );
+  }
+
+  if (name === "panelLeft") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className={cn(common, className)}>
+        <rect x="3.5" y="4" width="17" height="16" rx="2.5" />
+        <path d="M9 4v16" />
+      </svg>
+    );
+  }
+
+  if (name === "search") {
+    return (
+      <svg aria-hidden="true" viewBox="0 0 24 24" className={cn(common, className)}>
+        <circle cx="10.8" cy="10.8" r="5.8" />
+        <path d="m15 15 4.5 4.5" />
       </svg>
     );
   }
