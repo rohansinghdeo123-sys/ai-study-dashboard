@@ -11,7 +11,8 @@ import {
   LoadingState,
   type AppIconName,
 } from "@/components/ui/Polished";
-import { apiFetch, apiJson } from "@/lib/apiClient";
+import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
+import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
 import { useSearchParams } from "next/navigation";
 import {
   useEffect,
@@ -832,97 +833,37 @@ function normalizeAnswerPayload(value: string) {
   return payload;
 }
 
-const CHEMICAL_ELEMENTS = new Set([
-  "H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
-  "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn", "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr",
-  "Y", "Zr", "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn", "Sb", "Te", "I", "Xe", "Cs", "Ba",
-  "La", "Ce", "Pr", "Nd", "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb", "Lu", "Hf", "Ta", "W",
-  "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th", "Pa", "U",
-  "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm", "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt",
-  "Ds", "Rg", "Nh", "Fl", "Mc", "Lv", "Ts", "Og",
-]);
-
-const CHEMICAL_ELEMENT_PATTERN = Array.from(CHEMICAL_ELEMENTS).sort((left, right) => right.length - left.length).join("|");
-
-const SUBSCRIPT_TEXT: Record<string, string> = {
-  "\u2080": "0",
-  "\u2081": "1",
-  "\u2082": "2",
-  "\u2083": "3",
-  "\u2084": "4",
-  "\u2085": "5",
-  "\u2086": "6",
-  "\u2087": "7",
-  "\u2088": "8",
-  "\u2089": "9",
-  "\u2099": "n",
-  "\u208A": "+",
-  "\u208B": "-",
-};
-
-function normalizeSubscriptGlyphs(value: string) {
-  return value.replace(/[\u2080-\u2089\u2099\u208A\u208B]/g, (char) => SUBSCRIPT_TEXT[char] || char);
-}
-
 function renderInlineChemistry(value: string) {
-  const subscriptPattern = "(?:\\d*n(?:[+-]\\d+)?|n|\\d+|[\\u2080-\\u2089\\u2099\\u208A\\u208B]+)";
-  const atomPattern = `(?:${CHEMICAL_ELEMENT_PATTERN})(?:${subscriptPattern})?`;
-  const formulaCandidate = `sp\\d+|[a-zA-Z]\\^-?\\d+|(?:${atomPattern}){2,}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${CHEMICAL_ELEMENT_PATTERN})${subscriptPattern}(?:\\^[+-]?\\d+|\\^[+-])?|(?:${CHEMICAL_ELEMENT_PATTERN})(?:\\^[+-]?\\d+|\\^[+-])`;
-  const tokenRegex = new RegExp(`(?<![A-Za-z])(${formulaCandidate})(?![A-Za-z])`, "g");
-  const atomRegex = new RegExp(`^(${CHEMICAL_ELEMENT_PATTERN})(\\d*n(?:[+-]\\d+)?|n|\\d+)?`);
-  const pieces = value.split(tokenRegex);
-
-  return pieces.map((piece, index) => {
-    if (!piece) return null;
-    const normalizedPiece = normalizeSubscriptGlyphs(piece);
-
-    const sp = normalizedPiece.match(/^sp(\d+)$/);
-    if (sp) {
+  return tokenizeStudyText(value).map((part, index) => {
+    if (part.kind === "hybridization") {
       return (
         <span key={index} className="study-formula-token">
-          sp<sup>{sp[1]}</sup>
+          sp<sup>{part.superscript}</sup>
         </span>
       );
     }
 
-    const variablePower = normalizedPiece.match(/^([a-zA-Z])\^(-?\d+)$/);
-    if (variablePower) {
+    if (part.kind === "variable_power") {
       return (
         <span key={index} className="study-formula-token">
-          {variablePower[1]}<sup>{variablePower[2]}</sup>
+          {part.value}<sup>{part.superscript}</sup>
         </span>
       );
     }
 
-    const chargeMatch = normalizedPiece.match(/^(.+)\^([+-]?\d+|[+-])$/);
-    const formula = chargeMatch ? chargeMatch[1] : normalizedPiece;
-    const charge = chargeMatch ? chargeMatch[2] : null;
-    const atoms: Array<{ symbol: string; subscript: string }> = [];
-    let cursor = 0;
-
-    while (cursor < formula.length) {
-      const match = formula.slice(cursor).match(atomRegex);
-      if (!match || !CHEMICAL_ELEMENTS.has(match[1])) break;
-      atoms.push({ symbol: match[1], subscript: match[2] || "" });
-      cursor += match[0].length;
-    }
-
-    const hasSubscript = atoms.some((atom) => atom.subscript);
-    const isFormula = cursor === formula.length && atoms.length > 0 && (atoms.length > 1 || hasSubscript || Boolean(charge));
-
-    if (!isFormula) {
-      return <span key={index}>{normalizedPiece}</span>;
+    if (part.kind === "text") {
+      return <span key={index}>{part.value}</span>;
     }
 
     return (
       <span key={index} className="study-formula-token">
-        {atoms.map((atom, atomIndex) => (
+        {part.atoms.map((atom, atomIndex) => (
           <span key={`${index}-${atomIndex}`}>
             {atom.symbol}
             {atom.subscript ? <sub>{atom.subscript}</sub> : null}
           </span>
         ))}
-        {charge ? <sup>{charge}</sup> : null}
+        {part.superscript ? <sup>{part.superscript}</sup> : null}
       </span>
     );
   });
@@ -1933,6 +1874,7 @@ export default function StudyPage() {
   const activityCollapseScheduledRef = useRef(false);
   const revisionCacheRef = useRef(new Map<string, string>());
   const artifactCacheRef = useRef(new Map<string, StudyArtifactResponse>());
+  const workspaceResetEpochRef = useRef(0);
 
   const authBusy = loading || authLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
@@ -1945,6 +1887,37 @@ export default function StudyPage() {
   const needsTopicPicker = mode === "revision" || mode === "exam";
   const activeRevisionTool = activeRevisionPanel === "artifact" ? null : REVISION_TOOLS.find((tool) => tool.id === activeRevisionPanel) || REVISION_TOOLS[0];
   const progressPercent = examQuestions.length ? Math.round((answeredExamCount / examQuestions.length) * 100) : 0;
+  const revisionHasState = Boolean(
+    revisionContent.summary
+      || revisionContent.explain
+      || revisionContent.keypoints
+      || artifact
+      || revisionError
+      || artifactError
+      || artifactLoading
+      || Object.values(revisionLoading).some(Boolean),
+  );
+  const examHasState = Boolean(
+    examQuestions.length
+      || probableQuestions.length
+      || Object.keys(examAnswers).length
+      || examSubmitted
+      || examLoading
+      || examSaving
+      || examError,
+  );
+  const canClearCurrentWorkspace = mode === "coach"
+    ? Boolean(messages.length || loadingAnswer || error)
+    : mode === "revision"
+      ? revisionHasState
+      : mode === "exam"
+        ? examHasState
+        : false;
+  const clearCurrentWorkspaceLabel = mode === "revision"
+    ? "Clear revision workspace"
+    : mode === "exam"
+      ? "Clear exam workspace"
+      : "Clear current chat";
   const filteredConversations = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
     if (!query) return conversations;
@@ -1989,19 +1962,24 @@ export default function StudyPage() {
   }, [chapter, topic, selectedChapter, selectedTopic]);
 
   useEffect(() => {
+    workspaceResetEpochRef.current += 1;
     setRevisionContent({
       summary: revisionCacheRef.current.get(`${revisionSelectionKey}:summary`) || "",
       explain: revisionCacheRef.current.get(`${revisionSelectionKey}:explain`) || "",
       keypoints: revisionCacheRef.current.get(`${revisionSelectionKey}:keypoints`) || "",
     });
+    setRevisionLoading({ summary: false, explain: false, keypoints: false });
     setRevisionError("");
     setArtifact(artifactCacheRef.current.get(revisionSelectionKey) || null);
+    setArtifactLoading(false);
     setArtifactError("");
     setActiveArtifactTab("concept_map");
     setExamQuestions([]);
     setProbableQuestions([]);
     setExamAnswers({});
     setExamSubmitted(false);
+    setExamLoading(false);
+    setExamSaving(false);
     setExamError("");
   }, [revisionSelectionKey]);
 
@@ -2378,6 +2356,7 @@ export default function StudyPage() {
 
   const clearChat = () => {
     abortRef.current?.abort();
+    abortRef.current = null;
     if (userId) {
       setConversations((current) => {
         const next = current.filter((item) => item.id !== currentConversationId);
@@ -2389,11 +2368,53 @@ export default function StudyPage() {
     setMessages([]);
     setInput("");
     setError("");
+    setLoadingAnswer(false);
     setShowPipeline(false);
     setShowAgentSummary(false);
     setAgentSummaryExpanded(false);
     resetActivityCollapse();
     setStages(createStages);
+  };
+
+  const clearRevisionWorkspace = () => {
+    workspaceResetEpochRef.current += 1;
+    REVISION_TOOLS.forEach((tool) => {
+      revisionCacheRef.current.delete(`${revisionSelectionKey}:${tool.id}`);
+    });
+    artifactCacheRef.current.delete(revisionSelectionKey);
+    if (userId) invalidateApiCache(`artifact:${userId}:${revisionSelectionKey}`);
+    setRevisionContent({ summary: "", explain: "", keypoints: "" });
+    setRevisionLoading({ summary: false, explain: false, keypoints: false });
+    setRevisionError("");
+    setArtifact(null);
+    setArtifactLoading(false);
+    setArtifactError("");
+    setActiveArtifactTab("concept_map");
+    setActiveRevisionPanel("summary");
+  };
+
+  const clearExamWorkspace = () => {
+    workspaceResetEpochRef.current += 1;
+    setExamQuestions([]);
+    setProbableQuestions([]);
+    setExamAnswers({});
+    setExamSubmitted(false);
+    setExamLoading(false);
+    setExamSaving(false);
+    setExamError("");
+    setActiveExamPanel("mcq");
+  };
+
+  const clearCurrentWorkspace = () => {
+    if (mode === "revision") {
+      clearRevisionWorkspace();
+      return;
+    }
+    if (mode === "exam") {
+      clearExamWorkspace();
+      return;
+    }
+    clearChat();
   };
 
   const resumeConversation = (conversation: StudyConversation) => {
@@ -2440,6 +2461,7 @@ export default function StudyPage() {
 
   const runRevision = async (tool: RevisionTool) => {
     if (!userId || authBusy) return;
+    const requestEpoch = workspaceResetEpochRef.current;
     const cacheKey = `${revisionSelectionKey}:${tool.id}`;
     const cached = revisionCacheRef.current.get(cacheKey);
     setMode("revision");
@@ -2475,18 +2497,23 @@ export default function StudyPage() {
       });
       const backendAnswer = getUsableBackendAnswer(data);
       const nextContent = backendAnswer || MATERIAL_NOT_FOUND_MESSAGE;
+      if (requestEpoch !== workspaceResetEpochRef.current) return;
       if (backendAnswer) revisionCacheRef.current.set(cacheKey, backendAnswer);
       setRevisionContent((current) => ({ ...current, [tool.id]: nextContent }));
     } catch {
+      if (requestEpoch !== workspaceResetEpochRef.current) return;
       setRevisionError(MATERIAL_NOT_FOUND_MESSAGE);
       setRevisionContent((current) => ({ ...current, [tool.id]: MATERIAL_NOT_FOUND_MESSAGE }));
     } finally {
-      setRevisionLoading((current) => ({ ...current, [tool.id]: false }));
+      if (requestEpoch === workspaceResetEpochRef.current) {
+        setRevisionLoading((current) => ({ ...current, [tool.id]: false }));
+      }
     }
   };
 
   const generateArtifact = async () => {
     if (!userId || authBusy || artifactLoading) return;
+    const requestEpoch = workspaceResetEpochRef.current;
     const cached = artifactCacheRef.current.get(revisionSelectionKey);
     setMode("revision");
     setActiveRevisionPanel("artifact");
@@ -2503,8 +2530,6 @@ export default function StudyPage() {
       const data = await apiJson<StudyArtifactResponse>(`${backendURL}/artifacts/generate`, {
         method: "POST",
         headers: await getAuthHeaders(),
-        cacheKey: `artifact:${userId}:${revisionSelectionKey}`,
-        cacheTtlMs: 10 * 60 * 1000,
         retries: 1,
         timeoutMs: 12000,
         body: JSON.stringify({
@@ -2520,6 +2545,7 @@ export default function StudyPage() {
           required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
         }),
       });
+      if (requestEpoch !== workspaceResetEpochRef.current) return;
       if (isUsableArtifactResponse(data)) {
         const nextArtifact = data;
         artifactCacheRef.current.set(revisionSelectionKey, nextArtifact);
@@ -2529,14 +2555,18 @@ export default function StudyPage() {
         setArtifactError(ARTIFACT_UNAVAILABLE_MESSAGE);
       }
     } catch {
+      if (requestEpoch !== workspaceResetEpochRef.current) return;
       setArtifactError(ARTIFACT_UNAVAILABLE_MESSAGE);
     } finally {
-      setArtifactLoading(false);
+      if (requestEpoch === workspaceResetEpochRef.current) {
+        setArtifactLoading(false);
+      }
     }
   };
 
   const generateExamPack = async () => {
     if (!userId || authBusy || examLoading) return;
+    const requestEpoch = workspaceResetEpochRef.current;
     setMode("exam");
     setActiveExamPanel("mcq");
     setExamLoading(true);
@@ -2592,6 +2622,7 @@ export default function StudyPage() {
           }),
         }),
       ]);
+      if (requestEpoch !== workspaceResetEpochRef.current) return;
       const mcqRes = mcqResult.status === "fulfilled" ? mcqResult.value : null;
       const probableRes = probableResult.status === "fulfilled" ? probableResult.value : null;
       if (!mcqRes?.ok) throw new Error("MCQ generation failed");
@@ -2618,16 +2649,20 @@ export default function StudyPage() {
         setExamError("Your MCQ pack is ready. Probable questions could not be completed right now, so please regenerate when you want that section.");
       }
     } catch {
+      if (requestEpoch !== workspaceResetEpochRef.current) return;
       setExamError("The exam generator could not complete the request right now. Please try again.");
       setExamQuestions([]);
       setProbableQuestions([]);
     } finally {
-      setExamLoading(false);
+      if (requestEpoch === workspaceResetEpochRef.current) {
+        setExamLoading(false);
+      }
     }
   };
 
   const submitExam = async () => {
     if (!examQuestions.length || examSubmitted) return;
+    const requestEpoch = workspaceResetEpochRef.current;
     setExamSubmitted(true);
     if (!userId) return;
     setExamSaving(true);
@@ -2665,9 +2700,13 @@ export default function StudyPage() {
         timeoutMs: 9000,
       });
     } catch {
-      setExamError("Feedback is ready, but the session could not be saved.");
+      if (requestEpoch === workspaceResetEpochRef.current) {
+        setExamError("Feedback is ready, but the session could not be saved.");
+      }
     } finally {
-      setExamSaving(false);
+      if (requestEpoch === workspaceResetEpochRef.current) {
+        setExamSaving(false);
+      }
     }
   };
 
@@ -2869,10 +2908,10 @@ export default function StudyPage() {
                 </IconButton>
               ) : null}
               <IconButton
-                label="Clear current chat"
+                label={clearCurrentWorkspaceLabel}
                 icon="trash"
-                onClick={clearChat}
-                disabled={!messages.length}
+                onClick={clearCurrentWorkspace}
+                disabled={!canClearCurrentWorkspace}
                 className="min-h-10 rounded-xl border-rose-200 bg-rose-50 px-3 py-2 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
               >
                 Clear

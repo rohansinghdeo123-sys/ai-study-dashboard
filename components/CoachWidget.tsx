@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, apiJson } from "@/lib/apiClient";
+import { tokenizeStudyText } from "@/lib/studyChemistry";
 
 // ─── Types (same as study page) ────────────────────────────────────────────
 interface CoachMessage {
@@ -19,36 +20,33 @@ interface CoachProfile {
 
 // ─── Chemistry text rendering (reused from study page) ────────────────────
 function renderChemistryText(value: string) {
-  const tokenRegex =
-    /(sp\d+|[A-Z][a-z]?(?:\d+)?(?:[A-Z][a-z]?(?:\d+)?)*(?:\^[+-]?\d+|\^[+-])?)/g;
-  const pieces = value.split(tokenRegex);
-  return pieces.map((piece, pieceIndex) => {
-    if (!piece) return null;
-    const spMatch = piece.match(/^sp(\d+)$/);
-    if (spMatch) {
+  return tokenizeStudyText(value).map((part, pieceIndex) => {
+    if (part.kind === "hybridization") {
       return (
         <span key={pieceIndex}>
-          sp<sup>{spMatch[1]}</sup>
+          sp<sup>{part.superscript}</sup>
         </span>
       );
     }
-    const chargeMatch = piece.match(/^(.+)\^([+-]?\d+|[+-])$/);
-    const formula = chargeMatch ? chargeMatch[1] : piece;
-    const charge = chargeMatch ? chargeMatch[2] : null;
-    const atomMatches = [...formula.matchAll(/([A-Z][a-z]?)(\d*)/g)];
-    const matchedFormula = atomMatches.map((match) => match[0]).join("");
-    if (!atomMatches.length || matchedFormula !== formula) {
-      return <span key={pieceIndex}>{piece}</span>;
+    if (part.kind === "variable_power") {
+      return (
+        <span key={pieceIndex}>
+          {part.value}<sup>{part.superscript}</sup>
+        </span>
+      );
+    }
+    if (part.kind === "text") {
+      return <span key={pieceIndex}>{part.value}</span>;
     }
     return (
       <span key={pieceIndex}>
-        {atomMatches.map((match, atomIndex) => (
+        {part.atoms.map((atom, atomIndex) => (
           <span key={`${pieceIndex}-${atomIndex}`}>
-            {match[1]}
-            {match[2] ? <sub>{match[2]}</sub> : null}
+            {atom.symbol}
+            {atom.subscript ? <sub>{atom.subscript}</sub> : null}
           </span>
         ))}
-        {charge ? <sup>{charge}</sup> : null}
+        {part.superscript ? <sup>{part.superscript}</sup> : null}
       </span>
     );
   });
