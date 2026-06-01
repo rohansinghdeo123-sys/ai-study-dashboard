@@ -19,6 +19,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ChangeEvent,
   type KeyboardEvent,
 } from "react";
 
@@ -47,6 +48,9 @@ interface CoachMessage {
   content: string;
   timestamp: string;
   blocks?: AdaptiveAnswerBlock[];
+  sources?: CoachSources;
+  socratic?: boolean;
+  attachments?: DisplayAttachment[];
 }
 
 interface StudyConversation {
@@ -56,6 +60,34 @@ interface StudyConversation {
   chapter: string;
   topic: string;
   messages: CoachMessage[];
+  pinned?: boolean;
+  archived?: boolean;
+  titleLocked?: boolean;
+}
+
+interface CoachCitation {
+  id: string;
+  label: string;
+  source: string;
+  section_id?: string;
+  excerpt?: string;
+}
+
+interface CoachSources {
+  grounded: boolean;
+  indicator?: string;
+  citations: CoachCitation[];
+}
+
+interface DisplayAttachment {
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+}
+
+interface PendingAttachment extends DisplayAttachment {
+  id: string;
+  data_url: string;
 }
 
 interface AgentStageState {
@@ -86,6 +118,8 @@ interface TurnEventPayload {
   turn_id?: string;
   answer?: string;
   blocks?: AdaptiveAnswerBlock[];
+  sources?: CoachSources;
+  socratic?: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -293,15 +327,6 @@ const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: A
 ];
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
-
-const STAGE_ICONS: Record<AgentStageId, AppIconName> = {
-  received: "study",
-  understanding: "analytics",
-  drafting: "study",
-  reviewing: "check",
-  formatting: "copy",
-  delivering: "send",
-};
 
 function normalizeTopicValue(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
@@ -676,44 +701,44 @@ function createStages(): AgentStageState[] {
   return [
     {
       id: "received",
-      agent: "Study Desk",
-      title: "Question received",
-      detail: "Your doubt enters the tutor workspace.",
+      agent: "Coach",
+      title: "Understanding your question",
+      detail: "Preparing the right learning route.",
       status: "pending",
     },
     {
       id: "understanding",
-      agent: "Learning Profiler",
-      title: "Understanding need",
-      detail: "Mapping intent, level, confidence, and follow-up context.",
+      agent: "Coach",
+      title: "Checking context",
+      detail: "Using your recent lesson context when it helps.",
       status: "pending",
     },
     {
       id: "drafting",
-      agent: "Adaptive Mentor",
-      title: "Drafting answer",
-      detail: "Building the first explanation around the selected teaching route.",
+      agent: "Coach",
+      title: "Preparing your answer",
+      detail: "Building a clear explanation for your question.",
       status: "pending",
     },
     {
       id: "reviewing",
-      agent: "Strategy Tutor",
-      title: "Refining explanation",
-      detail: "Checking clarity, accuracy, depth, and student friendliness.",
+      agent: "Coach",
+      title: "Verifying the answer",
+      detail: "Checking clarity, accuracy, and the teaching level.",
       status: "pending",
     },
     {
       id: "formatting",
-      agent: "Response Designer",
-      title: "Formatting response",
-      detail: "Turning the answer into a clean study format.",
+      agent: "Coach",
+      title: "Writing your answer",
+      detail: "Streaming the response in a clean study format.",
       status: "pending",
     },
     {
       id: "delivering",
-      agent: "Tutor Voice",
-      title: "Delivering answer",
-      detail: "Sending the final response into the chat.",
+      agent: "Coach",
+      title: "Finishing",
+      detail: "Finalizing your response.",
       status: "pending",
     },
   ];
@@ -1324,118 +1349,10 @@ function InlineAgentActivity({ stages, compact }: { stages: AgentStageState[]; c
       <span className={`study-mini-pulse ${isComplete ? "is-complete" : ""}`} />
       <span className="min-w-0">
         <span className="study-inline-activity-line">
-          {isComplete ? "Tutor flow complete" : `${activeStage.agent} / ${activeStage.title}`}
+          {isComplete ? "Answer ready" : activeStage.title}
         </span>
         {!compact && !isComplete ? <span className="study-inline-activity-detail">{activeStage.detail}</span> : null}
       </span>
-    </div>
-  );
-}
-
-function AgentPipeline({ stages }: { stages: AgentStageState[] }) {
-  const activeStage =
-    stages.find((stage) => stage.status === "active") ||
-    stages.find((stage) => stage.status === "pending") ||
-    stages[stages.length - 1];
-  const completedCount = stages.filter((stage) => stage.status === "done").length;
-  const progress = Math.round((completedCount / Math.max(1, stages.length)) * 100);
-  const isComplete = completedCount === stages.length;
-
-  return (
-    <div className="study-agent-pipeline w-full overflow-hidden rounded-[1.35rem] border border-slate-200/60 bg-white/58 px-4 py-3 shadow-[0_14px_46px_rgba(15,23,42,0.06)] backdrop-blur-2xl">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className={`study-live-orb mt-1 ${isComplete ? "is-complete" : ""}`}>
-            <AppIcon name={isComplete ? "check" : STAGE_ICONS[activeStage.id]} className="h-3.5 w-3.5" />
-          </span>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#0E7490]">
-                {isComplete ? "Tutor flow complete" : "Tutor thinking"}
-              </span>
-              <span className="study-live-pill">{isComplete ? "Ready" : "Live"}</span>
-            </div>
-            <p className="study-live-line mt-1 text-sm font-semibold leading-6 text-slate-900">
-              <span className="text-slate-500">{activeStage.agent}</span>
-              <span className="px-1.5 text-slate-300">/</span>
-              <span>{activeStage.title}</span>
-            </p>
-            <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-500">{activeStage.detail}</p>
-          </div>
-        </div>
-        <div className="min-w-[160px] md:text-right">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
-            {completedCount}/{stages.length} complete
-          </p>
-          <div className="study-live-progress mt-2">
-            <span style={{ width: `${Math.max(isComplete ? 100 : 10, progress)}%` }} />
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-        {stages.map((stage, index) => {
-          const active = stage.status === "active";
-          const done = stage.status === "done";
-          return (
-            <span
-              key={stage.id}
-              title={`${stage.agent}: ${stage.title}`}
-              className={`study-agent-chip ${active ? "is-active" : ""} ${done ? "is-done" : ""}`}
-            >
-              <span className="study-agent-dot">
-                {done ? <AppIcon name="check" className="h-3 w-3" /> : index + 1}
-              </span>
-              <span className="whitespace-nowrap">{stage.agent}</span>
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function AgentActivitySummary({
-  stages,
-  expanded,
-  onToggle,
-}: {
-  stages: AgentStageState[];
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const completedCount = stages.filter((stage) => stage.status === "done").length;
-  const allDone = completedCount === stages.length;
-  const activeStage =
-    stages.find((stage) => stage.status === "active") ||
-    stages.find((stage) => stage.status === "pending") ||
-    stages[stages.length - 1];
-
-  return (
-    <div className="w-full">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="study-agent-summary flex w-full items-center justify-between gap-3 rounded-[1.25rem] border border-slate-200/60 bg-white/56 px-4 py-3 text-left shadow-[0_12px_38px_rgba(15,23,42,0.05)] backdrop-blur-2xl transition hover:border-[#0E7490]/24 hover:bg-white/76"
-      >
-        <span className="flex min-w-0 items-center gap-3">
-          <span className={`study-live-orb ${allDone ? "is-complete" : ""}`}>
-            <AppIcon name={allDone ? "check" : STAGE_ICONS[activeStage.id]} className="h-3.5 w-3.5" />
-          </span>
-          <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold text-slate-900">
-              {allDone ? "Tutor flow finished" : `${activeStage.agent} is ${activeStage.title.toLowerCase()}`}
-            </span>
-            <span className="mt-0.5 block truncate text-xs text-slate-500">
-              {expanded ? "Hide process details" : "View process details"}
-            </span>
-          </span>
-        </span>
-        <span className="rounded-full border border-slate-200/70 bg-white/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-500">
-          {expanded ? "Hide" : `${completedCount}/${stages.length}`}
-        </span>
-      </button>
-      {expanded ? <div className="mt-3"><AgentPipeline stages={stages} /></div> : null}
     </div>
   );
 }
@@ -1464,7 +1381,36 @@ function StarterPromptCard({
   );
 }
 
-function StudentPromptCard({ content, timestamp }: { content: string; timestamp: string }) {
+function AttachmentChips({ attachments, onRemove }: { attachments: DisplayAttachment[]; onRemove?: (name: string) => void }) {
+  if (!attachments.length) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {attachments.map((attachment) => (
+        <span key={`${attachment.name}-${attachment.size_bytes}`} className="study-attachment-chip">
+          <AppIcon name="plus" className="h-3 w-3" />
+          <span className="max-w-48 truncate">{attachment.name}</span>
+          {onRemove ? (
+            <button type="button" onClick={() => onRemove(attachment.name)} aria-label={`Remove ${attachment.name}`}>
+              <AppIcon name="x" className="h-3 w-3" />
+            </button>
+          ) : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function StudentPromptCard({
+  content,
+  timestamp,
+  attachments = [],
+  onEdit,
+}: {
+  content: string;
+  timestamp: string;
+  attachments?: DisplayAttachment[];
+  onEdit: () => void;
+}) {
   return (
     <div className="flex justify-end">
       <article className="study-user-message max-w-[760px] rounded-[1.55rem] rounded-tr-md bg-[linear-gradient(135deg,#0F172A,#0E7490)] px-5 py-4 text-white shadow-[0_20px_54px_rgba(14,116,144,0.20)]">
@@ -1473,8 +1419,35 @@ function StudentPromptCard({ content, timestamp }: { content: string; timestamp:
           {timestamp ? <span>{timestamp}</span> : null}
         </div>
         <p className="whitespace-pre-wrap text-[15px] leading-7 text-white/95">{content}</p>
+        {attachments.length ? <div className="mt-3"><AttachmentChips attachments={attachments} /></div> : null}
+        <div className="mt-3 flex justify-end">
+          <button type="button" onClick={onEdit} className="text-xs font-semibold text-white/70 transition hover:text-white">
+            Edit and retry
+          </button>
+        </div>
       </article>
     </div>
+  );
+}
+
+function SourceDrawer({ sources }: { sources?: CoachSources }) {
+  if (!sources?.grounded || !sources.citations?.length) return null;
+  return (
+    <details className="study-source-drawer mb-4">
+      <summary>
+        <span className="study-source-indicator">{sources.indicator || "Based on your notes"}</span>
+        <span>{sources.citations.length} source{sources.citations.length === 1 ? "" : "s"}</span>
+      </summary>
+      <div className="study-source-list">
+        {sources.citations.map((source) => (
+          <article key={source.id}>
+            <p>{source.label}</p>
+            <span>{source.source}{source.section_id ? ` / ${source.section_id}` : ""}</span>
+            {source.excerpt ? <small>{source.excerpt}</small> : null}
+          </article>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -1483,11 +1456,13 @@ function TutorActionDock({
   canRegenerate,
   onPrompt,
   onRegenerate,
+  onDirectAnswer,
 }: {
   answer: string;
   canRegenerate: boolean;
   onPrompt: (prompt: string) => void;
   onRegenerate: () => void;
+  onDirectAnswer?: () => void;
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const primaryActions = [
@@ -1514,6 +1489,15 @@ function TutorActionDock({
       prompt: "What mistake might I make in this concept, and how do I avoid it?",
     },
   ];
+  const download = () => {
+    const blob = new Blob([answer], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "agentifyai-study-notes.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="mt-6 border-t border-slate-200/80 pt-4">
@@ -1528,6 +1512,11 @@ function TutorActionDock({
             {action.label}
           </button>
         ))}
+        {onDirectAnswer ? (
+          <button type="button" onClick={onDirectAnswer} className="rounded-full border border-[#0E7490]/25 bg-[#0E7490]/8 px-3.5 py-2 text-xs font-bold text-[#0E7490] transition hover:bg-[#0E7490]/14">
+            Direct answer
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => setMoreOpen((current) => !current)}
@@ -1566,6 +1555,10 @@ function TutorActionDock({
             </button>
           ) : null}
           <CopyButton value={answer} />
+          <button type="button" onClick={download} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/56 px-3.5 py-2 text-xs font-semibold text-slate-500 transition hover:border-[#0E7490]/25 hover:text-[#0E7490]">
+            <AppIcon name="download" className="h-3.5 w-3.5" />
+            <span>Download notes</span>
+          </button>
         </div>
       ) : null}
     </div>
@@ -1585,6 +1578,9 @@ function TutorResponseCard({
   canRegenerate,
   onPrompt,
   onRegenerate,
+  onDirectAnswer,
+  sources,
+  socratic,
 }: {
   coachName: string;
   content: string;
@@ -1598,6 +1594,9 @@ function TutorResponseCard({
   canRegenerate: boolean;
   onPrompt: (prompt: string) => void;
   onRegenerate: () => void;
+  onDirectAnswer: () => void;
+  sources?: CoachSources;
+  socratic?: boolean;
 }) {
   const pending = !content.trim();
 
@@ -1637,6 +1636,7 @@ function TutorResponseCard({
               </div>
             ) : (
               <>
+                <SourceDrawer sources={sources} />
                 <div className="study-answer-stream">
                   <CoachAnswer value={content} streaming={streaming} adaptiveBlocks={blocks} />
                 </div>
@@ -1646,6 +1646,7 @@ function TutorResponseCard({
                     canRegenerate={canRegenerate}
                     onPrompt={onPrompt}
                     onRegenerate={onRegenerate}
+                    onDirectAnswer={socratic ? onDirectAnswer : undefined}
                   />
                 ) : null}
               </>
@@ -1717,6 +1718,15 @@ function getTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("File could not be read."));
+    reader.readAsDataURL(file);
+  });
+}
+
 function getRelativeConversationTime(value: string) {
   const time = new Date(value).getTime();
   if (!Number.isFinite(time)) return "";
@@ -1740,6 +1750,11 @@ function CoachHistorySidebar({
   onCollapse,
   onRevision,
   onExam,
+  showArchived,
+  onToggleArchived,
+  onRename,
+  onPin,
+  onArchive,
 }: {
   conversations: StudyConversation[];
   currentConversationId: string;
@@ -1751,6 +1766,11 @@ function CoachHistorySidebar({
   onCollapse: () => void;
   onRevision: () => void;
   onExam: () => void;
+  showArchived: boolean;
+  onToggleArchived: () => void;
+  onRename: (conversation: StudyConversation) => void;
+  onPin: (conversation: StudyConversation) => void;
+  onArchive: (conversation: StudyConversation) => void;
 }) {
   return (
     <aside className="study-coach-sidebar flex min-h-0 shrink-0 flex-col" aria-label="Tutor chat history">
@@ -1794,21 +1814,35 @@ function CoachHistorySidebar({
       </div>
 
       <div className="mt-6 flex min-h-0 flex-1 flex-col">
-        <p className="study-sidebar-section-label">Chats</p>
+        <div className="flex items-center justify-between gap-2 px-2">
+          <p className="study-sidebar-section-label !px-0">{showArchived ? "Archived chats" : "Chats"}</p>
+          <button type="button" onClick={onToggleArchived} className="text-[11px] font-semibold text-slate-400 transition hover:text-[#0E7490]">
+            {showArchived ? "Back" : "Archived"}
+          </button>
+        </div>
         <div className="study-sidebar-conversations mt-2 min-h-0 flex-1 overflow-y-auto">
           {conversations.length ? conversations.map((conversation) => (
-            <button
-              key={conversation.id}
-              type="button"
-              onClick={() => onSelect(conversation)}
-              className={`study-sidebar-thread ${conversation.id === currentConversationId ? "is-active" : ""}`}
-              title={conversation.title}
-            >
-              <span className="truncate">{conversation.title}</span>
-              <small>{getRelativeConversationTime(conversation.updatedAt)}</small>
-            </button>
+            <div key={conversation.id} className={`study-sidebar-thread-row ${conversation.id === currentConversationId ? "is-active" : ""}`}>
+              <button
+                type="button"
+                onClick={() => onSelect(conversation)}
+                className="study-sidebar-thread"
+                title={conversation.title}
+              >
+                <span className="truncate">{conversation.pinned ? "Pinned / " : ""}{conversation.title}</span>
+                <small>{getRelativeConversationTime(conversation.updatedAt)}</small>
+              </button>
+              <details className="study-sidebar-thread-menu">
+                <summary aria-label={`Manage ${conversation.title}`}>...</summary>
+                <div>
+                  <button type="button" onClick={() => onRename(conversation)}>Rename</button>
+                  <button type="button" onClick={() => onPin(conversation)}>{conversation.pinned ? "Unpin" : "Pin"}</button>
+                  <button type="button" onClick={() => onArchive(conversation)}>{conversation.archived ? "Restore" : "Archive"}</button>
+                </div>
+              </details>
+            </div>
           )) : (
-            <p className="study-sidebar-empty">{search ? "No matching chats" : "Your study chats will appear here."}</p>
+            <p className="study-sidebar-empty">{search ? "No matching chats" : showArchived ? "No archived chats." : "Your study chats will appear here."}</p>
           )}
         </div>
       </div>
@@ -1839,13 +1873,13 @@ export default function StudyPage() {
   const [conversations, setConversations] = useState<StudyConversation[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [historySearch, setHistorySearch] = useState("");
+  const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState(createConversationId);
   const [input, setInput] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [stages, setStages] = useState(createStages);
   const [showPipeline, setShowPipeline] = useState(false);
-  const [showAgentSummary, setShowAgentSummary] = useState(false);
-  const [agentSummaryExpanded, setAgentSummaryExpanded] = useState(false);
   const [activityCollapsed, setActivityCollapsed] = useState(false);
   const [error, setError] = useState("");
   const [revisionContent, setRevisionContent] = useState<Record<RevisionType, string>>({ summary: "", explain: "", keypoints: "" });
@@ -1868,6 +1902,7 @@ export default function StudyPage() {
   const [listening, setListening] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const activityCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1907,7 +1942,7 @@ export default function StudyPage() {
       || examError,
   );
   const canClearCurrentWorkspace = mode === "coach"
-    ? Boolean(messages.length || loadingAnswer || error)
+    ? Boolean(messages.length || pendingAttachments.length || loadingAnswer || error)
     : mode === "revision"
       ? revisionHasState
       : mode === "exam"
@@ -1920,12 +1955,12 @@ export default function StudyPage() {
       : "Clear current chat";
   const filteredConversations = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
-    if (!query) return conversations;
     return conversations.filter((conversation) => {
+      if (Boolean(conversation.archived) !== showArchivedChats) return false;
       const searchable = `${conversation.title} ${conversation.chapter} ${conversation.topic}`.toLowerCase();
-      return searchable.includes(query);
-    });
-  }, [conversations, historySearch]);
+      return !query || searchable.includes(query);
+    }).sort((left, right) => Number(Boolean(right.pinned)) - Number(Boolean(left.pinned)));
+  }, [conversations, historySearch, showArchivedChats]);
 
   const starterPrompts = useMemo(
     () => [
@@ -2021,16 +2056,19 @@ export default function StudyPage() {
 
   useEffect(() => {
     if (!userId || !messages.length) return;
-    const conversation: StudyConversation = {
-      id: currentConversationId,
-      title: titleFromMessages(messages),
-      updatedAt: new Date().toISOString(),
-      chapter: "Open tutor",
-      topic: "Any subject",
-      messages,
-    };
-
     setConversations((current) => {
+      const previous = current.find((item) => item.id === currentConversationId);
+      const conversation: StudyConversation = {
+        id: currentConversationId,
+        title: previous?.titleLocked ? previous.title : titleFromMessages(messages),
+        updatedAt: new Date().toISOString(),
+        chapter: "Open tutor",
+        topic: "Any subject",
+        messages,
+        pinned: previous?.pinned,
+        archived: previous?.archived,
+        titleLocked: previous?.titleLocked,
+      };
       const next = [
         conversation,
         ...current.filter((item) => item.id !== currentConversationId),
@@ -2107,7 +2145,7 @@ export default function StudyPage() {
     });
   };
 
-  const updateLastCoachMessage = (content: string, blocks?: AdaptiveAnswerBlock[]) => {
+  const updateLastCoachMessage = (content: string, blocks?: AdaptiveAnswerBlock[], sources?: CoachSources, socratic?: boolean) => {
     setMessages((current) => {
       const next = [...current];
       const last = next[next.length - 1];
@@ -2117,6 +2155,8 @@ export default function StudyPage() {
           content,
           timestamp: getTime(),
           ...(blocks ? { blocks } : {}),
+          ...(sources ? { sources } : {}),
+          ...(typeof socratic === "boolean" ? { socratic } : {}),
         };
       }
       return next;
@@ -2132,10 +2172,8 @@ export default function StudyPage() {
       }
       if (turnEvent.event === "answer.completed") {
         const safeAnswer = getCoachSafeAnswer(turnEvent.answer || "");
-        updateLastCoachMessage(safeAnswer, turnEvent.blocks || []);
+        updateLastCoachMessage(safeAnswer, turnEvent.blocks || [], turnEvent.sources, turnEvent.socratic);
         setShowPipeline(false);
-        setShowAgentSummary(true);
-        setAgentSummaryExpanded(false);
         return { kind: "answer", value: safeAnswer };
       }
       return { kind: "none" };
@@ -2157,8 +2195,6 @@ export default function StudyPage() {
     const payload = stripDataPrefix(raw);
     if (payload === "[DONE]") {
       setShowPipeline(false);
-      setShowAgentSummary(true);
-      setAgentSummaryExpanded(false);
       return { kind: "none" };
     }
 
@@ -2167,17 +2203,17 @@ export default function StudyPage() {
       const safeAnswer = getCoachSafeAnswer(answer);
       updateLastCoachMessage(safeAnswer);
       setShowPipeline(false);
-      setShowAgentSummary(true);
-      setAgentSummaryExpanded(false);
       return { kind: "answer", value: safeAnswer };
     }
 
     return { kind: "none" };
   };
 
-  const sendMessage = async (override?: string, options?: { fromVoice?: boolean; replaceLastAssistant?: boolean }) => {
-    const prompt = (override ?? input).trim();
+  const sendMessage = async (override?: string, options?: { fromVoice?: boolean; replaceLastAssistant?: boolean; directAnswer?: boolean }) => {
+    const typedPrompt = (override ?? input).trim();
+    const prompt = typedPrompt || (pendingAttachments.length ? "Please explain the attached study material." : "");
     if (!prompt || !userId || authBusy || loadingAnswer) return;
+    const attachmentsForTurn = [...pendingAttachments];
     const contextMessages =
       options?.replaceLastAssistant && messages[messages.length - 1]?.role === "coach"
         ? messages.slice(0, -1)
@@ -2189,11 +2225,10 @@ export default function StudyPage() {
     const controller = new AbortController();
     abortRef.current = controller;
     setInput("");
+    setPendingAttachments([]);
     setError("");
     setLoadingAnswer(true);
     setShowPipeline(true);
-    setShowAgentSummary(false);
-    setAgentSummaryExpanded(false);
     resetActivityCollapse();
     setStages(createStages().map((stage) => (stage.id === "received" ? { ...stage, status: "active" } : stage)));
     let finalAnswer = "";
@@ -2207,7 +2242,12 @@ export default function StudyPage() {
 
       return [
         ...current,
-        { role: "user", content: prompt, timestamp: getTime() },
+        {
+          role: "user",
+          content: prompt,
+          timestamp: getTime(),
+          attachments: attachmentsForTurn.map(({ name, mime_type, size_bytes }) => ({ name, mime_type, size_bytes })),
+        },
         { role: "coach", content: "", timestamp: "" },
       ];
     });
@@ -2225,7 +2265,10 @@ export default function StudyPage() {
           grounding_context_prompt: tutorContext.message,
           mode: "coach",
           intent: adaptiveProfile.intent,
-          session_id: `coach-${userId}`,
+          session_id: `coach-${userId}-${currentConversationId}`,
+          attachments: attachmentsForTurn,
+          direct_answer: Boolean(options?.directAnswer),
+          socratic_mode: true,
           mentor_directive: buildMentorDirective(adaptiveProfile),
           system_guardrail: REASONING_FIRST_TUTOR_GUARDRAIL,
           retrieval_required: false,
@@ -2318,7 +2361,6 @@ export default function StudyPage() {
     abortRef.current?.abort();
     setLoadingAnswer(false);
     setShowPipeline(false);
-    setShowAgentSummary(false);
     resetActivityCollapse();
     setMessages((current) => {
       const next = [...current];
@@ -2345,10 +2387,9 @@ export default function StudyPage() {
     setCurrentConversationId(createConversationId());
     setMessages([]);
     setInput("");
+    setPendingAttachments([]);
     setError("");
     setShowPipeline(false);
-    setShowAgentSummary(false);
-    setAgentSummaryExpanded(false);
     resetActivityCollapse();
     setStages(createStages);
     setMode("coach");
@@ -2367,11 +2408,10 @@ export default function StudyPage() {
     setCurrentConversationId(createConversationId());
     setMessages([]);
     setInput("");
+    setPendingAttachments([]);
     setError("");
     setLoadingAnswer(false);
     setShowPipeline(false);
-    setShowAgentSummary(false);
-    setAgentSummaryExpanded(false);
     resetActivityCollapse();
     setStages(createStages);
   };
@@ -2417,6 +2457,79 @@ export default function StudyPage() {
     clearChat();
   };
 
+  const updateConversationList = (updater: (items: StudyConversation[]) => StudyConversation[]) => {
+    setConversations((current) => {
+      const next = updater(current);
+      if (userId) localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const renameConversation = (conversation: StudyConversation) => {
+    const title = window.prompt("Rename this chat", conversation.title)?.trim();
+    if (!title) return;
+    updateConversationList((items) => items.map((item) => (
+      item.id === conversation.id ? { ...item, title: title.slice(0, 72), titleLocked: true } : item
+    )));
+  };
+
+  const togglePinConversation = (conversation: StudyConversation) => {
+    updateConversationList((items) => items.map((item) => (
+      item.id === conversation.id ? { ...item, pinned: !item.pinned } : item
+    )));
+  };
+
+  const toggleArchiveConversation = (conversation: StudyConversation) => {
+    updateConversationList((items) => items.map((item) => (
+      item.id === conversation.id ? { ...item, archived: !item.archived } : item
+    )));
+    if (conversation.id === currentConversationId && !conversation.archived) startNewChat();
+  };
+
+  const editQuestion = (content: string) => {
+    setInput(content);
+    window.setTimeout(() => inputRef.current?.focus(), 20);
+  };
+
+  const handleAttachmentSelect = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+    if (pendingAttachments.length + files.length > 5) {
+      setError("Attach up to 5 images, screenshots, text files, or PDFs at a time.");
+      return;
+    }
+
+    const allowed = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf", "text/plain"]);
+    const next: PendingAttachment[] = [];
+    for (const file of files) {
+      const maxBytes = file.type.startsWith("image/") ? 4 * 1024 * 1024 : 6 * 1024 * 1024;
+      if (!allowed.has(file.type) || file.size > maxBytes) {
+        setError(`${file.name} is not supported or is too large.`);
+        continue;
+      }
+      try {
+        next.push({
+          id: `${file.name}-${file.size}-${Date.now()}`,
+          name: file.name,
+          mime_type: file.type,
+          size_bytes: file.size,
+          data_url: await readFileAsDataUrl(file),
+        });
+      } catch {
+        setError(`${file.name} could not be read.`);
+      }
+    }
+    if (next.length) {
+      setPendingAttachments((current) => [...current, ...next]);
+      setError("");
+    }
+  };
+
+  const removePendingAttachment = (name: string) => {
+    setPendingAttachments((current) => current.filter((attachment) => attachment.name !== name));
+  };
+
   const resumeConversation = (conversation: StudyConversation) => {
     setCurrentConversationId(conversation.id);
     const savedChapter = CHAPTERS.find((item) => item.value === conversation.chapter);
@@ -2427,8 +2540,6 @@ export default function StudyPage() {
     setMessages(conversation.messages || []);
     setMode("coach");
     setShowPipeline(false);
-    setShowAgentSummary(false);
-    setAgentSummaryExpanded(false);
     resetActivityCollapse();
     window.setTimeout(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 50);
   };
@@ -2724,7 +2835,7 @@ export default function StudyPage() {
 
   const renderChatComposer = (variant: "hero" | "dock") => {
     const isHero = variant === "hero";
-    const canSend = Boolean(input.trim()) || loadingAnswer;
+    const canSend = Boolean(input.trim() || pendingAttachments.length) || loadingAnswer;
 
     return (
       <div className={isHero ? "study-hero-composer w-full" : "w-full"}>
@@ -2740,6 +2851,9 @@ export default function StudyPage() {
         ) : null}
 
         <div className={`study-composer-card ${isHero ? "is-hero" : ""}`}>
+          {pendingAttachments.length ? (
+            <AttachmentChips attachments={pendingAttachments} onRemove={removePendingAttachment} />
+          ) : null}
           <textarea
             ref={inputRef}
             value={input}
@@ -2752,6 +2866,24 @@ export default function StudyPage() {
 
           <div className="study-composer-toolbar">
             <div className="flex min-w-0 items-center gap-2">
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                multiple
+                accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"
+                onChange={handleAttachmentSelect}
+                className="sr-only"
+              />
+              <button
+                type="button"
+                onClick={() => attachmentInputRef.current?.click()}
+                disabled={loadingAnswer}
+                title="Attach image, screenshot, PDF, or text notes"
+                aria-label="Attach image, screenshot, PDF, or text notes"
+                className="study-chat-icon-button border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                <AppIcon name="plus" />
+              </button>
               <button
                 type="button"
                 onClick={() => setMode("revision")}
@@ -2792,7 +2924,7 @@ export default function StudyPage() {
                 className={`agentify-action study-chat-send-button disabled:cursor-not-allowed ${
                   loadingAnswer
                     ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
-                    : input.trim()
+                    : input.trim() || pendingAttachments.length
                       ? "bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-white shadow-[0_14px_34px_rgba(14,116,144,0.22)] hover:shadow-[0_18px_42px_rgba(14,116,144,0.26)]"
                       : "border border-slate-200 bg-slate-100 text-slate-400"
                 }`}
@@ -2939,6 +3071,11 @@ export default function StudyPage() {
                   setActiveRevisionPanel("summary");
                 }}
                 onExam={() => setMode("exam")}
+                showArchived={showArchivedChats}
+                onToggleArchived={() => setShowArchivedChats((current) => !current)}
+                onRename={renameConversation}
+                onPin={togglePinConversation}
+                onArchive={toggleArchiveConversation}
               />
             ) : null}
 
@@ -2994,6 +3131,8 @@ export default function StudyPage() {
                         key={`${message.role}-${index}`}
                         content={message.content}
                         timestamp={message.timestamp}
+                        attachments={message.attachments}
+                        onEdit={() => editQuestion(message.content)}
                       />
                     ) : (
                       <TutorResponseCard
@@ -3001,6 +3140,8 @@ export default function StudyPage() {
                         coachName={coachName}
                         content={message.content}
                         blocks={message.blocks}
+                        sources={message.sources}
+                        socratic={message.socratic}
                         timestamp={message.timestamp}
                         topicLabel="Open tutor"
                         stages={stages}
@@ -3010,17 +3151,10 @@ export default function StudyPage() {
                         canRegenerate={!loadingAnswer && isLatestMessage}
                         onPrompt={setInput}
                         onRegenerate={regenerateLastAnswer}
+                        onDirectAnswer={() => void sendMessage("Please give me the direct answer now.", { directAnswer: true })}
                       />
                     );
                   })}
-
-                  {showAgentSummary && !showPipeline ? (
-                    <AgentActivitySummary
-                      stages={stages}
-                      expanded={agentSummaryExpanded}
-                      onToggle={() => setAgentSummaryExpanded((current) => !current)}
-                    />
-                  ) : null}
 
                   <div ref={endRef} />
                 </div>
