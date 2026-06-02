@@ -1877,6 +1877,9 @@ export default function StudyPage() {
   const [currentConversationId, setCurrentConversationId] = useState(createConversationId);
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [composerMenuOpen, setComposerMenuOpen] = useState(false);
+  const [socraticMode, setSocraticMode] = useState(true);
+  const [strictAttachmentGrounding, setStrictAttachmentGrounding] = useState(false);
   const [loadingAnswer, setLoadingAnswer] = useState(false);
   const [stages, setStages] = useState(createStages);
   const [showPipeline, setShowPipeline] = useState(false);
@@ -1903,6 +1906,7 @@ export default function StudyPage() {
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const composerMenuRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const activityCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1995,6 +1999,26 @@ export default function StudyPage() {
       setTopic(selectedTopic.value);
     }
   }, [chapter, topic, selectedChapter, selectedTopic]);
+
+  useEffect(() => {
+    if (!composerMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!composerMenuRef.current?.contains(event.target as Node)) {
+        setComposerMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setComposerMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [composerMenuOpen]);
 
   useEffect(() => {
     workspaceResetEpochRef.current += 1;
@@ -2214,6 +2238,7 @@ export default function StudyPage() {
     const prompt = typedPrompt || (pendingAttachments.length ? "Please explain the attached study material." : "");
     if (!prompt || !userId || authBusy || loadingAnswer) return;
     const attachmentsForTurn = [...pendingAttachments];
+    const groundAttachmentsOnly = Boolean(strictAttachmentGrounding && attachmentsForTurn.length);
     const contextMessages =
       options?.replaceLastAssistant && messages[messages.length - 1]?.role === "coach"
         ? messages.slice(0, -1)
@@ -2226,6 +2251,8 @@ export default function StudyPage() {
     abortRef.current = controller;
     setInput("");
     setPendingAttachments([]);
+    setStrictAttachmentGrounding(false);
+    setComposerMenuOpen(false);
     setError("");
     setLoadingAnswer(true);
     setShowPipeline(true);
@@ -2268,12 +2295,12 @@ export default function StudyPage() {
           session_id: `coach-${userId}-${currentConversationId}`,
           attachments: attachmentsForTurn,
           direct_answer: Boolean(options?.directAnswer),
-          socratic_mode: true,
+          socratic_mode: socraticMode,
           mentor_directive: buildMentorDirective(adaptiveProfile),
           system_guardrail: REASONING_FIRST_TUTOR_GUARDRAIL,
-          retrieval_required: false,
-          strict_grounding: false,
-          fallback_to_general_knowledge: true,
+          retrieval_required: groundAttachmentsOnly,
+          strict_grounding: groundAttachmentsOnly,
+          fallback_to_general_knowledge: !groundAttachmentsOnly,
           required_not_found_response: MATERIAL_NOT_FOUND_MESSAGE,
           subject: "",
           chapter: "",
@@ -2388,6 +2415,8 @@ export default function StudyPage() {
     setMessages([]);
     setInput("");
     setPendingAttachments([]);
+    setStrictAttachmentGrounding(false);
+    setComposerMenuOpen(false);
     setError("");
     setShowPipeline(false);
     resetActivityCollapse();
@@ -2409,6 +2438,8 @@ export default function StudyPage() {
     setMessages([]);
     setInput("");
     setPendingAttachments([]);
+    setStrictAttachmentGrounding(false);
+    setComposerMenuOpen(false);
     setError("");
     setLoadingAnswer(false);
     setShowPipeline(false);
@@ -2494,6 +2525,7 @@ export default function StudyPage() {
   const handleAttachmentSelect = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     event.target.value = "";
+    setComposerMenuOpen(false);
     if (!files.length) return;
     if (pendingAttachments.length + files.length > 5) {
       setError("Attach up to 5 images, screenshots, text files, or PDFs at a time.");
@@ -2527,7 +2559,11 @@ export default function StudyPage() {
   };
 
   const removePendingAttachment = (name: string) => {
-    setPendingAttachments((current) => current.filter((attachment) => attachment.name !== name));
+    setPendingAttachments((current) => {
+      const next = current.filter((attachment) => attachment.name !== name);
+      if (!next.length) setStrictAttachmentGrounding(false);
+      return next;
+    });
   };
 
   const resumeConversation = (conversation: StudyConversation) => {
@@ -2874,16 +2910,71 @@ export default function StudyPage() {
                 onChange={handleAttachmentSelect}
                 className="sr-only"
               />
-              <button
-                type="button"
-                onClick={() => attachmentInputRef.current?.click()}
-                disabled={loadingAnswer}
-                title="Attach image, screenshot, PDF, or text notes"
-                aria-label="Attach image, screenshot, PDF, or text notes"
-                className="study-chat-icon-button border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-45"
-              >
-                <AppIcon name="plus" />
-              </button>
+              <div ref={composerMenuRef} className="study-composer-menu-wrap">
+                <button
+                  type="button"
+                  onClick={() => setComposerMenuOpen((current) => !current)}
+                  disabled={loadingAnswer}
+                  title="Open tutor tools"
+                  aria-label="Open tutor tools"
+                  aria-haspopup="menu"
+                  aria-expanded={composerMenuOpen}
+                  className="study-chat-icon-button border border-slate-200 bg-white/80 text-slate-700 hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <AppIcon name={composerMenuOpen ? "x" : "plus"} />
+                </button>
+                {composerMenuOpen ? (
+                  <div className="study-composer-menu" role="menu" aria-label="Tutor tools">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="study-composer-menu-action"
+                      onClick={() => {
+                        setComposerMenuOpen(false);
+                        attachmentInputRef.current?.click();
+                      }}
+                    >
+                      <AppIcon name="plus" />
+                      <span>
+                        <strong>Add photos & files</strong>
+                        <small>Images, screenshots, PDFs, or notes</small>
+                      </span>
+                    </button>
+                    <label className="study-composer-menu-toggle" role="menuitemcheckbox" aria-checked={socraticMode}>
+                      <span>
+                        <strong>Guide me step by step</strong>
+                        <small>Use hints before the final answer</small>
+                      </span>
+                      <input
+                        className="sr-only"
+                        type="checkbox"
+                        checked={socraticMode}
+                        onChange={(event) => setSocraticMode(event.target.checked)}
+                      />
+                      <i aria-hidden="true" className="study-composer-switch" />
+                    </label>
+                    <label
+                      className={`study-composer-menu-toggle ${pendingAttachments.length ? "" : "is-disabled"}`}
+                      role="menuitemcheckbox"
+                      aria-checked={strictAttachmentGrounding}
+                      aria-disabled={!pendingAttachments.length}
+                    >
+                      <span>
+                        <strong>Use uploaded notes only</strong>
+                        <small>Answer only from attached material</small>
+                      </span>
+                      <input
+                        className="sr-only"
+                        type="checkbox"
+                        disabled={!pendingAttachments.length}
+                        checked={strictAttachmentGrounding}
+                        onChange={(event) => setStrictAttachmentGrounding(event.target.checked)}
+                      />
+                      <i aria-hidden="true" className="study-composer-switch" />
+                    </label>
+                  </div>
+                ) : null}
+              </div>
               <button
                 type="button"
                 onClick={() => setMode("revision")}
@@ -2908,6 +2999,7 @@ export default function StudyPage() {
                 onClick={listening ? stopVoiceInput : startVoiceInput}
                 disabled={!speechSupported || loadingAnswer}
                 title={listening ? "Stop voice input" : "Start voice input"}
+                aria-label={listening ? "Stop voice input" : "Start voice input"}
                 className={`agentify-action study-chat-icon-button ${
                   listening
                     ? "bg-emerald-500 text-white"
@@ -2921,6 +3013,7 @@ export default function StudyPage() {
                 onClick={loadingAnswer ? stopGenerating : () => void sendMessage()}
                 disabled={!canSend}
                 title={loadingAnswer ? "Stop response" : "Send message"}
+                aria-label={loadingAnswer ? "Stop response" : "Send message"}
                 className={`agentify-action study-chat-send-button disabled:cursor-not-allowed ${
                   loadingAnswer
                     ? "border border-rose-200 bg-rose-50 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
