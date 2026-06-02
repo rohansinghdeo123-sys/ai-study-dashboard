@@ -44,6 +44,15 @@ interface SystemStats {
   uptime_status: string;
 }
 
+interface LearningSignal {
+  key: string;
+  title: string;
+  detail: string;
+  tone: "blue" | "green" | "amber" | "neutral";
+  icon: "search" | "check" | "spark" | "book" | "mission";
+  timestamp: string;
+}
+
 interface ChatMessage {
   role: "admin" | "agent";
   agent_id: string;
@@ -246,6 +255,61 @@ function getEventSummary(data: Record<string, unknown>) {
   return JSON.stringify(data);
 }
 
+function includesAny(value: string, terms: string[]) {
+  return terms.some((term) => value.includes(term));
+}
+
+function toLearningSignal(event: AgentEvent): LearningSignal | null {
+  const detail = getEventSummary(event.data);
+  const searchable = `${event.agent_id} ${event.event_type} ${detail} ${JSON.stringify(event.data)}`.toLowerCase();
+
+  if (includesAny(searchable, ["mastery", "memory", "persist", "observation", "weak topic", "revision due"])) {
+    return {
+      key: `${event.version}-memory`,
+      title: "Learning memory updated",
+      detail,
+      tone: "green",
+      icon: "spark",
+      timestamp: event.timestamp,
+    };
+  }
+
+  if (includesAny(searchable, ["retriev", "knowledge", "source", "chapter", "notes"])) {
+    return {
+      key: `${event.version}-retrieval`,
+      title: "Study material checked",
+      detail,
+      tone: "blue",
+      icon: "book",
+      timestamp: event.timestamp,
+    };
+  }
+
+  if (includesAny(searchable, ["quality", "verif", "review", "grounding"])) {
+    return {
+      key: `${event.version}-quality`,
+      title: "Answer quality verified",
+      detail,
+      tone: "amber",
+      icon: "check",
+      timestamp: event.timestamp,
+    };
+  }
+
+  if (includesAny(searchable, ["classif", "route", "planning", "roadmap", "intent"])) {
+    return {
+      key: `${event.version}-route`,
+      title: "Teaching route selected",
+      detail,
+      tone: "neutral",
+      icon: "mission",
+      timestamp: event.timestamp,
+    };
+  }
+
+  return null;
+}
+
 function StatusBadge({ value, tone = "neutral" }: { value: string; tone?: "green" | "amber" | "red" | "blue" | "neutral" }) {
   const tones = {
     green: "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
@@ -294,7 +358,7 @@ function GlassCard({
     neutral: "text-gray-300",
   };
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0E1118]/72 p-4 shadow-[0_12px_34px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-white/18 hover:bg-[#111520]/78">
+    <div className="ops-card rounded-xl border border-white/10 bg-[#0E1118]/72 p-4 shadow-[0_12px_34px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:border-white/18 hover:bg-[#111520]/78">
       <div className="text-[11px] font-medium text-slate-500">{label}</div>
       <div className={cn("mt-2 text-2xl font-semibold tracking-tight", colorMap[tone])}>{value}</div>
       {sub ? <div className="mt-1 text-[10px] text-gray-600">{sub}</div> : null}
@@ -318,7 +382,7 @@ function GlassPanel({
   return (
     <section
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_16px_44px_rgba(0,0,0,0.16)] backdrop-blur-xl",
+        "ops-panel flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_16px_44px_rgba(0,0,0,0.16)] backdrop-blur-xl",
         className,
       )}
     >
@@ -741,6 +805,35 @@ export default function InternalOpsPage() {
     () => events.filter((event) => event.severity === "critical" || event.severity === "error").length,
     [events],
   );
+  const learningSignals = useMemo(
+    () =>
+      events
+        .map(toLearningSignal)
+        .filter((signal): signal is LearningSignal => Boolean(signal))
+        .slice(0, 6),
+    [events],
+  );
+  const retrievalSignals = useMemo(
+    () =>
+      events.filter((event) =>
+        includesAny(`${event.event_type} ${getEventSummary(event.data)} ${JSON.stringify(event.data)}`.toLowerCase(), ["retriev", "knowledge", "source", "chapter", "notes"]),
+      ).length,
+    [events],
+  );
+  const memorySignals = useMemo(
+    () =>
+      events.filter((event) =>
+        includesAny(`${event.event_type} ${getEventSummary(event.data)} ${JSON.stringify(event.data)}`.toLowerCase(), ["mastery", "memory", "persist", "observation", "weak topic", "revision due"]),
+      ).length,
+    [events],
+  );
+  const qualitySignals = useMemo(
+    () =>
+      events.filter((event) =>
+        includesAny(`${event.event_type} ${getEventSummary(event.data)} ${JSON.stringify(event.data)}`.toLowerCase(), ["quality", "verif", "review", "grounding"]),
+      ).length,
+    [events],
+  );
   const fleetHealthScore = agents.length ? Math.round((healthyAgents.length / agents.length) * 100) : 0;
   const successRate = stats?.success_rate ?? 100;
   const systemTone = connected && criticalEvents === 0 ? "green" : connected ? "amber" : "red";
@@ -820,7 +913,7 @@ export default function InternalOpsPage() {
   if (!isAdmin) return null;
 
   return (
-    <div className="flex min-h-0 flex-col space-y-5 text-slate-200 md:h-full">
+    <div className="ops-shell flex min-h-0 flex-col space-y-5 text-slate-200 md:h-full">
       <div className="hidden rounded-lg border border-white/10 bg-[#0E1118]/90 px-5 py-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -847,7 +940,7 @@ export default function InternalOpsPage() {
         <GlassCard label="Status" value={connected ? "LIVE" : "DISCONNECTED"} sub={authError || undefined} tone={connected ? "green" : "red"} />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_18px_54px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+      <div className="ops-panel overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_18px_54px_rgba(0,0,0,0.18)] backdrop-blur-xl">
         <div className="grid gap-5 p-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:p-6">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -862,7 +955,7 @@ export default function InternalOpsPage() {
               A secure command surface for monitoring autonomous agents, reviewing system signals, and speaking to the fleet without leaving the dashboard.
             </p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="ops-subpanel rounded-xl border border-white/10 bg-white/[0.035] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Fleet Health</div>
@@ -899,6 +992,68 @@ export default function InternalOpsPage() {
         <GlassCard label="Avg Latency" value={formatLatency(avgLatency)} sub="Across active registry" tone={avgLatency && avgLatency > 2500 ? "amber" : "blue"} />
         <GlassCard label="System" value={connected ? "Online" : "Offline"} sub={authError || stats?.uptime_status || "Admin session verified"} tone={connected ? "green" : "red"} />
       </div>
+
+      <section className="ops-panel overflow-hidden rounded-2xl border border-white/10 bg-[#0E1118]/78 shadow-[0_16px_44px_rgba(0,0,0,0.16)] backdrop-blur-xl">
+        <div className="grid gap-5 p-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#0E7490]">Learning Intelligence Trace</div>
+                <h2 className="mt-2 text-xl font-semibold text-white">How the tutor improves its next response</h2>
+              </div>
+              <StatusBadge value="Real backend signals" tone="green" />
+            </div>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+              This is a live view of retrieval, verification, and student-memory observations. The tutor adapts future responses from saved learning signals; the base language model is not silently retrained in the background.
+            </p>
+            <div className="mt-5 grid gap-2 md:grid-cols-5">
+              {[
+                { label: "Question", detail: "Intent resolved", icon: "study" as const, active: true },
+                { label: "Context", detail: "Memory checked", icon: "spark" as const, active: memorySignals > 0 },
+                { label: "Sources", detail: "Notes when needed", icon: "book" as const, active: retrievalSignals > 0 },
+                { label: "Quality", detail: "Answer verified", icon: "check" as const, active: qualitySignals > 0 },
+                { label: "Mastery", detail: "Observation saved", icon: "mission" as const, active: memorySignals > 0 },
+              ].map((item, index) => (
+                <div key={item.label} className="ops-learning-node relative rounded-xl border border-white/10 bg-white/[0.035] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg border", item.active ? "border-emerald-300/25 bg-emerald-300/10 text-emerald-300" : "border-white/10 bg-white/[0.04] text-slate-500")}>
+                      <AppIcon name={item.icon} className="h-4 w-4" />
+                    </span>
+                    <span className="text-[10px] font-semibold text-slate-600">0{index + 1}</span>
+                  </div>
+                  <div className="mt-3 text-xs font-semibold text-white">{item.label}</div>
+                  <div className="mt-1 text-[10px] text-slate-500">{item.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="ops-subpanel rounded-xl border border-white/10 bg-black/20 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Latest Signals</div>
+              <span className="text-[10px] text-slate-600">{learningSignals.length} visible</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {learningSignals.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-xs leading-5 text-slate-500">
+                  Ask the Coach a question to see retrieval, quality, and memory signals appear here.
+                </p>
+              ) : (
+                learningSignals.slice(0, 4).map((signal) => (
+                  <div key={signal.key} className="ops-learning-signal rounded-lg border border-white/10 bg-white/[0.035] p-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#0E7490]"><AppIcon name={signal.icon} className="h-3.5 w-3.5" /></span>
+                      <span className="text-xs font-semibold text-white">{signal.title}</span>
+                      <span className="ml-auto text-[10px] text-slate-600">{formatTime(signal.timestamp)}</span>
+                    </div>
+                    <p className="mt-1 truncate text-[10px] text-slate-500">{signal.detail}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Main grid */}
       <div className="grid flex-1 grid-cols-1 gap-5 overflow-visible md:overflow-hidden xl:grid-cols-[420px_minmax(0,1fr)]">
