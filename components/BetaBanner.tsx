@@ -9,7 +9,7 @@ export default function BetaBanner() {
   const [visible, setVisible] = useState(true);
   const [open, setOpen] = useState(false);
 
-  if (pathname?.startsWith("/dashboard/study")) return null;
+  if (pathname === "/login" || pathname?.startsWith("/dashboard/study")) return null;
   if (!visible) return null;
 
   return (

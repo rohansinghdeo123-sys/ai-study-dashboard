@@ -3443,17 +3443,43 @@ body {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 18%, rgba(20,184,166,0.10), transparent 28%),
-    radial-gradient(circle at 82% 20%, rgba(242,184,75,0.09), transparent 30%),
+    linear-gradient(112deg, rgba(20,184,166,0.11), transparent 38%),
+    linear-gradient(292deg, rgba(242,184,75,0.08), transparent 32%),
     linear-gradient(135deg, rgba(255,255,255,0.02), transparent 42%);
 }
 
-.login-topbar,
+.login-main,
+.login-layout {
+  min-height: 100dvh;
+}
+
+.login-auth-zone {
+  position: relative;
+  isolation: isolate;
+}
+
+.login-auth-zone::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-left: 1px solid rgba(255,255,255,0.07);
+  content: "";
+  background:
+    linear-gradient(150deg, rgba(14,116,144,0.08), transparent 34%),
+    linear-gradient(330deg, rgba(242,184,75,0.06), transparent 30%),
+    rgba(2,6,23,0.14);
+}
+
 .login-passport-card,
 .login-mission-card,
 .login-auth-card,
 .sessions-hero-card {
   position: relative;
+  overflow: hidden;
+}
+
+.login-topbar {
+  position: absolute;
   overflow: hidden;
 }
 
@@ -3488,9 +3514,21 @@ body {
 
 .login-mission-card {
   background:
-    radial-gradient(circle at 10% 0%, rgba(20,184,166,0.12), transparent 32%),
-    radial-gradient(circle at 92% 8%, rgba(242,184,75,0.12), transparent 34%),
+    linear-gradient(118deg, rgba(20,184,166,0.12), transparent 36%),
+    linear-gradient(298deg, rgba(242,184,75,0.11), transparent 34%),
     linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)) !important;
+}
+
+.login-shell .login-surface::before {
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.10), transparent 30%),
+    linear-gradient(298deg, rgba(20,184,166,0.10), transparent 30%),
+    linear-gradient(32deg, rgba(242,184,75,0.08), transparent 28%);
+}
+
+.login-hero-title {
+  letter-spacing: 0;
+  text-wrap: balance;
 }
 
 .login-mission-step {
@@ -3544,10 +3582,18 @@ body {
 
 [data-theme="light"] .login-shell {
   background:
-    radial-gradient(circle at 12% 10%, rgba(20,184,166,0.16), transparent 30%),
-    radial-gradient(circle at 86% 18%, rgba(242,184,75,0.18), transparent 32%),
+    linear-gradient(112deg, rgba(20,184,166,0.14), transparent 38%),
+    linear-gradient(292deg, rgba(242,184,75,0.14), transparent 34%),
     linear-gradient(135deg, #EEF3F8 0%, #FAFCFF 48%, #ECF6F5 100%) !important;
   color: #0F172A !important;
+}
+
+[data-theme="light"] .login-auth-zone::before {
+  border-left-color: rgba(148,163,184,0.16);
+  background:
+    linear-gradient(150deg, rgba(255,255,255,0.72), transparent 42%),
+    linear-gradient(330deg, rgba(20,184,166,0.05), transparent 34%),
+    rgba(255,255,255,0.24);
 }
 
 [data-theme="light"] .login-particles {
@@ -3568,9 +3614,24 @@ body {
   color: #0F172A !important;
 }
 
+[data-theme="light"] .login-shell .agentify-action-primary,
+[data-theme="light"] .login-shell .agentify-action-danger {
+  color: #FFFFFF !important;
+}
+
 [data-theme="light"] .login-shell .text-slate-400,
 [data-theme="light"] .login-shell .text-slate-500 {
   color: #667085 !important;
+}
+
+[data-theme="light"] .login-shell .text-slate-100,
+[data-theme="light"] .login-shell .text-slate-200,
+[data-theme="light"] .login-shell .text-slate-300 {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .login-input {
+  color: #0F172A !important;
 }
 
 [data-theme="light"] .login-shell [class*="text-cyan"] {
@@ -3605,8 +3666,8 @@ body {
 
 [data-theme="light"] .login-mission-card {
   background:
-    radial-gradient(circle at 10% 0%, rgba(20,184,166,0.12), transparent 30%),
-    radial-gradient(circle at 92% 4%, rgba(242,184,75,0.12), transparent 32%),
+    linear-gradient(118deg, rgba(20,184,166,0.12), transparent 34%),
+    linear-gradient(298deg, rgba(242,184,75,0.12), transparent 34%),
     linear-gradient(135deg, rgba(255,255,255,0.90), rgba(247,249,253,0.90)) !important;
 }
 
@@ -3620,12 +3681,107 @@ body {
 [data-theme="light"] .login-topbar::before,
 [data-theme="light"] .login-passport-card::before,
 [data-theme="light"] .login-mission-card::before,
-[data-theme="light"] .login-auth-card::before,
 [data-theme="light"] .sessions-hero-card::before {
   background:
     linear-gradient(115deg, rgba(255,255,255,0.84), transparent 30%),
     radial-gradient(circle at 80% 8%, rgba(20,184,166,0.10), transparent 34%),
     radial-gradient(circle at 8% 100%, rgba(242,184,75,0.10), transparent 34%);
+}
+
+[data-theme="light"] .login-shell .login-surface::before {
+  background:
+    linear-gradient(115deg, rgba(255,255,255,0.84), transparent 32%),
+    linear-gradient(298deg, rgba(20,184,166,0.08), transparent 30%),
+    linear-gradient(32deg, rgba(242,184,75,0.08), transparent 28%);
+}
+
+@media (max-width: 1023px) {
+  .login-auth-zone::before {
+    border-top: 1px solid rgba(148,163,184,0.14);
+    border-left: 0;
+  }
+}
+
+/* ============================================================
+   8. OPS LEARNING INTELLIGENCE WORKSPACE
+   ============================================================ */
+.ops-shell {
+  color: var(--agentify-primary-text);
+}
+
+.ops-panel,
+.ops-card,
+.ops-subpanel,
+.ops-learning-node,
+.ops-learning-signal {
+  border-color: var(--agentify-border) !important;
+  background: var(--agentify-card-bg) !important;
+  box-shadow: 0 18px 54px rgba(15,23,42,0.08);
+  backdrop-filter: blur(22px);
+}
+
+.ops-card,
+.ops-learning-node,
+.ops-learning-signal {
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.ops-card:hover,
+.ops-learning-node:hover,
+.ops-learning-signal:hover {
+  transform: translateY(-2px);
+  border-color: rgba(14,116,144,0.26) !important;
+  box-shadow: 0 20px 54px rgba(15,23,42,0.11);
+}
+
+[data-theme="light"] .ops-shell .text-white,
+[data-theme="light"] .ops-shell .text-slate-100,
+[data-theme="light"] .ops-shell .text-slate-200,
+[data-theme="light"] .ops-shell .text-gray-200,
+[data-theme="light"] .ops-shell .text-gray-300 {
+  color: #0F172A !important;
+}
+
+[data-theme="light"] .ops-shell .text-slate-300,
+[data-theme="light"] .ops-shell .text-slate-400,
+[data-theme="light"] .ops-shell .text-gray-400 {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .ops-shell .text-slate-500,
+[data-theme="light"] .ops-shell .text-slate-600,
+[data-theme="light"] .ops-shell .text-gray-500,
+[data-theme="light"] .ops-shell .text-gray-600 {
+  color: #64748B !important;
+}
+
+[data-theme="light"] .ops-shell [class*="border-white"] {
+  border-color: rgba(148,163,184,0.25) !important;
+}
+
+[data-theme="light"] .ops-shell [class*="bg-black"] {
+  background: rgba(248,250,252,0.76) !important;
+}
+
+[data-theme="light"] .ops-shell [class*="bg-white/"] {
+  background: rgba(255,255,255,0.72) !important;
+}
+
+[data-theme="light"] .ops-shell select,
+[data-theme="light"] .ops-shell input {
+  border-color: rgba(148,163,184,0.28) !important;
+  background: rgba(255,255,255,0.78) !important;
+  color: #0F172A !important;
+}
+
+[data-theme="dark"] .ops-panel,
+[data-theme="dark"] .ops-card,
+[data-theme="dark"] .ops-subpanel,
+[data-theme="dark"] .ops-learning-node,
+[data-theme="dark"] .ops-learning-signal {
+  border-color: rgba(255,255,255,0.10) !important;
+  background: rgba(14,17,24,0.78) !important;
+  box-shadow: 0 18px 54px rgba(0,0,0,0.20);
 }
 
 .agentified-overlay {

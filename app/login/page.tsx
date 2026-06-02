@@ -2,10 +2,17 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { Manrope } from "next/font/google";
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AlertState, AppIcon, LoadingState, type AppIconName } from "@/components/ui/Polished";
+
+const loginFont = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-login",
+});
 
 // ─── Utility functions (unchanged) ────────────────────────────────────────
 function cn(...values: Array<string | false | null | undefined>) {
@@ -274,12 +281,14 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <LoadingState title="Preparing secure sign in..." detail="Opening your private AgentifyAI study workspace." />
+      <div className={loginFont.className}>
+        <LoadingState title="Preparing secure sign in..." detail="Opening your private AgentifyAI study workspace." />
+      </div>
     );
   }
 
   return (
-    <div className="login-shell relative min-h-screen overflow-hidden bg-[#07080D] text-slate-100 antialiased">
+    <div className={cn("login-shell relative min-h-[100dvh] overflow-hidden bg-[var(--agentify-page-bg)] text-[var(--agentify-primary-text)] antialiased", loginFont.className)}>
       <ParticleCanvas />
 
       {/* Background overlays */}
@@ -303,8 +312,8 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10">
-        <main className="mx-auto flex min-h-screen max-w-[1480px] flex-col px-5 py-5 lg:px-10 xl:px-12">
-          <header className="login-topbar flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+        <main className="login-main relative flex min-h-[100dvh] w-full flex-col">
+          <header className="login-topbar login-surface absolute inset-x-4 top-4 z-20 flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:inset-x-6 lg:inset-x-10 xl:inset-x-14">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-sm font-black text-white">
                 A
@@ -323,31 +332,31 @@ export default function LoginPage() {
             </div>
           </header>
 
-          <div className="grid flex-1 grid-cols-1 items-center gap-8 py-10 lg:grid-cols-[minmax(0,1.08fr)_500px] lg:py-12 xl:gap-12">
+          <div className="login-layout grid min-h-[100dvh] flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1.14fr)_minmax(31rem,0.86fr)]">
           {/* Left panel – Clean and bold */}
-          <section className="flex flex-col justify-center">
-            <div className="max-w-3xl">
+          <section className="login-hero flex flex-col justify-center px-5 pb-10 pt-28 sm:px-8 lg:px-12 lg:pb-9 lg:pt-28 xl:px-16 2xl:px-24">
+            <div className="max-w-[54rem]">
               <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.045] px-3 py-1.5 text-xs font-medium text-slate-400 shadow-[0_14px_34px_rgba(0,0,0,0.12)] backdrop-blur-xl">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_16px_rgba(110,231,183,0.8)]" />
                 Built for school students who want clear next steps
               </div>
 
-              <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-white md:text-7xl">
+              <h1 className="login-hero-title max-w-[52rem] text-5xl font-semibold leading-[1.03] text-white sm:text-6xl lg:text-[4.35rem] xl:text-[4.85rem]">
                 Your AI study companion for school.
               </h1>
 
-              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-400 md:text-lg">
+              <p className="mt-5 max-w-[46rem] text-base leading-7 text-slate-400 sm:text-lg sm:leading-8">
                 AgentifyAI helps every learner ask doubts, revise chapters, practice questions, and understand what to do next without feeling lost.
               </p>
             </div>
 
-            <div className="mt-8 grid max-w-3xl grid-cols-3 gap-3">
+              <div className="mt-7 grid max-w-[52rem] grid-cols-3 gap-2 sm:gap-3">
               {platformSignals.map((item) => (
                 <MetricTile key={item.label} label={item.label} value={item.value} icon={item.icon} active={item.value === "4"} />
               ))}
             </div>
 
-            <div className="login-mission-card mt-8 max-w-4xl rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl md:p-6">
+            <div className="login-mission-card login-surface mt-7 hidden max-w-[56rem] rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] backdrop-blur-xl sm:block">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
@@ -366,57 +375,35 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-4">
+                <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
                 {missionSteps.map((item, index) => (
-                  <div key={item.title} className="login-mission-step rounded-2xl border border-white/10 bg-black/20 p-4">
+                  <div key={item.title} className="login-mission-step login-subpanel rounded-2xl border border-white/10 bg-black/20 p-3.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] font-semibold text-slate-500">{item.step}</span>
                       <span className={cn("h-2 w-2 rounded-full", index === 0 ? "bg-cyan-300" : index === 3 ? "bg-amber-300" : "bg-emerald-300")} />
                     </div>
-                    <div className="mt-4 flex h-9 w-9 items-center justify-center rounded-2xl bg-white/[0.055] text-cyan-100">
+                    <div className="mt-3 flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.055] text-cyan-100">
                       <AppIcon name={item.icon} />
                     </div>
-                    <div className="mt-4 text-sm font-semibold text-white">{item.title}</div>
+                    <div className="mt-3 text-sm font-semibold text-white">{item.title}</div>
                     <div className="mt-1 text-xs leading-5 text-slate-500">{item.detail}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="login-passport-card mt-4 max-w-4xl rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.16)] backdrop-blur-xl">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-white">Learning Passport</div>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Dashboard, Study Page, Missions, and Sessions stay connected in one private profile.
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { label: "Tutor ready", icon: "study" as AppIconName },
-                    { label: "History sync", icon: "history" as AppIconName },
-                    { label: "Secure login", icon: "check" as AppIconName },
-                  ].map((item) => (
-                    <span key={item.label} className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-slate-400">
-                      <AppIcon name={item.icon} className="h-3 w-3" />
-                      {item.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
           </section>
 
           {/* Right panel – authentication card (unchanged structure, upgraded buttons) */}
-          <section className="flex items-center justify-center">
+          <section className="login-auth-zone flex items-center justify-center px-5 pb-8 pt-8 sm:px-8 sm:pb-10 sm:pt-10 lg:px-10 lg:pb-9 lg:pt-28 xl:px-14" aria-label="Sign in">
             <div
               className={cn(
-                "login-auth-card w-full rounded-3xl border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
+                "login-auth-card login-surface w-full max-w-[34rem] rounded-3xl border border-white/10 bg-[#0E1118]/90 shadow-[0_24px_80px_rgba(0,0,0,0.28)] backdrop-blur-xl transition-all duration-500",
                 shake && "animate-shake",
                 granted && "border-cyan-300/30 shadow-[0_0_40px_rgba(20,184,166,0.16)]",
               )}
             >
-              <div className="p-6 md:p-8">
+              <div className="p-6 sm:p-8 lg:p-9">
                 {granted ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <div className="text-4xl font-bold text-[#0E7490]">ACCESS GRANTED</div>
@@ -461,6 +448,7 @@ export default function LoginPage() {
                       size="lg"
                       className="login-google-button w-full !justify-center !gap-3"
                       onClick={handleGoogleLogin}
+                      type="button"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -484,23 +472,25 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="block">
+                      <label className="block" htmlFor="login-phone-number">
                         <span className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#6B6B6B]">
                           Mobile Number
                         </span>
                         <div className="relative">
                           <input
+                            id="login-phone-number"
+                            name="phone"
+                            type="tel"
+                            inputMode="tel"
+                            autoComplete="tel"
                             value={phoneNumber}
                             onChange={(event) => setPhoneNumber(event.target.value)}
+                            onKeyDown={(event) => event.key === "Enter" && !otpSent && handleSendOtp()}
                             placeholder="+91 98765 43210"
                             disabled={otpSent}
-                            className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-medium text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#0E7490] disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-describedby={authError ? "login-auth-error" : undefined}
+                            className="login-input agentify-field w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-medium text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-[#0E7490] disabled:cursor-not-allowed disabled:opacity-60"
                           />
-                          {!phoneNumber && !otpSent && (
-                            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-[#0E7490]">
-                              _
-                            </span>
-                          )}
                         </div>
                       </label>
 
@@ -508,39 +498,45 @@ export default function LoginPage() {
                         <Button
                           variant="primary"
                           size="lg"
-                          className="w-full"
+                          className="w-full !text-white"
                           onClick={handleSendOtp}
                           disabled={sendingOtp}
+                          type="button"
+                          aria-busy={sendingOtp}
                         >
                           {sendingOtp ? "Sending OTP..." : "Send OTP"}
                         </Button>
                       ) : (
                         <>
-                          <label className="block">
+                          <label className="block" htmlFor="login-verification-code">
                             <span className="mb-2 block text-[9px] font-semibold uppercase tracking-[0.18em] text-[#6B6B6B]">
                               Verification Code
                             </span>
                             <div className="relative">
                               <input
+                                id="login-verification-code"
+                                name="one-time-code"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
                                 value={otp}
                                 onChange={(event) => setOtp(event.target.value)}
+                                onKeyDown={(event) => event.key === "Enter" && handleVerifyOtp()}
                                 placeholder="ENTER OTP"
-                                className="login-input w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-medium text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-emerald-400"
+                                aria-describedby={authError ? "login-auth-error" : undefined}
+                                className="login-input agentify-field w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm font-medium text-[#E6E6E6] outline-none transition-colors placeholder:text-[#6B6B6B] focus:border-emerald-400"
                               />
-                              {!otp && (
-                                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 animate-pulse text-emerald-400">
-                                  _
-                                </span>
-                              )}
                             </div>
                           </label>
 
                           <Button
-                            variant="primary"
-                            size="lg"
-                            className="w-full !bg-emerald-500 !border-emerald-500 hover:!bg-emerald-600"
+                          variant="primary"
+                          size="lg"
+                          className="w-full !border-emerald-500 !bg-emerald-500 !text-white hover:!bg-emerald-600"
                             onClick={handleVerifyOtp}
                             disabled={verifyingOtp}
+                            type="button"
+                            aria-busy={verifyingOtp}
                           >
                             {verifyingOtp ? "Verifying..." : "Verify and continue"}
                           </Button>
@@ -549,6 +545,7 @@ export default function LoginPage() {
                             variant="ghost"
                             size="sm"
                             className="w-full"
+                            type="button"
                             onClick={() => {
                               setOtpSent(false);
                               setOtp("");
@@ -562,12 +559,12 @@ export default function LoginPage() {
                     </div>
 
                     {authError ? (
-                      <div className={cn("mt-4", shake && "animate-shake")}>
+                      <div id="login-auth-error" className={cn("mt-4", shake && "animate-shake")}>
                         <AlertState message={authError.replace(/_/g, " ")} />
                       </div>
                     ) : null}
 
-                    <div className="login-provider-card mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="login-provider-card login-subpanel mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
                       <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.14em]">
                         <span className="inline-flex items-center gap-1.5 text-[#6B6B6B]">
                           <AppIcon name="dashboard" className="h-3 w-3" />
