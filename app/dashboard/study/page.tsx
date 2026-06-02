@@ -1907,6 +1907,8 @@ export default function StudyPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const composerMenuRef = useRef<HTMLDivElement>(null);
+  const composerMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const composerFirstActionRef = useRef<HTMLButtonElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const activityCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -2002,6 +2004,7 @@ export default function StudyPage() {
 
   useEffect(() => {
     if (!composerMenuOpen) return;
+    const focusFrame = window.requestAnimationFrame(() => composerFirstActionRef.current?.focus());
 
     const handlePointerDown = (event: MouseEvent) => {
       if (!composerMenuRef.current?.contains(event.target as Node)) {
@@ -2009,12 +2012,16 @@ export default function StudyPage() {
       }
     };
     const handleEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") setComposerMenuOpen(false);
+      if (event.key === "Escape") {
+        setComposerMenuOpen(false);
+        composerMenuTriggerRef.current?.focus();
+      }
     };
 
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleEscape);
     return () => {
+      window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
@@ -2912,6 +2919,7 @@ export default function StudyPage() {
               />
               <div ref={composerMenuRef} className="study-composer-menu-wrap">
                 <button
+                  ref={composerMenuTriggerRef}
                   type="button"
                   onClick={() => setComposerMenuOpen((current) => !current)}
                   disabled={loadingAnswer}
@@ -2926,6 +2934,7 @@ export default function StudyPage() {
                 {composerMenuOpen ? (
                   <div className="study-composer-menu" role="menu" aria-label="Tutor tools">
                     <button
+                      ref={composerFirstActionRef}
                       type="button"
                       role="menuitem"
                       className="study-composer-menu-action"

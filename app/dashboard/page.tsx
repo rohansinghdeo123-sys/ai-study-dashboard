@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { LoadingState } from "@/components/ui/Polished";
+import { AlertState, LoadingState } from "@/components/ui/Polished";
 import { apiJson } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -218,6 +218,23 @@ function HubTile({
   );
 }
 
+function DashboardDataAlert({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-2 px-1 pt-2 sm:flex-row sm:items-center sm:px-4">
+      <div className="min-w-0 flex-1">
+        <AlertState tone="amber" message={message} />
+      </div>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="agentify-action agentify-action-secondary shrink-0 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user, userId, loading, claimsLoading, isAdmin, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
@@ -228,6 +245,8 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [weakAreas, setWeakAreas] = useState<WeakArea[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState("");
+  const [reloadToken, setReloadToken] = useState(0);
 
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const firstName = displayName.split(" ")[0] || "Student";
@@ -249,6 +268,7 @@ export default function DashboardPage() {
 
     async function loadDashboard() {
       setLoadingData(true);
+      setDataError("");
       try {
         const headers = await getAuthHeaders();
         const [progressJson, sessionsJson, leaderboardJson, analyticsJson] = await Promise.all([
@@ -283,12 +303,15 @@ export default function DashboardPage() {
         ]);
 
         if (!active) return;
+        const missingSignals = [progressJson, sessionsJson, leaderboardJson, analyticsJson].filter((value) => value === null).length;
+        setDataError(missingSignals ? "Some progress signals could not refresh. Showing the latest available learning view." : "");
         setProgress(normalizeProgress(progressJson));
         setSessions(normalizeSessions(sessionsJson));
         setLeaderboard(normalizeLeaderboard(leaderboardJson));
         setWeakAreas(normalizeWeakAreas(analyticsJson));
       } catch {
         if (!active) return;
+        setDataError("Progress signals could not refresh. Showing a safe learning view.");
       } finally {
         if (active) setLoadingData(false);
       }
@@ -298,7 +321,9 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [backendURL, claimsLoading, getAuthHeaders, loading, userId]);
+  }, [backendURL, claimsLoading, getAuthHeaders, loading, reloadToken, userId]);
+
+  const retryDashboard = () => setReloadToken((current) => current + 1);
 
   if (loading || claimsLoading) {
     return (
@@ -309,6 +334,7 @@ export default function DashboardPage() {
   if (!showOverview) {
     return (
       <div className="w-full">
+        {dataError ? <DashboardDataAlert message={dataError} onRetry={retryDashboard} /> : null}
         <section className="flex min-h-[calc(100svh-118px)] flex-col items-center justify-center gap-8 py-8">
           <div className="max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0E7490]">Learning Hub</p>
@@ -380,6 +406,7 @@ export default function DashboardPage() {
 
   return (
     <div className="w-full space-y-5">
+      {dataError ? <DashboardDataAlert message={dataError} onRetry={retryDashboard} /> : null}
       <section className="rounded-[2rem] border border-white/70 bg-white/74 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -151,7 +151,7 @@ function AccuracyRail({ value }: { value: number }) {
   );
 }
 
-function EmptyState() {
+function SessionsEmptyState() {
   return (
     <PolishedEmptyState
       icon="history"
@@ -166,6 +166,25 @@ function EmptyState() {
           Start mission
         </Link>
         </>
+      }
+    />
+  );
+}
+
+function SearchEmptyState({ search, onClear }: { search: string; onClear: () => void }) {
+  return (
+    <PolishedEmptyState
+      icon="search"
+      title="No matching sessions"
+      detail={`No saved sessions match "${search.trim()}". Clear the search to see your full learning history.`}
+      action={
+        <button
+          type="button"
+          onClick={onClear}
+          className="agentify-action agentify-action-secondary rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700"
+        >
+          Clear search
+        </button>
       }
     />
   );
@@ -312,7 +331,11 @@ export default function SessionsPage() {
           }
         />
       ) : !filteredSessions.length ? (
-        <EmptyState />
+        search.trim() && sessions.length ? (
+          <SearchEmptyState search={search} onClear={() => setSearch("")} />
+        ) : (
+          <SessionsEmptyState />
+        )
       ) : (
         <section className="grid min-h-[560px] flex-1 gap-5 lg:grid-cols-[420px_minmax(0,1fr)]">
           <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/74 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">

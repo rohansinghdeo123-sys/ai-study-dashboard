@@ -92,6 +92,12 @@
   --transition-slow:   300ms ease;
 }
 
+@media (max-width: 359px) {
+  .dashboard-shell .backend-status {
+    display: none;
+  }
+}
+
 /* ============================================================
    2. LIGHT MODE OVERRIDES
    ============================================================ */

@@ -68,6 +68,20 @@ const emptyProgress: ProgressSummary = {
   learning_efficiency: 0,
 };
 
+const TOPIC_CHAPTER_MAP: Record<string, string> = {
+  alkanes: "hydrocarbon",
+  alkenes: "hydrocarbon",
+  alkynes: "hydrocarbon",
+  aromatics: "hydrocarbon",
+  matter_definition: "matter",
+  states_of_matter: "matter",
+  properties_of_matter: "matter",
+};
+
+function getChapterForTopic(topic: string) {
+  return TOPIC_CHAPTER_MAP[topic.trim().toLowerCase().replace(/\s+/g, "_")] || "hydrocarbon";
+}
+
 // Utility functions
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -422,6 +436,7 @@ function useDashboardData() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   useEffect(() => {
@@ -470,7 +485,11 @@ function useDashboardData() {
     }
     load();
     return () => { active = false; };
-  }, [authLoading, backendURL, getAuthHeaders, user]);
+  }, [authLoading, backendURL, getAuthHeaders, reloadToken, user]);
+
+  const retry = useCallback(() => {
+    setReloadToken((current) => current + 1);
+  }, []);
 
   return {
     userId: user?.uid ?? "",
@@ -480,6 +499,7 @@ function useDashboardData() {
     leaderboard,
     loading: loading || authLoading,
     error,
+    retry,
   };
 }
 
@@ -732,7 +752,7 @@ function downloadCSV(sessions: Session[]) {
 
 // Main Analytics page component
 export default function ProgressPage() {
-  const { userId, currentDisplayName, sessions, progress, leaderboard, loading, error } = useDashboardData();
+  const { userId, currentDisplayName, sessions, progress, leaderboard, loading, error, retry } = useDashboardData();
   const [range, setRange] = useState<TrendRange>("14d");
   const router = useRouter();
 
@@ -859,7 +879,8 @@ export default function ProgressPage() {
   }, [sessions]);
 
   const handleReviseTopic = useCallback((topic: string) => {
-    router.push(`/dashboard/study?chapter=hydrocarbon&topic=${topic}`);
+    const normalizedTopic = topic.trim().toLowerCase().replace(/\s+/g, "_");
+    router.push(`/dashboard/study?chapter=${encodeURIComponent(getChapterForTopic(topic))}&topic=${encodeURIComponent(normalizedTopic)}`);
   }, [router]);
 
   if (loading) {
@@ -897,7 +918,18 @@ export default function ProgressPage() {
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
                 Track mastery, rank, weak topics, consistency, and the next best study action from one calm view.
               </p>
-              {error ? <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">{error}</p> : null}
+              {error ? (
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">{error}</p>
+                  <button
+                    type="button"
+                    onClick={retry}
+                    className="agentify-action rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300 transition hover:bg-amber-400/16"
+                  >
+                    Retry sync
+                  </button>
+                </div>
+              ) : null}
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -915,7 +947,10 @@ export default function ProgressPage() {
                 <button
                   type="button"
                   onClick={handleExportCSV}
-                  className="agentify-action rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16"
+                  disabled={!sessions.length}
+                  aria-disabled={!sessions.length}
+                  title={sessions.length ? "Download session data as CSV" : "Complete one tracked session to export data"}
+                  className="agentify-action rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
                   <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#67E8F9]">Export</span>
                   <span className="mt-2 block text-sm font-semibold text-white">Download CSV</span>

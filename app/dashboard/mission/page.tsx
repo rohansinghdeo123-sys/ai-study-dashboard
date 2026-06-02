@@ -185,6 +185,36 @@ function buildReport(mission: AutonomousMission, correct: boolean) {
   };
 }
 
+function MissionBuildState({ topic }: { topic: string }) {
+  const steps = ["Checking prerequisites", "Optimizing study order", "Preparing diagnostic"];
+
+  return (
+    <div className="flex min-h-[420px] items-center justify-center" role="status" aria-live="polite">
+      <div className="w-full max-w-xl">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#0E7490]">Building mission</p>
+        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+          Creating your fastest path for {formatLabel(topic)}
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-slate-500">
+          The planner is keeping the route focused and practical.
+        </p>
+        <div className="mt-7 space-y-3">
+          {steps.map((step, index) => (
+            <div key={step} className="flex items-center gap-3 border-b border-slate-200/80 py-3">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  index === 0 ? "bg-[#14B8A6] shadow-[0_0_0_6px_rgba(20,184,166,0.10)]" : "bg-slate-200"
+                }`}
+              />
+              <span className="text-sm font-semibold text-slate-600">{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MissionPage() {
   const { userId, loading, claimsLoading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
@@ -421,7 +451,9 @@ export default function MissionPage() {
       </section>
 
       <section className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-        {!mission ? (
+        {loadingMission ? (
+          <MissionBuildState topic={topic} />
+        ) : !mission ? (
           <EmptyState
             icon="mission"
             title="Create your mission"

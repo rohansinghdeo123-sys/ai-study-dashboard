@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type GuideItem = {
   step: string;
@@ -74,23 +74,55 @@ function GuideStep({ item, onNavigate }: { item: GuideItem; onNavigate: () => vo
 
 export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    const trigger = triggerRef.current;
+    closeRef.current?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
 
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      trigger?.focus();
+    };
   }, [open]);
 
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        aria-expanded={open}
         className="agentify-action dashboard-nav-card rounded-2xl border border-white/70 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:text-[#0E7490]"
       >
         Guide
@@ -101,9 +133,12 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
           role="dialog"
           aria-modal="true"
           aria-labelledby="student-guide-title"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
           className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/40 p-3 backdrop-blur-sm sm:p-6"
         >
-          <div className="student-guide-panel max-h-[calc(100svh-32px)] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-white/70 bg-[#F8FAFC]/95 shadow-[0_34px_120px_rgba(15,23,42,0.24)] backdrop-blur-2xl">
+          <div ref={dialogRef} className="student-guide-panel max-h-[calc(100svh-32px)] w-full max-w-5xl overflow-y-auto rounded-[2rem] border border-white/70 bg-[#F8FAFC]/95 shadow-[0_34px_120px_rgba(15,23,42,0.24)] backdrop-blur-2xl">
             <div className="student-guide-header sticky top-0 z-10 border-b border-slate-200/80 bg-white/90 px-5 py-4 backdrop-blur-xl sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -116,6 +151,7 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
                   </p>
                 </div>
                 <button
+                  ref={closeRef}
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close guide"
