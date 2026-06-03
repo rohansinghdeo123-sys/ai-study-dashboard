@@ -1718,6 +1718,10 @@ function getTime() {
   return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function clampStudyMetric(value: number, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -1897,6 +1901,7 @@ export default function StudyPage() {
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
   const [probableQuestions, setProbableQuestions] = useState<ProbableQuestion[]>([]);
   const [examAnswers, setExamAnswers] = useState<Record<string, string>>({});
+  const [examRetryCount, setExamRetryCount] = useState(0);
   const [examSubmitted, setExamSubmitted] = useState(false);
   const [examLoading, setExamLoading] = useState(false);
   const [examSaving, setExamSaving] = useState(false);
@@ -1916,6 +1921,9 @@ export default function StudyPage() {
   const revisionCacheRef = useRef(new Map<string, string>());
   const artifactCacheRef = useRef(new Map<string, StudyArtifactResponse>());
   const workspaceResetEpochRef = useRef(0);
+  const examStartedAtRef = useRef<string | null>(null);
+  const examGenerationLatencyRef = useRef(0);
+  const examAnswerSelectionsRef = useRef<Record<string, string>>({});
 
   const authBusy = loading || authLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
@@ -2043,10 +2051,14 @@ export default function StudyPage() {
     setExamQuestions([]);
     setProbableQuestions([]);
     setExamAnswers({});
+    setExamRetryCount(0);
     setExamSubmitted(false);
     setExamLoading(false);
     setExamSaving(false);
     setExamError("");
+    examStartedAtRef.current = null;
+    examGenerationLatencyRef.current = 0;
+    examAnswerSelectionsRef.current = {};
   }, [revisionSelectionKey]);
 
   useEffect(() => {
@@ -2476,11 +2488,15 @@ export default function StudyPage() {
     setExamQuestions([]);
     setProbableQuestions([]);
     setExamAnswers({});
+    setExamRetryCount(0);
     setExamSubmitted(false);
     setExamLoading(false);
     setExamSaving(false);
     setExamError("");
     setActiveExamPanel("mcq");
+    examStartedAtRef.current = null;
+    examGenerationLatencyRef.current = 0;
+    examAnswerSelectionsRef.current = {};
   };
 
   const clearCurrentWorkspace = () => {
@@ -2721,14 +2737,19 @@ export default function StudyPage() {
   const generateExamPack = async () => {
     if (!userId || authBusy || examLoading) return;
     const requestEpoch = workspaceResetEpochRef.current;
+    const requestStartedAt = Date.now();
     setMode("exam");
     setActiveExamPanel("mcq");
     setExamLoading(true);
     setExamError("");
     setExamSubmitted(false);
     setExamAnswers({});
+    setExamRetryCount(0);
     setExamQuestions([]);
     setProbableQuestions([]);
+    examStartedAtRef.current = null;
+    examGenerationLatencyRef.current = 0;
+    examAnswerSelectionsRef.current = {};
     try {
       const headers = await getAuthHeaders();
       const [mcqResult, probableResult] = await Promise.allSettled([
@@ -2799,6 +2820,8 @@ export default function StudyPage() {
 
       setExamQuestions(nextQuestions.slice(0, 5));
       setProbableQuestions(nextProbable);
+      examStartedAtRef.current = new Date().toISOString();
+      examGenerationLatencyRef.current = Date.now() - requestStartedAt;
       if (nextProbable.length < 5) {
         setExamError("Your MCQ pack is ready. Probable questions could not be completed right now, so please regenerate when you want that section.");
       }
@@ -2814,11 +2837,32 @@ export default function StudyPage() {
     }
   };
 
+  const recordExamAnswer = (questionId: string, optionKey: string) => {
+    if (examSubmitted) return;
+    const previous = examAnswerSelectionsRef.current[questionId];
+    if (previous && previous !== optionKey) {
+      setExamRetryCount((current) => current + 1);
+    }
+    examAnswerSelectionsRef.current = {
+      ...examAnswerSelectionsRef.current,
+      [questionId]: optionKey,
+    };
+    setExamAnswers((current) => ({ ...current, [questionId]: optionKey }));
+  };
+
   const submitExam = async () => {
     if (!examQuestions.length || examSubmitted) return;
     const requestEpoch = workspaceResetEpochRef.current;
     setExamSubmitted(true);
     if (!userId) return;
+    const completedAt = new Date();
+    const startedAt = examStartedAtRef.current || completedAt.toISOString();
+    const startedAtMs = new Date(startedAt).getTime();
+    const durationSeconds = Number.isFinite(startedAtMs)
+      ? Math.max(1, Math.round((completedAt.getTime() - startedAtMs) / 1000))
+      : 1;
+    const accuracyPercent = Math.round((examScore / Math.max(1, examQuestions.length)) * 100);
+    const focusScore = clampStudyMetric(accuracyPercent - Math.min(20, examRetryCount * 3));
     setExamSaving(true);
     try {
       await apiFetch(`${backendURL}/submit-session`, {
@@ -2831,12 +2875,25 @@ export default function StudyPage() {
           score: examScore,
           total_questions: examQuestions.length,
           xp_earned: examScore * 10,
-          time_spent_seconds: 300,
-          focus_score: Math.round((examScore / Math.max(1, examQuestions.length)) * 100),
+          time_spent_seconds: durationSeconds,
+          focus_score: focusScore,
           session_type: "study_exam",
+          started_at: startedAt,
+          completed_at: completedAt.toISOString(),
+          response_latency_ms: examGenerationLatencyRef.current,
+          hint_count: 0,
+          retry_count: examRetryCount,
           replay_data: {
             topic: selectedTopic.label,
             source: "study_page_exam",
+            telemetry: {
+              started_at: startedAt,
+              completed_at: completedAt.toISOString(),
+              duration_seconds: durationSeconds,
+              exam_generation_latency_ms: examGenerationLatencyRef.current,
+              retry_count: examRetryCount,
+              focus_score: focusScore,
+            },
             questions: examQuestions.map((question) => ({
               id: question.id,
               text: question.question,
@@ -3477,7 +3534,7 @@ export default function StudyPage() {
                                             type="button"
                                             onClick={() => {
                                               if (!examSubmitted) {
-                                                setExamAnswers((current) => ({ ...current, [question.id]: optionKey }));
+                                                recordExamAnswer(question.id, optionKey);
                                               }
                                             }}
                                             disabled={examSubmitted}

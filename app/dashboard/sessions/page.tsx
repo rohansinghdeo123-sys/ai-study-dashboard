@@ -36,6 +36,18 @@ type SessionRecord = {
   xp_earned?: number;
   focusScore?: number;
   focus_score?: number;
+  responseLatencyMs?: number;
+  response_latency_ms?: number;
+  hintCount?: number;
+  hint_count?: number;
+  retryCount?: number;
+  retry_count?: number;
+  confidenceBefore?: number | null;
+  confidenceAfter?: number | null;
+  confidenceChange?: number | null;
+  confidence_before?: number | null;
+  confidence_after?: number | null;
+  confidence_change?: number | null;
   date?: string;
   timestamp?: string;
   createdAt?: string;
@@ -98,6 +110,28 @@ function getXp(session: SessionRecord) {
 function getDurationMinutes(session: SessionRecord) {
   if (session.time_spent_seconds) return Math.max(1, Math.round(session.time_spent_seconds / 60));
   return Math.max(0, toNumber(session.duration));
+}
+
+function getTelemetryChips(session: SessionRecord) {
+  const latency = toNumber(session.response_latency_ms ?? session.responseLatencyMs);
+  const hints = toNumber(session.hint_count ?? session.hintCount);
+  const retries = toNumber(session.retry_count ?? session.retryCount);
+  const confidenceChange = session.confidence_change ?? session.confidenceChange ?? (
+    session.confidence_before != null && session.confidence_after != null
+      ? Number(session.confidence_after) - Number(session.confidence_before)
+      : session.confidenceBefore != null && session.confidenceAfter != null
+        ? Number(session.confidenceAfter) - Number(session.confidenceBefore)
+        : null
+  );
+  const chips: string[] = [];
+  if (latency > 0) chips.push(`${Math.round(latency)}ms response`);
+  if (hints > 0) chips.push(`${hints} hint${hints === 1 ? "" : "s"}`);
+  if (retries > 0) chips.push(`${retries} answer change${retries === 1 ? "" : "s"}`);
+  if (confidenceChange != null && Number.isFinite(Number(confidenceChange))) {
+    const rounded = Math.round(Number(confidenceChange));
+    chips.push(`${rounded >= 0 ? "+" : ""}${rounded}% confidence`);
+  }
+  return chips;
 }
 
 function getSessionDate(session: SessionRecord) {
@@ -346,6 +380,7 @@ export default function SessionsPage() {
               {filteredSessions.map((session) => {
                 const accuracy = getAccuracy(session);
                 const active = selectedSession?.id === session.id;
+                const telemetryChips = getTelemetryChips(session);
                 return (
                   <button
                     type="button"
@@ -371,6 +406,9 @@ export default function SessionsPage() {
                       <span className="rounded-full bg-slate-100 px-3 py-1">{getQuestionCount(session)} questions</span>
                       <span className="rounded-full bg-slate-100 px-3 py-1">{getXp(session)} XP</span>
                       <span className="rounded-full bg-slate-100 px-3 py-1">{getDurationMinutes(session)}m</span>
+                      {telemetryChips.slice(0, 2).map((chip) => (
+                        <span key={chip} className="rounded-full bg-[#0E7490]/10 px-3 py-1 text-[#0E7490]">{chip}</span>
+                      ))}
                     </div>
                   </button>
                 );
@@ -411,6 +449,16 @@ export default function SessionsPage() {
                     <p className="mt-2 text-2xl font-semibold text-slate-950">{getXp(selectedSession)}</p>
                   </div>
                 </div>
+                {getTelemetryChips(selectedSession).length ? (
+                  <div className="border-b border-slate-200/70 px-5 py-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Measured telemetry</p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-500">
+                      {getTelemetryChips(selectedSession).map((chip) => (
+                        <span key={chip} className="rounded-full border border-[#0E7490]/15 bg-[#0E7490]/10 px-3 py-1.5 text-[#0E7490]">{chip}</span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="flex-1 space-y-4 overflow-y-auto p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Replay</p>

@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AlertState, AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 import { apiFetch } from "@/lib/apiClient";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 interface MissionPlanStep {
   title: string;
@@ -128,6 +128,40 @@ const STYLE_OPTIONS = [
   { label: "Visual intuition", value: "visual_intuition" },
 ];
 
+const CONFIDENCE_OPTIONS = [
+  { label: "Low", value: "low", score: 35 },
+  { label: "Okay", value: "medium", score: 62 },
+  { label: "Strong", value: "high", score: 82 },
+];
+
+function confidenceToScore(value: string) {
+  const normalized = value === "weak" || value === "not_confident" ? "low" : value;
+  return CONFIDENCE_OPTIONS.find((option) => option.value === normalized)?.score ?? 62;
+}
+
+function clampMetric(value: number, min = 0, max = 100) {
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function calculateFocusScore({
+  correct,
+  durationSeconds,
+  hintCount,
+  retryCount,
+  confidenceAfter,
+}: {
+  correct: boolean;
+  durationSeconds: number;
+  hintCount: number;
+  retryCount: number;
+  confidenceAfter: number;
+}) {
+  const durationPenalty = durationSeconds > 900 ? 10 : durationSeconds > 420 ? 5 : 0;
+  const supportPenalty = Math.min(18, hintCount * 6 + retryCount * 4);
+  const confidenceBonus = confidenceAfter >= 75 ? 6 : confidenceAfter <= 40 ? -6 : 0;
+  return clampMetric((correct ? 78 : 58) + confidenceBonus - durationPenalty - supportPenalty);
+}
+
 const PREREQ_OPTIONS = [
   { label: "Low", value: "low" },
   { label: "Medium", value: "medium" },
@@ -232,10 +266,18 @@ export default function MissionPage() {
   });
   const [mission, setMission] = useState<AutonomousMission | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState("");
+  const [diagnosticHintOpen, setDiagnosticHintOpen] = useState(false);
+  const [hintCount, setHintCount] = useState(0);
+  const [answerRetryCount, setAnswerRetryCount] = useState(0);
+  const [answerConfidence, setAnswerConfidence] = useState("medium");
   const [submitted, setSubmitted] = useState(false);
   const [loadingMission, setLoadingMission] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const missionStartedAtRef = useRef<string | null>(null);
+  const missionResponseLatencyRef = useRef(0);
+  const firstAnswerAtRef = useRef<string | null>(null);
+  const lastAnswerRef = useRef("");
 
   const authBusy = loading || claimsLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
@@ -250,13 +292,25 @@ export default function MissionPage() {
   const fastTrack = mission?.fast_track_strategy || [];
   const isCorrect = Boolean(question && selectedAnswer === question.correct);
   const report = useMemo(() => (mission && submitted ? buildReport(mission, isCorrect) : null), [isCorrect, mission, submitted]);
+  const diagnosticHint = question
+    ? `Focus on the core idea in ${question.subtopic || question.topic || mission?.target_topic || "this topic"} before comparing the options.`
+    : "";
 
   const startMission = async () => {
     if (!userId || authBusy || loadingMission) return;
+    const requestStartedAt = Date.now();
     setLoadingMission(true);
     setError("");
     setSubmitted(false);
     setSelectedAnswer("");
+    setDiagnosticHintOpen(false);
+    setHintCount(0);
+    setAnswerRetryCount(0);
+    setAnswerConfidence(profile.prerequisiteConfidence === "low" ? "low" : profile.prerequisiteConfidence === "high" ? "high" : "medium");
+    firstAnswerAtRef.current = null;
+    lastAnswerRef.current = "";
+    missionStartedAtRef.current = null;
+    missionResponseLatencyRef.current = 0;
 
     try {
       const res = await apiFetch(`${backendURL}/coach/autonomous-study/${userId}`, {
@@ -280,6 +334,8 @@ export default function MissionPage() {
       if (!res.ok) throw new Error(`Mission failed: ${res.status}`);
       const data = (await res.json()) as AutonomousMission;
       setMission(data);
+      missionStartedAtRef.current = new Date().toISOString();
+      missionResponseLatencyRef.current = Date.now() - requestStartedAt;
     } catch {
       setError("Mission could not start. Please try again.");
     } finally {
@@ -287,11 +343,41 @@ export default function MissionPage() {
     }
   };
 
+  const selectDiagnosticAnswer = (option: string) => {
+    if (submitted) return;
+    if (!firstAnswerAtRef.current) firstAnswerAtRef.current = new Date().toISOString();
+    if (lastAnswerRef.current && lastAnswerRef.current !== option) {
+      setAnswerRetryCount((current) => current + 1);
+    }
+    lastAnswerRef.current = option;
+    setSelectedAnswer(option);
+  };
+
+  const revealDiagnosticHint = () => {
+    if (!diagnosticHintOpen) setHintCount((current) => current + 1);
+    setDiagnosticHintOpen(true);
+  };
+
   const submitAnswer = async () => {
     if (!question || !selectedAnswer || submitted) return;
     setSubmitted(true);
 
     if (!userId || !mission) return;
+    const completedAt = new Date();
+    const startedAt = missionStartedAtRef.current || firstAnswerAtRef.current || completedAt.toISOString();
+    const startedAtMs = new Date(startedAt).getTime();
+    const durationSeconds = Number.isFinite(startedAtMs)
+      ? Math.max(1, Math.round((completedAt.getTime() - startedAtMs) / 1000))
+      : 1;
+    const confidenceBefore = confidenceToScore(profile.prerequisiteConfidence);
+    const confidenceAfter = confidenceToScore(answerConfidence);
+    const focusScore = calculateFocusScore({
+      correct: isCorrect,
+      durationSeconds,
+      hintCount,
+      retryCount: answerRetryCount,
+      confidenceAfter,
+    });
     setSaving(true);
     try {
       await apiFetch(`${backendURL}/submit-session`, {
@@ -304,12 +390,31 @@ export default function MissionPage() {
           score: isCorrect ? 1 : 0,
           total_questions: 1,
           xp_earned: isCorrect ? 10 : 0,
-          time_spent_seconds: 60,
-          focus_score: selectedAnswer ? 90 : 0,
+          time_spent_seconds: durationSeconds,
+          focus_score: focusScore,
           session_type: "autonomous_mission",
+          started_at: startedAt,
+          completed_at: completedAt.toISOString(),
+          response_latency_ms: missionResponseLatencyRef.current,
+          hint_count: hintCount,
+          retry_count: answerRetryCount,
+          confidence_before: confidenceBefore,
+          confidence_after: confidenceAfter,
           replay_data: {
             topic: mission.target_topic,
             source: "autonomous_mission",
+            telemetry: {
+              started_at: startedAt,
+              first_answer_at: firstAnswerAtRef.current,
+              completed_at: completedAt.toISOString(),
+              duration_seconds: durationSeconds,
+              mission_response_latency_ms: missionResponseLatencyRef.current,
+              hint_count: hintCount,
+              retry_count: answerRetryCount,
+              confidence_before: confidenceBefore,
+              confidence_after: confidenceAfter,
+              focus_score: focusScore,
+            },
             questions: [
               {
                 id: question.id,
@@ -565,7 +670,7 @@ export default function MissionPage() {
                       <button
                         type="button"
                         key={option}
-                        onClick={() => !submitted && setSelectedAnswer(option)}
+                        onClick={() => selectDiagnosticAnswer(option)}
                         disabled={submitted}
                         className={cn(
                           "w-full rounded-2xl border p-4 text-left text-sm leading-6 transition",
@@ -579,6 +684,48 @@ export default function MissionPage() {
                       </button>
                     );
                   })}
+                </div>
+                <div className="mt-5 rounded-3xl border border-slate-200 bg-white/65 p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Current confidence</p>
+                      <p className="mt-1 text-sm leading-6 text-slate-500">This helps the coach measure real confidence change, not just marks.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {CONFIDENCE_OPTIONS.map((option) => (
+                        <button
+                          type="button"
+                          key={option.value}
+                          onClick={() => !submitted && setAnswerConfidence(option.value)}
+                          disabled={submitted}
+                          className={cn(
+                            "rounded-2xl border px-4 py-2 text-xs font-semibold transition",
+                            answerConfidence === option.value
+                              ? "border-[#0E7490]/35 bg-[#0E7490]/10 text-[#0E7490]"
+                              : "border-slate-200 bg-white/70 text-slate-500 hover:border-[#0E7490]/25",
+                          )}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={revealDiagnosticHint}
+                    disabled={submitted || diagnosticHintOpen}
+                    className="agentify-action rounded-2xl border border-[#0E7490]/20 bg-white/70 px-4 py-2 text-sm font-semibold text-[#0E7490] transition hover:bg-[#0E7490]/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <AppIcon name="spark" />
+                    <span>{diagnosticHintOpen ? "Hint used" : "Use one hint"}</span>
+                  </button>
+                  {diagnosticHintOpen ? (
+                    <p className="rounded-2xl bg-[#0E7490]/10 px-4 py-3 text-sm leading-6 text-slate-600">
+                      {diagnosticHint}
+                    </p>
+                  ) : null}
                 </div>
                 <button
                   type="button"
