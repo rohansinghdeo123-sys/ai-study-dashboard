@@ -7,6 +7,15 @@ export type BackendHealth = {
 type JsonRequestOptions = RequestInit & {
   cacheKey?: string;
   cacheTtlMs?: number;
+  forceFresh?: boolean;
+  retries?: number;
+  timeoutMs?: number;
+};
+
+type ApiFetchOptions = RequestInit & {
+  cacheKey?: string;
+  cacheTtlMs?: number;
+  forceFresh?: boolean;
   retries?: number;
   timeoutMs?: number;
 };
@@ -44,9 +53,17 @@ export class ApiRequestError extends Error {
 
 export async function apiFetch(
   url: string,
-  options: RequestInit & { retries?: number; timeoutMs?: number } = {},
+  options: ApiFetchOptions = {},
 ) {
-  const { retries = 0, timeoutMs = 9000, signal, ...requestInit } = options;
+  const {
+    cacheKey: _cacheKey,
+    cacheTtlMs: _cacheTtlMs,
+    forceFresh: _forceFresh,
+    retries = 0,
+    timeoutMs = 9000,
+    signal,
+    ...requestInit
+  } = options;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
@@ -57,6 +74,7 @@ export async function apiFetch(
 
     try {
       const response = await fetch(url, {
+        cache: "no-store",
         ...requestInit,
         signal: controller.signal,
       });
@@ -82,14 +100,15 @@ export async function apiFetch(
 export async function apiJson<T>(url: string, options: JsonRequestOptions = {}): Promise<T> {
   const method = String(options.method || "GET").toUpperCase();
   const cacheTtlMs = options.cacheTtlMs ?? 0;
+  const forceFresh = options.forceFresh ?? false;
   const requestKey = getRequestKey(url, options);
   const cached = responseCache.get(requestKey);
 
-  if (cached && cached.expiresAt > Date.now()) {
+  if (!forceFresh && cached && cached.expiresAt > Date.now()) {
     return cached.value as T;
   }
 
-  if (method === "GET" && inFlightJson.has(requestKey)) {
+  if (!forceFresh && method === "GET" && inFlightJson.has(requestKey)) {
     return inFlightJson.get(requestKey) as Promise<T>;
   }
 
@@ -112,14 +131,14 @@ export async function apiJson<T>(url: string, options: JsonRequestOptions = {}):
     return data as T;
   })();
 
-  if (method === "GET") {
+  if (!forceFresh && method === "GET") {
     inFlightJson.set(requestKey, request);
   }
 
   try {
     return await request;
   } finally {
-    if (method === "GET") {
+    if (!forceFresh && method === "GET") {
       inFlightJson.delete(requestKey);
     }
   }
@@ -136,11 +155,14 @@ export function invalidateApiCache(prefix?: string) {
   }
 }
 
-export async function warmBackend(backendURL: string) {
-  return apiJson<BackendHealth>(`${backendURL}/health`, {
-    cacheKey: `health:${backendURL}`,
-    cacheTtlMs: 45000,
-    retries: 1,
-    timeoutMs: 4500,
+export async function warmBackend(backendURL: string, options: { forceFresh?: boolean } = {}) {
+  const forceFresh = options.forceFresh ?? false;
+  const healthURL = forceFresh ? `${backendURL}/health?ts=${Date.now()}` : `${backendURL}/health`;
+  return apiJson<BackendHealth>(healthURL, {
+    cacheKey: forceFresh ? undefined : `health:${backendURL}`,
+    cacheTtlMs: 0,
+    forceFresh,
+    retries: 3,
+    timeoutMs: 9000,
   });
 }

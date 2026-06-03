@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { AlertState, LoadingState } from "@/components/ui/Polished";
-import { apiJson } from "@/lib/apiClient";
+import { apiJson, invalidateApiCache, warmBackend } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -270,12 +270,15 @@ export default function DashboardPage() {
       setLoadingData(true);
       setDataError("");
       try {
+        await warmBackend(backendURL, { forceFresh: true }).catch(() => null);
         const headers = await getAuthHeaders();
+        const forceFresh = reloadToken > 0;
         const [progressJson, sessionsJson, leaderboardJson, analyticsJson] = await Promise.all([
           apiJson<unknown>(`${backendURL}/get-progress/${userId}`, {
             headers,
             cacheKey: `progress:${userId}`,
             cacheTtlMs: 30000,
+            forceFresh,
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
@@ -283,6 +286,7 @@ export default function DashboardPage() {
             headers,
             cacheKey: `sessions:${userId}`,
             cacheTtlMs: 30000,
+            forceFresh,
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
@@ -290,6 +294,7 @@ export default function DashboardPage() {
             headers,
             cacheKey: "leaderboard",
             cacheTtlMs: 45000,
+            forceFresh,
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
@@ -297,6 +302,7 @@ export default function DashboardPage() {
             headers,
             cacheKey: `analytics:${userId}`,
             cacheTtlMs: 30000,
+            forceFresh,
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
@@ -323,7 +329,13 @@ export default function DashboardPage() {
     };
   }, [backendURL, claimsLoading, getAuthHeaders, loading, reloadToken, userId]);
 
-  const retryDashboard = () => setReloadToken((current) => current + 1);
+  const retryDashboard = () => {
+    invalidateApiCache(`progress:${userId}`);
+    invalidateApiCache(`sessions:${userId}`);
+    invalidateApiCache(`analytics:${userId}`);
+    invalidateApiCache("leaderboard");
+    setReloadToken((current) => current + 1);
+  };
 
   if (loading || claimsLoading) {
     return (
