@@ -210,7 +210,8 @@ body {
   font-weight: 750;
   box-shadow: 0 12px 34px rgba(15,23,42,0.06);
   backdrop-filter: blur(18px);
-  cursor: pointer;
+  cursor: default;
+  user-select: none;
 }
 
 .backend-status > span:first-child {
@@ -224,6 +225,17 @@ body {
 .backend-status.is-ready > span:first-child {
   background: #14B8A6;
   box-shadow: 0 0 0 4px rgba(20,184,166,0.12);
+}
+
+.backend-status.is-checking {
+  border-color: rgba(242,184,75,0.24);
+  color: #B7791F;
+}
+
+.backend-status.is-checking > span:first-child {
+  background: #F2B84B;
+  box-shadow: 0 0 0 4px rgba(242,184,75,0.12);
+  animation: backend-status-pulse 1.4s ease-in-out infinite;
 }
 
 .backend-status.is-offline {
@@ -240,6 +252,17 @@ body {
   border-color: rgba(255,255,255,0.11);
   background: rgba(15,23,42,0.78);
   color: #CBD5E1;
+}
+
+@keyframes backend-status-pulse {
+  0%, 100% {
+    opacity: 0.58;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ============================================================

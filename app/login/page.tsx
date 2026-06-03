@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import Button from "@/components/ui/Button";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AlertState, AppIcon, LoadingState, type AppIconName } from "@/components/ui/Polished";
+import { ensureBackendReady, primeBackend } from "@/lib/apiClient";
 
 const loginFont = Manrope({
   subsets: ["latin"],
@@ -209,6 +210,7 @@ function ParticleCanvas() {
 export default function LoginPage() {
   const { user, loginWithGoogle, sendPhoneOtp, verifyPhoneOtp, loading } = useAuth();
   const router = useRouter();
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
@@ -222,12 +224,29 @@ export default function LoginPage() {
   const formattedPhone = useMemo(() => normalizePhoneNumber(phoneNumber), [phoneNumber]);
 
   useEffect(() => {
+    primeBackend(backendURL);
+  }, [backendURL]);
+
+  useEffect(() => {
     if (!loading && user) {
       setGranted(true);
-      const timeout = setTimeout(() => router.push("/dashboard"), 800);
-      return () => clearTimeout(timeout);
+      let active = true;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+
+      const openDashboard = async () => {
+        await ensureBackendReady(backendURL, { timeoutMs: 14000, pollMs: 1200 }).catch(() => null);
+        if (!active) return;
+        timeout = setTimeout(() => router.push("/dashboard"), 250);
+      };
+
+      void openDashboard();
+
+      return () => {
+        active = false;
+        if (timeout) clearTimeout(timeout);
+      };
     }
-  }, [user, loading, router]);
+  }, [backendURL, user, loading, router]);
 
   useEffect(() => {
     if (authError) {
@@ -240,6 +259,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setAuthError("");
     try {
+      primeBackend(backendURL);
       await loginWithGoogle();
     } catch (error) {
       setAuthError(getErrorMessage(error));
@@ -253,6 +273,7 @@ export default function LoginPage() {
       return;
     }
     try {
+      primeBackend(backendURL);
       setSendingOtp(true);
       await sendPhoneOtp(formattedPhone);
       setOtpSent(true);
@@ -270,6 +291,7 @@ export default function LoginPage() {
       return;
     }
     try {
+      primeBackend(backendURL);
       setVerifyingOtp(true);
       await verifyPhoneOtp(otp.trim());
     } catch (error) {

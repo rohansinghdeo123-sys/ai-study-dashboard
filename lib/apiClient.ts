@@ -1,5 +1,6 @@
 export type BackendHealth = {
   status?: string;
+  service?: string;
   artifacts_ready?: boolean;
   artifact_sections?: string[];
 };
@@ -27,9 +28,18 @@ type CacheEntry = {
 
 const responseCache = new Map<string, CacheEntry>();
 const inFlightJson = new Map<string, Promise<unknown>>();
+const backendReadyAt = new Map<string, number>();
+const backendWarmups = new Map<string, Promise<BackendHealth | null>>();
+
+const BACKEND_READY_TTL_MS = 45000;
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isBackendLiveStatus(status?: string) {
+  const normalized = String(status || "").toLowerCase();
+  return normalized === "online" || normalized === "ok" || normalized === "ready" || normalized === "degraded";
 }
 
 function getRequestKey(url: string, options: JsonRequestOptions) {
@@ -155,14 +165,91 @@ export function invalidateApiCache(prefix?: string) {
   }
 }
 
-export async function warmBackend(backendURL: string, options: { forceFresh?: boolean } = {}) {
+export function isBackendRecentlyReady(backendURL: string, maxAgeMs = BACKEND_READY_TTL_MS) {
+  const readyAt = backendReadyAt.get(backendURL) || 0;
+  return Date.now() - readyAt < maxAgeMs;
+}
+
+export async function warmBackend(backendURL: string, options: { forceFresh?: boolean; timeoutMs?: number } = {}) {
   const forceFresh = options.forceFresh ?? false;
-  const healthURL = forceFresh ? `${backendURL}/health?ts=${Date.now()}` : `${backendURL}/health`;
-  return apiJson<BackendHealth>(healthURL, {
-    cacheKey: forceFresh ? undefined : `health:${backendURL}`,
-    cacheTtlMs: 0,
-    forceFresh,
-    retries: 3,
-    timeoutMs: 9000,
-  });
+  const timeoutMs = options.timeoutMs ?? 10000;
+  const cacheBust = forceFresh ? `?ts=${Date.now()}` : "";
+  const liveURL = `${backendURL}/health/live${cacheBust}`;
+  const fallbackURL = `${backendURL}/health${cacheBust}`;
+  let health: BackendHealth;
+  try {
+    health = await apiJson<BackendHealth>(liveURL, {
+      cacheKey: forceFresh ? undefined : `health:${backendURL}`,
+      cacheTtlMs: 0,
+      forceFresh,
+      retries: 1,
+      timeoutMs,
+    });
+  } catch (error) {
+    if (!(error instanceof ApiRequestError) || (error.status !== 404 && error.status !== 405)) {
+      throw error;
+    }
+    health = await apiJson<BackendHealth>(fallbackURL, {
+      cacheKey: forceFresh ? undefined : `health-fallback:${backendURL}`,
+      cacheTtlMs: 0,
+      forceFresh,
+      retries: 1,
+      timeoutMs,
+    });
+  }
+
+  if (isBackendLiveStatus(health.status)) {
+    backendReadyAt.set(backendURL, Date.now());
+  }
+
+  return health;
+}
+
+export async function ensureBackendReady(
+  backendURL: string,
+  options: { timeoutMs?: number; pollMs?: number; forceFresh?: boolean } = {},
+) {
+  if (isBackendRecentlyReady(backendURL) && !options.forceFresh) {
+    return { status: "ok", service: "agentifyai-backend" } satisfies BackendHealth;
+  }
+
+  const existing = backendWarmups.get(backendURL);
+  if (existing && !options.forceFresh) return existing;
+
+  const timeoutMs = options.timeoutMs ?? 18000;
+  const pollMs = options.pollMs ?? 1200;
+  const startedAt = Date.now();
+
+  const warmup = (async () => {
+    while (Date.now() - startedAt < timeoutMs) {
+      try {
+        const remainingMs = timeoutMs - (Date.now() - startedAt);
+        const health = await warmBackend(backendURL, {
+          forceFresh: true,
+          timeoutMs: Math.max(2500, Math.min(10000, remainingMs)),
+        });
+        if (isBackendLiveStatus(health.status)) return health;
+      } catch {
+        // Cold-start probes can fail while the host is waking. Keep polling quietly.
+      }
+
+      await sleep(pollMs);
+    }
+
+    return null;
+  })();
+
+  backendWarmups.set(backendURL, warmup);
+  try {
+    return await warmup;
+  } finally {
+    if (backendWarmups.get(backendURL) === warmup) {
+      backendWarmups.delete(backendURL);
+    }
+  }
+}
+
+export function primeBackend(backendURL: string) {
+  if (isBackendRecentlyReady(backendURL) || backendWarmups.has(backendURL)) return;
+  void ensureBackendReady(backendURL, { timeoutMs: 22000, pollMs: 1400 }).catch(() => null);
 }

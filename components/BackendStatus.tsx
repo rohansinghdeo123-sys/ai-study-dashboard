@@ -1,14 +1,13 @@
 "use client";
 
-import { warmBackend } from "@/lib/apiClient";
+import { ensureBackendReady, isBackendRecentlyReady, primeBackend } from "@/lib/apiClient";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type BackendState = "checking" | "ready" | "offline";
+type BackendState = "checking" | "ready";
 
 export default function BackendStatus() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const [state, setState] = useState<BackendState>("checking");
-  const [retryToken, setRetryToken] = useState(0);
   const stateRef = useRef<BackendState>("checking");
 
   useEffect(() => {
@@ -17,11 +16,19 @@ export default function BackendStatus() {
 
   const checkBackend = useCallback(async (active: () => boolean, forceFresh = false) => {
     try {
-      if (forceFresh && active()) setState("checking");
-      const health = await warmBackend(backendURL, { forceFresh });
-      if (active()) setState(health.status === "online" ? "ready" : "offline");
+      if (isBackendRecentlyReady(backendURL) && !forceFresh) {
+        if (active()) setState("ready");
+        return;
+      }
+      if (active()) setState("checking");
+      const health = await ensureBackendReady(backendURL, {
+        timeoutMs: forceFresh ? 26000 : 14000,
+        pollMs: 1300,
+        forceFresh,
+      });
+      if (active() && health) setState("ready");
     } catch {
-      if (active()) setState("offline");
+      if (active()) setState("checking");
     }
   }, [backendURL]);
 
@@ -29,35 +36,29 @@ export default function BackendStatus() {
     let active = true;
     const isActive = () => active;
 
-    void checkBackend(isActive, true);
+    primeBackend(backendURL);
+    void checkBackend(isActive, !isBackendRecentlyReady(backendURL));
     const interval = window.setInterval(
       () => void checkBackend(isActive, stateRef.current !== "ready"),
-      15000,
+      stateRef.current === "ready" ? 30000 : 9000,
     );
     return () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, [backendURL, checkBackend, retryToken]);
+  }, [backendURL, checkBackend]);
 
-  const label =
-    state === "ready"
-      ? "Backend ready"
-      : state === "checking"
-        ? "Waking backend"
-        : "Backend unavailable";
+  const label = state === "ready" ? "Backend ready" : "Starting backend";
 
   return (
-    <button
-      type="button"
-      onClick={() => setRetryToken((current) => current + 1)}
-      className={`backend-status ${state === "ready" ? "is-ready" : state === "offline" ? "is-offline" : "is-checking"}`}
-      title={state === "ready" ? label : "Retry backend connection"}
+    <div
+      className={`backend-status ${state === "ready" ? "is-ready" : "is-checking"}`}
+      title={label}
       aria-label={label}
       aria-live="polite"
     >
       <span />
       <span className="hidden xl:inline">{label}</span>
-    </button>
+    </div>
   );
 }

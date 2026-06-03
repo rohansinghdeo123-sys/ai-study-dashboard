@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { AlertState, LoadingState } from "@/components/ui/Polished";
-import { apiJson, invalidateApiCache, warmBackend } from "@/lib/apiClient";
+import { apiJson, ensureBackendReady, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -270,7 +270,7 @@ export default function DashboardPage() {
       setLoadingData(true);
       setDataError("");
       try {
-        await warmBackend(backendURL, { forceFresh: true }).catch(() => null);
+        await ensureBackendReady(backendURL, { timeoutMs: 12000, pollMs: 1200 }).catch(() => null);
         const headers = await getAuthHeaders();
         const forceFresh = reloadToken > 0;
         const [progressJson, sessionsJson, leaderboardJson, analyticsJson] = await Promise.all([

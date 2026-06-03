@@ -23,6 +23,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { primeBackend } from "@/lib/apiClient";
 
 type AuthRole = "admin" | "user";
 
@@ -277,6 +278,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      primeBackend(process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000");
       await refreshClaims();
     });
 
