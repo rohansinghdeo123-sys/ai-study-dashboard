@@ -128,6 +128,34 @@
   --agentify-page-bg: #F7F4EC;
   --agentify-card-bg: rgba(255,252,246,0.86);
   --agentify-border: rgba(183,121,31,0.16);
+  --agentify-bright-page:
+    radial-gradient(circle at 7% 2%, rgba(20,184,166,0.18), transparent 34%),
+    radial-gradient(circle at 92% 6%, rgba(242,184,75,0.22), transparent 36%),
+    linear-gradient(135deg, #F2F8F7 0%, #F9F8F2 48%, #F7EEDB 100%);
+  --agentify-bright-page-soft:
+    radial-gradient(circle at 12% -12%, rgba(20,184,166,0.13), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(242,184,75,0.17), transparent 31%),
+    linear-gradient(135deg, #F3F7F7 0%, #F8F7F2 48%, #F6EEDA 100%);
+  --agentify-bright-panel:
+    radial-gradient(circle at 10% 0%, rgba(20,184,166,0.10), transparent 32%),
+    radial-gradient(circle at 92% 0%, rgba(242,184,75,0.13), transparent 32%),
+    linear-gradient(135deg, rgba(255,253,248,0.96), rgba(249,248,242,0.92));
+  --agentify-bright-card: rgba(255,252,246,0.84);
+  --agentify-bright-card-strong: rgba(255,253,248,0.94);
+  --agentify-bright-card-soft: rgba(255,252,246,0.78);
+  --agentify-bright-field: rgba(255,253,248,0.96);
+  --agentify-bright-teal-panel: linear-gradient(135deg, #EAFDFC 0%, #DFF8F3 52%, #D4F0EA 100%);
+  --agentify-bright-gold-panel: linear-gradient(135deg, #FFF7E8 0%, #FFEFBE 58%, #FFE3A3 100%);
+  --agentify-bright-border: rgba(183,121,31,0.14);
+  --agentify-bright-border-strong: rgba(183,121,31,0.24);
+  --agentify-bright-teal-border: rgba(14,116,144,0.24);
+  --agentify-bright-shadow: 0 18px 58px rgba(112,83,30,0.08), inset 0 1px 0 rgba(255,255,255,0.86);
+  --agentify-bright-shadow-elevated: 0 26px 72px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.94);
+  --agentify-bright-grid:
+    linear-gradient(to right, rgba(15,23,42,0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15,23,42,0.030) 1px, transparent 1px);
+  --agentify-bright-muted: #586A80;
+  --agentify-bright-text: #070B1D;
 
   --shadow-card:       0 1px 1px rgba(15,23,42,0.04), 0 18px 42px rgba(15,23,42,0.08);
   --shadow-elevated:   0 1px 2px rgba(15,23,42,0.05), 0 28px 70px rgba(15,23,42,0.12);
@@ -626,11 +654,8 @@ body {
    5. LIGHT THEME COMPATIBILITY LAYER
    ============================================================ */
 [data-theme="light"] body {
-  background:
-    radial-gradient(circle at 12% -12%, rgba(20,184,166,0.13), transparent 32%),
-    radial-gradient(circle at 88% 0%, rgba(242,184,75,0.17), transparent 31%),
-    linear-gradient(135deg, #F3F7F7 0%, #F8F7F2 48%, #F6EEDA 100%);
-  color: #0F172A;
+  background: var(--agentify-bright-page-soft);
+  color: var(--agentify-bright-text);
 }
 
 [data-theme="light"] [class*="bg-[#07080D]"],
@@ -800,9 +825,9 @@ body {
 [data-theme="light"] input,
 [data-theme="light"] textarea,
 [data-theme="light"] select {
-  color: #0F172A !important;
-  background-color: rgba(255, 253, 248, 0.96) !important;
-  border-color: rgba(15, 23, 42, 0.13) !important;
+  color: var(--agentify-bright-text) !important;
+  background-color: var(--agentify-bright-field) !important;
+  border-color: var(--agentify-bright-border) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
@@ -811,9 +836,7 @@ body {
 }
 
 [data-theme="light"] [class*="linear-gradient(to_right"] {
-  background-image:
-    linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(15, 23, 42, 0.04) 1px, transparent 1px) !important;
+  background-image: var(--agentify-bright-grid) !important;
 }
 
 [data-theme="light"] [class*="radial-gradient(circle_at"] {
@@ -858,10 +881,7 @@ body {
 }
 
 [data-theme="light"] .dashboard-shell {
-  background:
-    radial-gradient(circle at 9% 2%, rgba(20,184,166,0.16), transparent 34%),
-    radial-gradient(circle at 92% 6%, rgba(242,184,75,0.19), transparent 36%),
-    linear-gradient(135deg, #F2F7F7 0%, #F9F8F2 48%, #F7EEDB 100%) !important;
+  background: var(--agentify-bright-page) !important;
 }
 
 [data-theme="light"] .dashboard-ambient {
@@ -881,13 +901,13 @@ body {
 [data-theme="light"] .dashboard-nav-card,
 [data-theme="light"] .agentify-page-panel,
 [data-theme="light"] .agentify-card {
-  border-color: rgba(183,121,31,0.14) !important;
-  background: rgba(255,252,246,0.84) !important;
-  box-shadow: 0 18px 58px rgba(112,83,30,0.08), inset 0 1px 0 rgba(255,255,255,0.86) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
+  box-shadow: var(--agentify-bright-shadow) !important;
 }
 
 [data-theme="light"] a.dashboard-nav-card[href="/dashboard/internal/ops"] {
-  border-color: rgba(183,121,31,0.28) !important;
+  border-color: var(--agentify-bright-border-strong) !important;
   background: rgba(255,248,232,0.88) !important;
   color: #B7791F !important;
 }
@@ -895,25 +915,22 @@ body {
 [data-theme="light"] .agentify-action-secondary,
 [data-theme="light"] .agentify-field,
 [data-theme="light"] .agentify-chip {
-  border-color: rgba(183,121,31,0.15) !important;
-  background: rgba(255,252,246,0.82) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
 }
 
 [data-theme="light"] .dashboard-hero-card {
   border-radius: 20px !important;
   border-color: rgba(255, 255, 255, 0.72) !important;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(20,184,166,0.12), transparent 32%),
-    radial-gradient(circle at 92% 0%, rgba(242,184,75,0.15), transparent 32%),
-    linear-gradient(135deg, rgba(255,253,248,0.98) 0%, rgba(249,248,242,0.96) 54%, rgba(236,253,245,0.92) 100%) !important;
-  box-shadow: 0 26px 72px rgba(15, 23, 42, 0.13), inset 0 1px 0 rgba(255,255,255,0.95) !important;
+  background: var(--agentify-bright-panel) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .dashboard-stat-card {
   border-radius: 18px !important;
   border-color: rgba(255, 255, 255, 0.72) !important;
-  background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 54%, #ECFEFF 100%) !important;
-  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255,255,255,0.92) !important;
+  background: var(--agentify-bright-panel) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .dashboard-stat-card::before {
@@ -950,8 +967,8 @@ body {
 [data-theme="light"] .dashboard-panel {
   border-radius: 18px !important;
   border-color: rgba(255, 255, 255, 0.70) !important;
-  background: rgba(255, 252, 246, 0.90) !important;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.11), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+  background: var(--agentify-bright-card-strong) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .dashboard-panel > div:first-child {
@@ -995,8 +1012,8 @@ body {
 [data-theme="light"] .dashboard-mission-card,
 [data-theme="light"] .dashboard-readiness-card {
   border-color: rgba(255, 255, 255, 0.70) !important;
-  background: rgba(255, 252, 246, 0.78) !important;
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.09), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+  background: var(--agentify-bright-card-soft) !important;
+  box-shadow: var(--agentify-bright-shadow) !important;
 }
 
 [data-theme="light"] .dashboard-mission-card[data-tone="blue"] {
@@ -2858,17 +2875,12 @@ body {
 
 [data-theme="light"] .study-lab-shell {
   border: 0 !important;
-  background:
-    radial-gradient(circle at 16% 8%, rgba(20,184,166,0.15), transparent 34%),
-    radial-gradient(circle at 84% 10%, rgba(242,184,75,0.18), transparent 36%),
-    linear-gradient(135deg, #F2F7F7 0%, #FAF8F1 50%, #F6EEDC 100%) !important;
+  background: var(--agentify-bright-page) !important;
   box-shadow: none !important;
 }
 
 [data-theme="light"] .study-lab-shell::before {
-  background:
-    linear-gradient(to right, rgba(15,23,42,0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(15,23,42,0.035) 1px, transparent 1px);
+  background: var(--agentify-bright-grid);
   opacity: 0.38;
 }
 
@@ -2876,14 +2888,14 @@ body {
 [data-theme="light"] .study-mission-strip,
 [data-theme="light"] .study-tabbar,
 [data-theme="light"] .study-composer {
-  background: rgba(255,252,246,0.90) !important;
-  border-color: rgba(183,121,31,0.14) !important;
+  background: var(--agentify-bright-card-strong) !important;
+  border-color: var(--agentify-bright-border) !important;
 }
 
 [data-theme="light"] .study-mode-segment,
 [data-theme="light"] .study-topic-strip {
-  border-color: rgba(183,121,31,0.14) !important;
-  background: rgba(255,252,246,0.88) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
 }
 
 [data-theme="light"] .study-coach-avatar,
@@ -2897,27 +2909,25 @@ body {
 [data-theme="light"] .study-topic-card,
 [data-theme="light"] .study-content-card,
 [data-theme="light"] .study-side-card {
-  border-color: rgba(255,255,255,0.68) !important;
-  background: rgba(255,255,255,0.88) !important;
-  box-shadow: 0 18px 48px rgba(15,23,42,0.09), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card-strong) !important;
+  box-shadow: var(--agentify-bright-shadow) !important;
 }
 
 [data-theme="light"] .study-mission-card {
-  border-color: rgba(255,255,255,0.72) !important;
-  background:
-    radial-gradient(circle at 10% 0%, rgba(20,184,166,0.12), transparent 36%),
-    linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #ECFDF5 100%) !important;
-  box-shadow: 0 22px 58px rgba(15,23,42,0.11), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-panel) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .study-workspace-card {
-  border-color: rgba(255,255,255,0.70) !important;
-  background: rgba(255,255,255,0.84) !important;
-  box-shadow: 0 24px 68px rgba(15,23,42,0.12), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .study-mission-side-card {
-  background: linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 58%, #FFFBEB 100%) !important;
+  background: var(--agentify-bright-panel) !important;
 }
 
 [data-theme="light"] .study-tab-button {
@@ -2931,8 +2941,8 @@ body {
 }
 
 [data-theme="light"] .study-action-chip {
-  border-color: rgba(15,23,42,0.12) !important;
-  background: rgba(255,255,255,0.72) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
   color: #475569 !important;
 }
 
@@ -2942,19 +2952,17 @@ body {
 }
 
 [data-theme="light"] .study-select {
-  background: rgba(255,255,255,0.92) !important;
-  border-color: rgba(15,23,42,0.13) !important;
-  color: #0F172A !important;
+  background: var(--agentify-bright-field) !important;
+  border-color: var(--agentify-bright-border) !important;
+  color: var(--agentify-bright-text) !important;
 }
 
 [data-theme="light"] .study-composer-card {
-  border-color: rgba(183,121,31,0.18) !important;
+  border-color: var(--agentify-bright-border-strong) !important;
   background:
     radial-gradient(circle at 88% 0%, rgba(242,184,75,0.10), transparent 32%),
-    linear-gradient(180deg, rgba(255,253,248,0.98), rgba(255,252,246,0.92)) !important;
-  box-shadow:
-    0 24px 72px rgba(112,83,30,0.10),
-    inset 0 1px 0 rgba(255,255,255,0.94) !important;
+    linear-gradient(180deg, var(--agentify-bright-field), var(--agentify-bright-card-strong)) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .study-composer-card:focus-within {
@@ -2981,8 +2989,8 @@ body {
 
 [data-theme="light"] .study-chat-pill,
 [data-theme="light"] .study-starter-chip {
-  border-color: rgba(183,121,31,0.14) !important;
-  background: rgba(255,252,246,0.84) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
   color: #334155 !important;
 }
 
@@ -2999,8 +3007,8 @@ body {
 }
 
 [data-theme="light"] .study-composer-card .study-chat-icon-button {
-  border-color: rgba(14,116,144,0.20) !important;
-  background: rgba(255,255,255,0.92) !important;
+  border-color: var(--agentify-bright-teal-border) !important;
+  background: var(--agentify-bright-field) !important;
   color: #0E7490 !important;
 }
 
@@ -3018,10 +3026,10 @@ body {
 
 [data-theme="light"] .study-message-bubble.is-coach,
 [data-theme="light"] .study-thinking-bubble {
-  border: 1px solid rgba(255,255,255,0.72);
-  background: rgba(255,255,255,0.92) !important;
+  border: 1px solid var(--agentify-bright-border);
+  background: var(--agentify-bright-card-strong) !important;
   color: #1E293B !important;
-  box-shadow: 0 18px 46px rgba(15,23,42,0.09);
+  box-shadow: var(--agentify-bright-shadow);
 }
 
 [data-theme="light"] .study-message-bubble.is-user {
@@ -3035,7 +3043,7 @@ body {
   border-color: rgba(14,116,144,0.14) !important;
   background:
     linear-gradient(135deg, rgba(255,253,248,0.76) 0%, rgba(236,254,255,0.56) 55%, rgba(255,248,232,0.48) 100%) !important;
-  box-shadow: 0 14px 40px rgba(15,23,42,0.07), inset 0 1px 0 rgba(255,255,255,0.88) !important;
+  box-shadow: var(--agentify-bright-shadow) !important;
 }
 
 [data-theme="light"] .study-tutor-response {
@@ -3049,7 +3057,7 @@ body {
 
 [data-theme="light"] .study-agent-summary {
   border-color: rgba(14,116,144,0.13) !important;
-  background: rgba(255,255,255,0.68) !important;
+  background: var(--agentify-bright-card-soft) !important;
 }
 
 [data-theme="light"] .study-answer-heading {
@@ -3064,10 +3072,10 @@ body {
 }
 
 [data-theme="light"] .study-coach-sidebar {
-  border-color: rgba(183,121,31,0.15);
+  border-color: var(--agentify-bright-border);
   background:
     radial-gradient(circle at 0% 0%, rgba(20,184,166,0.08), transparent 38%),
-    linear-gradient(180deg, rgba(255,253,248,0.99), rgba(247,242,232,0.98));
+    linear-gradient(180deg, var(--agentify-bright-field), rgba(247,242,232,0.98));
   color: #1E293B;
   box-shadow: inset -1px 0 0 rgba(255,255,255,0.88);
 }
@@ -3083,8 +3091,8 @@ body {
 }
 
 [data-theme="light"] .study-sidebar-search {
-  border-color: rgba(15,23,42,0.14);
-  background: rgba(255,255,255,0.92);
+  border-color: var(--agentify-bright-border);
+  background: var(--agentify-bright-field);
 }
 
 [data-theme="light"] .study-sidebar-search input::placeholder {
@@ -3093,16 +3101,16 @@ body {
 
 [data-theme="light"] .study-focus-toolbar,
 [data-theme="light"] .study-focus-panel {
-  border-color: rgba(183,121,31,0.13) !important;
+  border-color: var(--agentify-bright-border) !important;
   background:
     radial-gradient(circle at 10% 0%, rgba(20,184,166,0.08), transparent 34%),
     radial-gradient(circle at 92% 0%, rgba(242,184,75,0.10), transparent 34%),
-    rgba(255,252,246,0.93) !important;
+    var(--agentify-bright-card-strong) !important;
 }
 
 [data-theme="light"] .study-panel-tab {
-  border-color: rgba(183,121,31,0.15);
-  background: rgba(255,252,246,0.94);
+  border-color: var(--agentify-bright-border);
+  background: var(--agentify-bright-card-strong);
   color: #52657A;
 }
 
@@ -3114,8 +3122,8 @@ body {
 
 [data-theme="light"] .study-exam-question,
 [data-theme="light"] .study-exam-artifact {
-  border-color: rgba(183,121,31,0.13) !important;
-  background: rgba(255,253,248,0.96) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-field) !important;
 }
 
 [data-theme="light"] .study-lab-shell .text-slate-400 {
@@ -3663,19 +3671,16 @@ body {
 }
 
 [data-theme="light"] .login-shell {
-  background:
-    linear-gradient(112deg, rgba(20,184,166,0.14), transparent 38%),
-    linear-gradient(292deg, rgba(242,184,75,0.14), transparent 34%),
-    linear-gradient(135deg, #EEF3F8 0%, #FAFCFF 48%, #ECF6F5 100%) !important;
-  color: #0F172A !important;
+  background: var(--agentify-bright-page) !important;
+  color: var(--agentify-bright-text) !important;
 }
 
 [data-theme="light"] .login-auth-zone::before {
-  border-left-color: rgba(148,163,184,0.16);
+  border-left-color: var(--agentify-bright-border);
   background:
     linear-gradient(150deg, rgba(255,255,255,0.72), transparent 42%),
-    linear-gradient(330deg, rgba(20,184,166,0.05), transparent 34%),
-    rgba(255,255,255,0.24);
+    linear-gradient(330deg, rgba(242,184,75,0.08), transparent 34%),
+    rgba(255,252,246,0.24);
 }
 
 [data-theme="light"] .login-particles {
@@ -3687,13 +3692,13 @@ body {
 [data-theme="light"] .login-mission-card,
 [data-theme="light"] .login-auth-card,
 [data-theme="light"] .sessions-hero-card {
-  border-color: rgba(255,255,255,0.74) !important;
-  background: rgba(255,255,255,0.82) !important;
-  box-shadow: 0 28px 78px rgba(15,23,42,0.13), inset 0 1px 0 rgba(255,255,255,0.94) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
+  box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
 [data-theme="light"] .login-shell .text-white {
-  color: #0F172A !important;
+  color: var(--agentify-bright-text) !important;
 }
 
 [data-theme="light"] .login-shell .agentify-action-primary,
@@ -3703,7 +3708,7 @@ body {
 
 [data-theme="light"] .login-shell .text-slate-400,
 [data-theme="light"] .login-shell .text-slate-500 {
-  color: #667085 !important;
+  color: var(--agentify-bright-muted) !important;
 }
 
 [data-theme="light"] .login-shell .text-slate-100,
@@ -3713,7 +3718,7 @@ body {
 }
 
 [data-theme="light"] .login-input {
-  color: #0F172A !important;
+  color: var(--agentify-bright-text) !important;
 }
 
 [data-theme="light"] .login-shell [class*="text-cyan"] {
@@ -3730,7 +3735,7 @@ body {
 
 [data-theme="light"] .login-shell .bg-black\/20,
 [data-theme="light"] .login-shell .bg-black\/30 {
-  background: rgba(255,255,255,0.72) !important;
+  background: var(--agentify-bright-card-soft) !important;
 }
 
 [data-theme="light"] .login-mission-step,
@@ -3738,26 +3743,20 @@ body {
 [data-theme="light"] .login-trust-pill,
 [data-theme="light"] .login-provider-card,
 [data-theme="light"] .login-input {
-  border-color: rgba(92,101,123,0.14) !important;
-  background: rgba(255,255,255,0.78) !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-card) !important;
 }
 
 [data-theme="light"] .login-signal-card:hover {
-  background: rgba(255,255,255,0.92) !important;
+  background: var(--agentify-bright-card-strong) !important;
 }
 
 [data-theme="light"] .login-mission-card {
-  background:
-    linear-gradient(118deg, rgba(20,184,166,0.12), transparent 34%),
-    linear-gradient(298deg, rgba(242,184,75,0.12), transparent 34%),
-    linear-gradient(135deg, rgba(255,255,255,0.90), rgba(247,249,253,0.90)) !important;
+  background: var(--agentify-bright-panel) !important;
 }
 
 [data-theme="light"] .sessions-hero-card {
-  background:
-    radial-gradient(circle at 10% 0%, rgba(20,184,166,0.12), transparent 28%),
-    radial-gradient(circle at 88% 0%, rgba(242,184,75,0.12), transparent 30%),
-    linear-gradient(135deg, rgba(255,255,255,0.92), rgba(246,249,254,0.92)) !important;
+  background: var(--agentify-bright-panel) !important;
 }
 
 [data-theme="light"] .login-topbar::before,
@@ -3842,18 +3841,26 @@ body {
 }
 
 [data-theme="light"] .ops-shell [class*="bg-black"] {
-  background: rgba(248,250,252,0.76) !important;
+  background: var(--agentify-bright-card-soft) !important;
 }
 
 [data-theme="light"] .ops-shell [class*="bg-white/"] {
-  background: rgba(255,255,255,0.72) !important;
+  background: var(--agentify-bright-card) !important;
+}
+
+[data-theme="light"] .ops-panel,
+[data-theme="light"] .ops-card,
+[data-theme="light"] .ops-subpanel,
+[data-theme="light"] .ops-learning-node,
+[data-theme="light"] .ops-learning-signal {
+  box-shadow: var(--agentify-bright-shadow);
 }
 
 [data-theme="light"] .ops-shell select,
 [data-theme="light"] .ops-shell input {
-  border-color: rgba(148,163,184,0.28) !important;
-  background: rgba(255,255,255,0.78) !important;
-  color: #0F172A !important;
+  border-color: var(--agentify-bright-border) !important;
+  background: var(--agentify-bright-field) !important;
+  color: var(--agentify-bright-text) !important;
 }
 
 [data-theme="dark"] .ops-panel,
