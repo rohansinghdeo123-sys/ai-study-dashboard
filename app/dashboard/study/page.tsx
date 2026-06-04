@@ -55,6 +55,7 @@ interface CoachMessage {
 
 interface StudyConversation {
   id: string;
+  sessionId?: string;
   title: string;
   updatedAt: string;
   chapter: string;
@@ -71,11 +72,16 @@ interface CoachCitation {
   source: string;
   section_id?: string;
   excerpt?: string;
+  kind?: string;
 }
 
 interface CoachSources {
   grounded: boolean;
   indicator?: string;
+  answer_basis?: string;
+  retrieval_policy?: string;
+  material_supported?: boolean;
+  source_count?: number;
   citations: CoachCitation[];
 }
 
@@ -629,6 +635,62 @@ function titleFromMessages(messages: CoachMessage[]) {
   const firstUserMessage = messages.find((message) => message.role === "user")?.content.trim();
   if (!firstUserMessage) return "New study conversation";
   return firstUserMessage.length > 54 ? `${firstUserMessage.slice(0, 54)}...` : firstUserMessage;
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function normalizeServerMessage(value: unknown): CoachMessage | null {
+  if (!isPlainRecord(value)) return null;
+  const role = value.role === "user" ? "user" : value.role === "coach" ? "coach" : null;
+  if (!role) return null;
+  return {
+    role,
+    content: String(value.content || ""),
+    timestamp: String(value.timestamp || ""),
+    ...(Array.isArray(value.blocks) ? { blocks: value.blocks as AdaptiveAnswerBlock[] } : {}),
+    ...(isPlainRecord(value.sources) ? { sources: value.sources as unknown as CoachSources } : {}),
+    ...(typeof value.socratic === "boolean" ? { socratic: value.socratic } : {}),
+  };
+}
+
+function normalizeServerConversation(value: unknown): StudyConversation | null {
+  if (!isPlainRecord(value)) return null;
+  const id = String(value.id || "").trim();
+  if (!id) return null;
+  const messages = Array.isArray(value.messages)
+    ? value.messages.map(normalizeServerMessage).filter((message): message is CoachMessage => Boolean(message))
+    : [];
+  return {
+    id,
+    sessionId: String(value.sessionId || ""),
+    title: String(value.title || "New study conversation").slice(0, 72),
+    updatedAt: String(value.updatedAt || new Date().toISOString()),
+    chapter: String(value.chapter || "Open tutor"),
+    topic: String(value.topic || "Any subject"),
+    messages,
+    pinned: Boolean(value.pinned),
+    archived: Boolean(value.archived),
+    titleLocked: Boolean(value.titleLocked),
+  };
+}
+
+function mergeConversations(primary: StudyConversation[], secondary: StudyConversation[]) {
+  const seen = new Set<string>();
+  const merged: StudyConversation[] = [];
+  for (const conversation of [...primary, ...secondary]) {
+    if (!conversation?.id || seen.has(conversation.id)) continue;
+    seen.add(conversation.id);
+    merged.push(conversation);
+  }
+  return merged
+    .sort((left, right) => {
+      const pinnedDelta = Number(Boolean(right.pinned)) - Number(Boolean(left.pinned));
+      if (pinnedDelta) return pinnedDelta;
+      return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+    })
+    .slice(0, 40);
 }
 
 function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
@@ -1431,7 +1493,15 @@ function StudentPromptCard({
 }
 
 function SourceDrawer({ sources }: { sources?: CoachSources }) {
-  if (!sources?.grounded || !sources.citations?.length) return null;
+  if (!sources) return null;
+  if (!sources.grounded || !sources.citations?.length) {
+    return sources.indicator ? (
+      <div className="study-source-note mb-4">
+        <span>{sources.indicator}</span>
+      </div>
+    ) : null;
+  }
+
   return (
     <details className="study-source-drawer mb-4">
       <summary>
@@ -2088,14 +2158,44 @@ export default function StudyPage() {
 
   useEffect(() => {
     if (!userId) return;
+    let active = true;
+    let localConversations: StudyConversation[] = [];
     try {
       const stored = localStorage.getItem(getHistoryStorageKey(userId));
       const parsed = stored ? JSON.parse(stored) : [];
-      setConversations(Array.isArray(parsed) ? parsed.slice(0, 40) : []);
+      localConversations = Array.isArray(parsed) ? parsed.slice(0, 40) : [];
+      setConversations(localConversations);
     } catch {
       setConversations([]);
     }
-  }, [userId]);
+
+    if (authBusy) return;
+    async function loadServerConversations() {
+      try {
+        const payload = await apiJson<{ conversations?: unknown[] }>(`${backendURL}/coach/conversations/${userId}`, {
+          headers: await getAuthHeaders(),
+          cacheKey: `coach-conversations:${userId}`,
+          cacheTtlMs: 15000,
+          retries: 1,
+          timeoutMs: 7000,
+        });
+        if (!active) return;
+        const serverConversations = Array.isArray(payload.conversations)
+          ? payload.conversations.map(normalizeServerConversation).filter((item): item is StudyConversation => Boolean(item))
+          : [];
+        const merged = mergeConversations(serverConversations, localConversations);
+        setConversations(merged);
+        localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(merged));
+      } catch {
+        // Local history remains available if the backend is still waking up.
+      }
+    }
+
+    void loadServerConversations();
+    return () => {
+      active = false;
+    };
+  }, [authBusy, backendURL, getAuthHeaders, userId]);
 
   useEffect(() => {
     if (!userId || !messages.length) return;
@@ -2103,6 +2203,7 @@ export default function StudyPage() {
       const previous = current.find((item) => item.id === currentConversationId);
       const conversation: StudyConversation = {
         id: currentConversationId,
+        sessionId: previous?.sessionId || `coach-${userId}-${currentConversationId}`,
         title: previous?.titleLocked ? previous.title : titleFromMessages(messages),
         updatedAt: new Date().toISOString(),
         chapter: "Open tutor",
@@ -2446,6 +2547,8 @@ export default function StudyPage() {
   const clearChat = () => {
     abortRef.current?.abort();
     abortRef.current = null;
+    const currentConversation = conversations.find((item) => item.id === currentConversationId);
+    if (currentConversation) void deleteServerConversation(currentConversation);
     if (userId) {
       setConversations((current) => {
         const next = current.filter((item) => item.id !== currentConversationId);
@@ -2519,24 +2622,56 @@ export default function StudyPage() {
     });
   };
 
+  const syncConversationPatch = async (conversation: StudyConversation, patch: Partial<Pick<StudyConversation, "title" | "pinned" | "archived" | "titleLocked">>) => {
+    if (!userId) return;
+    try {
+      await apiFetch(`${backendURL}/coach/conversations/${userId}/${encodeURIComponent(conversation.sessionId || conversation.id)}`, {
+        method: "PATCH",
+        headers: await getAuthHeaders(),
+        timeoutMs: 5000,
+        body: JSON.stringify(patch),
+      });
+      invalidateApiCache(`coach-conversations:${userId}`);
+    } catch {
+      // Local state remains the immediate fallback; backend sync can recover on the next saved turn.
+    }
+  };
+
+  const deleteServerConversation = async (conversation: StudyConversation) => {
+    if (!userId) return;
+    try {
+      await apiFetch(`${backendURL}/coach/conversations/${userId}/${encodeURIComponent(conversation.sessionId || conversation.id)}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+        timeoutMs: 5000,
+      });
+      invalidateApiCache(`coach-conversations:${userId}`);
+    } catch {
+      // Clearing locally is still the right student-facing behavior.
+    }
+  };
+
   const renameConversation = (conversation: StudyConversation) => {
     const title = window.prompt("Rename this chat", conversation.title)?.trim();
     if (!title) return;
     updateConversationList((items) => items.map((item) => (
       item.id === conversation.id ? { ...item, title: title.slice(0, 72), titleLocked: true } : item
     )));
+    void syncConversationPatch(conversation, { title: title.slice(0, 72), titleLocked: true });
   };
 
   const togglePinConversation = (conversation: StudyConversation) => {
     updateConversationList((items) => items.map((item) => (
       item.id === conversation.id ? { ...item, pinned: !item.pinned } : item
     )));
+    void syncConversationPatch(conversation, { pinned: !conversation.pinned });
   };
 
   const toggleArchiveConversation = (conversation: StudyConversation) => {
     updateConversationList((items) => items.map((item) => (
       item.id === conversation.id ? { ...item, archived: !item.archived } : item
     )));
+    void syncConversationPatch(conversation, { archived: !conversation.archived });
     if (conversation.id === currentConversationId && !conversation.archived) startNewChat();
   };
 
@@ -3713,7 +3848,7 @@ export default function StudyPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Conversation history</p>
                     <h2 className="mt-2 text-2xl font-semibold text-slate-950">Continue any previous doubt</h2>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      {conversations.length} saved conversations are stored on this device for quick continuation.
+                      {conversations.length} saved conversations sync with your learning profile when the backend is available.
                     </p>
                   </div>
                   <IconButton

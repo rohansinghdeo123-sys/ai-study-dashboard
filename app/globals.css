@@ -1695,6 +1695,23 @@ body {
   padding-bottom: 0.78rem;
 }
 
+.study-source-note {
+  display: inline-flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(148,163,184,0.14);
+  padding-bottom: 0.72rem;
+  color: #64748B;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
+.study-source-note span {
+  border-radius: 999px;
+  background: rgba(14,116,144,0.08);
+  padding: 0.32rem 0.58rem;
+  color: #0E7490;
+}
+
 .study-source-drawer summary {
   display: inline-flex;
   cursor: pointer;
@@ -3320,6 +3337,16 @@ body {
 
 [data-theme="dark"] .study-source-drawer {
   border-color: rgba(148,163,184,0.16);
+}
+
+[data-theme="dark"] .study-source-note {
+  border-color: rgba(148,163,184,0.16);
+  color: #94A3B8;
+}
+
+[data-theme="dark"] .study-source-note span {
+  background: rgba(14,116,144,0.18);
+  color: #67E8F9;
 }
 
 [data-theme="dark"] .study-source-indicator {
