@@ -313,9 +313,7 @@ const REVISION_TOOLS: RevisionTool[] = [
 ];
 
 const ARTIFACT_TABS: Array<{ id: ArtifactType; label: string; icon: AppIconName }> = [
-  { id: "concept_map", label: "Map", icon: "mission" },
   { id: "flip_cards", label: "Cards", icon: "copy" },
-  { id: "formula_lab", label: "Formula", icon: "analytics" },
   { id: "mistake_cards", label: "Mistakes", icon: "check" },
 ];
 
@@ -716,7 +714,7 @@ function artifactHasContent(artifact: StudyArtifact | null) {
 }
 
 function firstArtifactTab(response: StudyArtifactResponse | null): ArtifactType {
-  return ARTIFACT_TABS.find((tab) => artifactHasContent(getArtifactByType(response, tab.id)))?.id || "concept_map";
+  return ARTIFACT_TABS.find((tab) => artifactHasContent(getArtifactByType(response, tab.id)))?.id || "flip_cards";
 }
 
 function cleanSpeechText(value: string) {
@@ -1069,7 +1067,7 @@ function ArtifactLoadingState() {
         <span className="study-mini-pulse" />
         <div>
           <p className="text-sm font-semibold text-slate-900">Building interactive artifact</p>
-          <p className="mt-1 text-xs leading-5 text-slate-500">Mapping chapter data into visuals, cards, formulas, and traps.</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">Preparing tap-to-reveal cards and mistake checks from your chapter.</p>
         </div>
       </div>
       <div className="mt-5 grid gap-3">
@@ -1317,11 +1315,9 @@ function ArtifactViewer({
   onTabChange: (tab: ArtifactType) => void;
 }) {
   const availableTabs = ARTIFACT_TABS.filter((tab) => getArtifactByType(response, tab.id));
-  const selectedTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : availableTabs[0]?.id || "concept_map";
+  const selectedTab = availableTabs.some((tab) => tab.id === activeTab) ? activeTab : availableTabs[0]?.id || "flip_cards";
   const artifact = getArtifactByType(response, selectedTab);
-  const mapCount = getArtifactByType(response, "concept_map")?.nodes?.length || 0;
   const cardCount = getArtifactByType(response, "flip_cards")?.cards?.length || 0;
-  const formulaCount = getArtifactByType(response, "formula_lab")?.formulas?.length || 0;
   const mistakeCount = getArtifactByType(response, "mistake_cards")?.mistakes?.length || 0;
   const activeLabel = ARTIFACT_TABS.find((tab) => tab.id === selectedTab)?.label || "Artifact";
 
@@ -1341,29 +1337,22 @@ function ArtifactViewer({
             <h3 className="mt-2 text-lg font-semibold text-slate-950">{renderInlineChemistry(readableArtifactText(response.title))}</h3>
           </div>
         </div>
-        {response.student_goal ? <p className="mt-4 text-xs leading-5 text-slate-500">{renderInlineChemistry(readableArtifactText(response.student_goal))}</p> : null}
+        <p className="mt-4 text-sm leading-6 text-slate-500">
+          Artifact means a small interactive study tool. Use cards to remember the idea, then check mistakes before exams.
+        </p>
         <div className="study-artifact-metrics">
           <span>
-            <strong>{mapCount}</strong>
-            <small>nodes</small>
-          </span>
-          <span>
             <strong>{cardCount}</strong>
-            <small>cards</small>
-          </span>
-          <span>
-            <strong>{formulaCount}</strong>
-            <small>formula</small>
+            <small>recall cards</small>
           </span>
           <span>
             <strong>{mistakeCount}</strong>
-            <small>traps</small>
+            <small>mistake checks</small>
           </span>
         </div>
         <div className="study-artifact-checklist" aria-label="Artifact quality signals">
-          <span><AppIcon name="check" /> {response.quality?.key_points || 0} key points</span>
-          <span><AppIcon name="check" /> {response.quality?.formulas || 0} formulas</span>
-          <span><AppIcon name="check" /> {response.quality?.mistakes || 0} mistakes</span>
+          <span><AppIcon name="check" /> Tap cards to reveal answers</span>
+          <span><AppIcon name="check" /> Check common exam mistakes</span>
         </div>
       </aside>
 
@@ -1389,9 +1378,7 @@ function ArtifactViewer({
           <h3 className="mt-1 text-xl font-semibold text-slate-950">{renderInlineChemistry(readableArtifactText(artifact.title))}</h3>
           {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{renderInlineChemistry(readableArtifactText(artifact.subtitle))}</p> : null}
         </div>
-        {artifact.type === "concept_map" ? <ConceptMapArtifact artifact={artifact} /> : null}
         {artifact.type === "flip_cards" ? <FlipCardsArtifact artifact={artifact} /> : null}
-        {artifact.type === "formula_lab" ? <FormulaLabArtifact artifact={artifact} /> : null}
         {artifact.type === "mistake_cards" ? <MistakeCardsArtifact artifact={artifact} /> : null}
       </section>
     </div>
@@ -1965,7 +1952,7 @@ export default function StudyPage() {
   const [artifact, setArtifact] = useState<StudyArtifactResponse | null>(null);
   const [artifactLoading, setArtifactLoading] = useState(false);
   const [artifactError, setArtifactError] = useState("");
-  const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("concept_map");
+  const [activeArtifactTab, setActiveArtifactTab] = useState<ArtifactType>("flip_cards");
   const [activeRevisionPanel, setActiveRevisionPanel] = useState<RevisionPanel>("summary");
   const [activeExamPanel, setActiveExamPanel] = useState<ExamPanel>("mcq");
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([]);
@@ -2117,7 +2104,7 @@ export default function StudyPage() {
     setArtifact(artifactCacheRef.current.get(revisionSelectionKey) || null);
     setArtifactLoading(false);
     setArtifactError("");
-    setActiveArtifactTab("concept_map");
+    setActiveArtifactTab("flip_cards");
     setExamQuestions([]);
     setProbableQuestions([]);
     setExamAnswers({});
@@ -2582,7 +2569,7 @@ export default function StudyPage() {
     setArtifact(null);
     setArtifactLoading(false);
     setArtifactError("");
-    setActiveArtifactTab("concept_map");
+    setActiveArtifactTab("flip_cards");
     setActiveRevisionPanel("summary");
   };
 
@@ -2823,7 +2810,7 @@ export default function StudyPage() {
     setMode("revision");
     setActiveRevisionPanel("artifact");
     setArtifactError("");
-    setActiveArtifactTab("concept_map");
+    setActiveArtifactTab("flip_cards");
     if (cached) {
       setArtifact(cached);
       setActiveArtifactTab(firstArtifactTab(cached));
@@ -3530,7 +3517,7 @@ export default function StudyPage() {
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Artifact</p>
                         <h2 className="mt-2 text-2xl font-semibold text-slate-950">Interactive Artifact</h2>
                         <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                          Visual map, tap cards, formula lab, and mistakes from your chapter data. This opens as a wide canvas so it feels like a proper study artifact.
+                          Artifact means an interactive study tool. Here it gives you tap-to-reveal cards and common mistake checks from your chapter.
                         </p>
                       </div>
                       <button

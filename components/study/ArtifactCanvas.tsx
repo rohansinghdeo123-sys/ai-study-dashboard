@@ -31,7 +31,7 @@ export default function ArtifactCanvas({
                 ? `Preparing the focused visual study canvas for ${topic}.`
                 : error
                   ? error
-                : `Generate one for ${topic}. It will turn the selected study data into a visual revision tool.`
+                : `Generate one for ${topic}. It will create simple cards and mistake checks from the selected study data.`
             }
             action={
               !loading && onRetry ? (
