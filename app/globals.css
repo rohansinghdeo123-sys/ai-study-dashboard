@@ -2129,6 +2129,11 @@ body {
 
 .chat-thinking-logo {
   --chat-logo-size: 2.75rem;
+  --chat-logo-glow: rgba(242,184,75,0.13);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(74,44,10,0.28)) drop-shadow(0 0 0.16rem rgba(242,184,75,0.26));
+  --chat-logo-crisp-stroke: rgba(55,33,9,0.42);
+  --chat-logo-crisp-opacity: 0.34;
+  --chat-logo-edge-highlight: rgba(255,247,211,0.78);
   position: relative;
   display: inline-flex;
   width: var(--chat-logo-size);
@@ -2144,11 +2149,11 @@ body {
 .chat-thinking-logo::before {
   content: "";
   position: absolute;
-  inset: 13%;
+  inset: 16%;
   border-radius: 999px;
-  background: rgba(242,184,75,0.16);
-  filter: blur(0.7rem);
-  opacity: 0.55;
+  background: var(--chat-logo-glow);
+  filter: blur(0.48rem);
+  opacity: 0.42;
   transform: scale(0.92);
   transition: opacity 260ms ease, transform 260ms ease;
 }
@@ -2159,7 +2164,17 @@ body {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 0 0.35rem rgba(242,184,75,0.24));
+  backface-visibility: hidden;
+  filter: var(--chat-logo-shadow);
+}
+
+.chat-logo-crisp-shadow path {
+  fill: none;
+  stroke: var(--chat-logo-crisp-stroke);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  opacity: var(--chat-logo-crisp-opacity);
+  vector-effect: non-scaling-stroke;
 }
 
 .chat-logo-upper,
@@ -2167,17 +2182,20 @@ body {
 .chat-logo-bar {
   fill: var(--agentify-logo-gold);
   stroke: var(--agentify-logo-edge);
-  stroke-width: 1.25;
+  stroke-width: 1.55;
   stroke-linejoin: round;
+  paint-order: stroke fill;
   transform-box: fill-box;
   transform-origin: center;
+  vector-effect: non-scaling-stroke;
 }
 
 .chat-logo-edge-lines path {
   fill: none;
-  stroke: rgba(255,246,202,0.62);
-  stroke-width: 0.7;
+  stroke: var(--chat-logo-edge-highlight);
+  stroke-width: 0.82;
   stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .chat-logo-sweep {
@@ -2194,7 +2212,7 @@ body {
 }
 
 .chat-logo-particles circle {
-  fill: #FFE9A6;
+  fill: #FFE5A1;
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -2209,8 +2227,8 @@ body {
 
 .chat-thinking-logo.is-thinking::before,
 .chat-thinking-logo.is-streaming::before {
-  opacity: 0.86;
-  transform: scale(1.05);
+  opacity: 0.68;
+  transform: scale(1.03);
 }
 
 .chat-thinking-logo.is-thinking .chat-logo-upper,
@@ -2271,23 +2289,49 @@ body {
 }
 
 .study-logo-avatar {
-  border-radius: 1rem;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,236,181,0.20);
+  border-radius: 0.95rem;
   background:
-    linear-gradient(145deg, rgba(5,10,18,0.96), rgba(13,27,38,0.9)),
+    radial-gradient(circle at 48% 24%, rgba(255,231,166,0.16), transparent 34%),
+    linear-gradient(145deg, rgba(4,8,13,0.98), rgba(13,22,32,0.96) 58%, rgba(2,5,9,0.98)),
     #0B111A;
   box-shadow:
-    0 16px 42px rgba(15,23,42,0.16),
-    inset 0 0 0 1px rgba(255,236,181,0.18);
+    0 14px 34px rgba(15,23,42,0.18),
+    0 1px 0 rgba(255,255,255,0.10),
+    inset 0 0 0 1px rgba(255,236,181,0.12);
+}
+
+.study-logo-avatar::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  background: linear-gradient(145deg, rgba(255,244,205,0.13), transparent 42%);
+  pointer-events: none;
 }
 
 .study-logo-avatar .chat-thinking-logo {
-  width: 100%;
-  height: 100%;
+  position: relative;
+  z-index: 1;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
   border-radius: inherit;
+  --chat-logo-crisp-opacity: 0.26;
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(0,0,0,0.42)) drop-shadow(0 0 0.18rem rgba(255,211,117,0.34));
 }
 
 .study-stream-placeholder .chat-thinking-logo {
   margin-left: -0.1rem;
+}
+
+.study-inline-status-logo {
+  --chat-logo-glow: rgba(229,162,58,0.16);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(92,55,11,0.44)) drop-shadow(0 0 0.18rem rgba(229,162,58,0.30));
+  --chat-logo-crisp-stroke: rgba(73,43,9,0.56);
+  --chat-logo-crisp-opacity: 0.54;
+  --chat-logo-edge-highlight: rgba(91,54,11,0.48);
 }
 
 .study-typing-dots {
@@ -2360,10 +2404,10 @@ body {
 
 @keyframes chat-logo-gold-pulse {
   0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 0.12rem rgba(242,184,75,0.16));
+    filter: brightness(1) drop-shadow(0 0 0.08rem rgba(242,184,75,0.14));
   }
   50% {
-    filter: brightness(1.12) drop-shadow(0 0 0.5rem rgba(242,184,75,0.42));
+    filter: brightness(1.1) drop-shadow(0 0 0.32rem rgba(242,184,75,0.36));
   }
 }
 
@@ -2401,13 +2445,13 @@ body {
 
 @keyframes chat-logo-complete-pulse {
   0% {
-    filter: brightness(1) drop-shadow(0 0 0.1rem rgba(242,184,75,0.14));
+    filter: brightness(1) drop-shadow(0 0 0.08rem rgba(242,184,75,0.14));
   }
   38% {
-    filter: brightness(1.22) drop-shadow(0 0 0.68rem rgba(242,184,75,0.48));
+    filter: brightness(1.2) drop-shadow(0 0 0.42rem rgba(242,184,75,0.42));
   }
   100% {
-    filter: brightness(1) drop-shadow(0 0 0.18rem rgba(242,184,75,0.18));
+    filter: brightness(1) drop-shadow(0 0 0.12rem rgba(242,184,75,0.18));
   }
 }
 
@@ -3232,11 +3276,31 @@ body {
 
 [data-theme="light"] .study-logo-avatar,
 [data-theme="dark"] .study-logo-avatar {
-  border-color: rgba(255,236,181,0.18) !important;
+  border-color: rgba(255,236,181,0.26) !important;
   background:
-    linear-gradient(145deg, rgba(5,10,18,0.96), rgba(13,27,38,0.9)),
+    radial-gradient(circle at 48% 24%, rgba(255,231,166,0.16), transparent 34%),
+    linear-gradient(145deg, rgba(4,8,13,0.98), rgba(13,22,32,0.96) 58%, rgba(2,5,9,0.98)),
     #0B111A !important;
   color: #F2B84B !important;
+}
+
+[data-theme="light"] .chat-thinking-logo {
+  --chat-logo-glow: rgba(229,162,58,0.11);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(86,51,9,0.40)) drop-shadow(0 0 0.12rem rgba(214,151,43,0.24));
+  --chat-logo-crisp-stroke: rgba(60,35,8,0.50);
+  --chat-logo-edge-highlight: rgba(90,53,10,0.46);
+}
+
+[data-theme="light"] .study-logo-avatar .chat-thinking-logo,
+[data-theme="dark"] .study-logo-avatar .chat-thinking-logo {
+  --chat-logo-glow: rgba(255,218,138,0.13);
+  --chat-logo-edge-highlight: rgba(255,244,202,0.78);
+}
+
+[data-theme="dark"] .chat-thinking-logo {
+  --chat-logo-glow: rgba(255,207,112,0.15);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(0,0,0,0.46)) drop-shadow(0 0 0.16rem rgba(255,211,117,0.28));
+  --chat-logo-crisp-stroke: rgba(0,0,0,0.42);
 }
 
 [data-theme="light"] .study-top-stat,

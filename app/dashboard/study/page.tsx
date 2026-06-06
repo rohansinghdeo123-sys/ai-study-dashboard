@@ -1687,7 +1687,7 @@ function TutorResponseCard({
 
             {pending ? (
               <div className="study-stream-placeholder flex items-center gap-3 px-1 py-3 text-sm font-medium text-slate-500">
-                <ChatThinkingLogo state="thinking" size={34} label="" />
+                <ChatThinkingLogo state="thinking" size={34} className="study-inline-status-logo" label="" />
                 <span>{coachName} is preparing your answer</span>
               </div>
             ) : (
