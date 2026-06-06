@@ -1659,13 +1659,22 @@ function TutorResponseCard({
   socratic?: boolean;
 }) {
   const pending = !content.trim();
+  const showSideLogo = pending || streaming;
 
   return (
     <div className="flex justify-start">
-      <div className="study-message-row grid w-full grid-cols-[40px_minmax(0,1fr)] gap-3 sm:grid-cols-[44px_minmax(0,1fr)]">
-        <div className="study-message-avatar study-logo-avatar flex h-10 w-10 items-center justify-center sm:h-11 sm:w-11">
-          <ChatThinkingLogo state={logoState} size={44} label={`${coachName} response status`} />
-        </div>
+      <div
+        className={
+          showSideLogo
+            ? "study-message-row grid w-full grid-cols-[40px_minmax(0,1fr)] gap-3 sm:grid-cols-[44px_minmax(0,1fr)]"
+            : "study-message-row study-message-row-complete grid w-full grid-cols-1"
+        }
+      >
+        {showSideLogo ? (
+          <div className="study-message-avatar study-logo-avatar flex h-10 w-10 items-center justify-center sm:h-11 sm:w-11">
+            <ChatThinkingLogo state={logoState} size={44} label={`${coachName} response status`} />
+          </div>
+        ) : null}
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
             <p className="font-semibold text-slate-950">{coachName}</p>
@@ -1698,7 +1707,7 @@ function TutorResponseCard({
                 </div>
                 {!streaming ? (
                   <div className="study-response-signature" aria-hidden="true">
-                    <ChatThinkingLogo state="idle" size={34} className="study-response-signature-logo" label="" />
+                    <ChatThinkingLogo state="idle" size={44} className="study-landing-logo study-response-signature-logo" label="" />
                   </div>
                 ) : null}
                 {!streaming ? (

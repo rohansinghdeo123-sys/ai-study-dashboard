@@ -2344,8 +2344,7 @@ body {
   margin-left: -0.1rem;
 }
 
-.study-inline-status-logo,
-.study-response-signature-logo {
+.study-inline-status-logo {
   --chat-logo-glow: rgba(229,162,58,0.16);
   --chat-logo-shadow: drop-shadow(0 1px 0 rgba(92,55,11,0.44)) drop-shadow(0 0 0.18rem rgba(229,162,58,0.30));
   --chat-logo-crisp-stroke: rgba(73,43,9,0.56);
@@ -2354,9 +2353,7 @@ body {
 }
 
 .study-response-signature-logo {
-  --chat-logo-glow: rgba(229,126,73,0.12);
-  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(86,47,11,0.40)) drop-shadow(0 0 0.12rem rgba(229,126,73,0.18));
-  --chat-logo-crisp-opacity: 0.48;
+  margin-left: -0.2rem;
 }
 
 .study-typing-dots {
