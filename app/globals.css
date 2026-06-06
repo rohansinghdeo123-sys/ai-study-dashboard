@@ -2127,6 +2127,169 @@ body {
   min-height: 3rem;
 }
 
+.chat-thinking-logo {
+  --chat-logo-size: 2.75rem;
+  position: relative;
+  display: inline-flex;
+  width: var(--chat-logo-size);
+  height: var(--chat-logo-size);
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.9rem;
+  isolation: isolate;
+  color: #F2B84B;
+}
+
+.chat-thinking-logo::before {
+  content: "";
+  position: absolute;
+  inset: 13%;
+  border-radius: 999px;
+  background: rgba(242,184,75,0.16);
+  filter: blur(0.7rem);
+  opacity: 0.55;
+  transform: scale(0.92);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.chat-thinking-logo-svg {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 0.35rem rgba(242,184,75,0.24));
+}
+
+.chat-logo-upper,
+.chat-logo-lower,
+.chat-logo-bar {
+  fill: var(--agentify-logo-gold);
+  stroke: var(--agentify-logo-edge);
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chat-logo-edge-lines path {
+  fill: none;
+  stroke: rgba(255,246,202,0.62);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+
+.chat-logo-sweep {
+  fill: var(--agentify-logo-sweep);
+  opacity: 0;
+  mix-blend-mode: screen;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chat-logo-particles {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-logo-particles circle {
+  fill: #FFE9A6;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.chat-thinking-logo.is-idle .chat-logo-ambient {
+  animation: chat-logo-idle-glow 5.6s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-idle .chat-logo-edge-lines {
+  animation: chat-logo-idle-shimmer 6.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking::before,
+.chat-thinking-logo.is-streaming::before {
+  opacity: 0.86;
+  transform: scale(1.05);
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-upper,
+.chat-thinking-logo.is-streaming .chat-logo-upper {
+  animation: chat-logo-upper-breathe 2.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-lower,
+.chat-thinking-logo.is-streaming .chat-logo-lower {
+  animation: chat-logo-lower-breathe 2.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-ambient,
+.chat-thinking-logo.is-streaming .chat-logo-ambient {
+  animation: chat-logo-gold-pulse 2.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-particles,
+.chat-thinking-logo.is-streaming .chat-logo-particles {
+  opacity: 1;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-particles circle,
+.chat-thinking-logo.is-streaming .chat-logo-particles circle {
+  animation: chat-logo-particle 2.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-particles circle:nth-child(2),
+.chat-thinking-logo.is-streaming .chat-logo-particles circle:nth-child(2) {
+  animation-delay: 360ms;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-particles circle:nth-child(3),
+.chat-thinking-logo.is-streaming .chat-logo-particles circle:nth-child(3) {
+  animation-delay: 720ms;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-particles circle:nth-child(4),
+.chat-thinking-logo.is-streaming .chat-logo-particles circle:nth-child(4) {
+  animation-delay: 1080ms;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-particles circle:nth-child(5),
+.chat-thinking-logo.is-streaming .chat-logo-particles circle:nth-child(5) {
+  animation-delay: 1440ms;
+}
+
+.chat-thinking-logo.is-streaming .chat-logo-sweep {
+  animation: chat-logo-sweep 1.65s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+}
+
+.chat-thinking-logo.is-complete .chat-logo-ambient {
+  animation: chat-logo-complete-pulse 1.05s ease-out both;
+}
+
+.chat-thinking-logo.is-complete::before {
+  animation: chat-logo-complete-halo 1.05s ease-out both;
+}
+
+.study-logo-avatar {
+  border-radius: 1rem;
+  background:
+    linear-gradient(145deg, rgba(5,10,18,0.96), rgba(13,27,38,0.9)),
+    #0B111A;
+  box-shadow:
+    0 16px 42px rgba(15,23,42,0.16),
+    inset 0 0 0 1px rgba(255,236,181,0.18);
+}
+
+.study-logo-avatar .chat-thinking-logo {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.study-stream-placeholder .chat-thinking-logo {
+  margin-left: -0.1rem;
+}
+
 .study-typing-dots {
   display: inline-flex;
   align-items: center;
@@ -2148,6 +2311,141 @@ body {
 
 .study-typing-dots span:nth-child(3) {
   animation-delay: 320ms;
+}
+
+@keyframes chat-logo-idle-glow {
+  0%, 100% {
+    filter: brightness(1) saturate(1);
+  }
+  46% {
+    filter: brightness(1.06) saturate(1.08);
+  }
+  50% {
+    filter: brightness(1.15) saturate(1.14);
+  }
+  56% {
+    filter: brightness(1.04) saturate(1.05);
+  }
+}
+
+@keyframes chat-logo-idle-shimmer {
+  0%, 64%, 100% {
+    opacity: 0.62;
+  }
+  70% {
+    opacity: 0.94;
+  }
+  76% {
+    opacity: 0.68;
+  }
+}
+
+@keyframes chat-logo-upper-breathe {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes chat-logo-lower-breathe {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@keyframes chat-logo-gold-pulse {
+  0%, 100% {
+    filter: brightness(1) drop-shadow(0 0 0.12rem rgba(242,184,75,0.16));
+  }
+  50% {
+    filter: brightness(1.12) drop-shadow(0 0 0.5rem rgba(242,184,75,0.42));
+  }
+}
+
+@keyframes chat-logo-particle {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.72);
+  }
+  35% {
+    opacity: 0.72;
+    transform: translateY(-1px) scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.82);
+  }
+}
+
+@keyframes chat-logo-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-68%) scaleX(0.42);
+  }
+  18% {
+    opacity: 0.88;
+  }
+  56% {
+    opacity: 0.72;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(68%) scaleX(0.42);
+  }
+}
+
+@keyframes chat-logo-complete-pulse {
+  0% {
+    filter: brightness(1) drop-shadow(0 0 0.1rem rgba(242,184,75,0.14));
+  }
+  38% {
+    filter: brightness(1.22) drop-shadow(0 0 0.68rem rgba(242,184,75,0.48));
+  }
+  100% {
+    filter: brightness(1) drop-shadow(0 0 0.18rem rgba(242,184,75,0.18));
+  }
+}
+
+@keyframes chat-logo-complete-halo {
+  0% {
+    opacity: 0.44;
+    transform: scale(0.92);
+  }
+  42% {
+    opacity: 0.95;
+    transform: scale(1.16);
+  }
+  100% {
+    opacity: 0.5;
+    transform: scale(0.94);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-thinking-logo,
+  .chat-thinking-logo::before,
+  .chat-thinking-logo *,
+  .study-logo-avatar {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .chat-thinking-logo.is-thinking::before,
+  .chat-thinking-logo.is-streaming::before,
+  .chat-thinking-logo.is-complete::before {
+    opacity: 0.58;
+    transform: scale(0.95);
+  }
+
+  .chat-logo-particles,
+  .chat-logo-sweep {
+    opacity: 0 !important;
+  }
 }
 
 .study-artifact-card {
@@ -2930,6 +3228,15 @@ body {
   border-color: rgba(14,116,144,0.20) !important;
   background: rgba(20,184,166,0.10) !important;
   color: #0E7490 !important;
+}
+
+[data-theme="light"] .study-logo-avatar,
+[data-theme="dark"] .study-logo-avatar {
+  border-color: rgba(255,236,181,0.18) !important;
+  background:
+    linear-gradient(145deg, rgba(5,10,18,0.96), rgba(13,27,38,0.9)),
+    #0B111A !important;
+  color: #F2B84B !important;
 }
 
 [data-theme="light"] .study-top-stat,

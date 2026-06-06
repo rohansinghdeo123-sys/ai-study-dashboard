@@ -37,13 +37,17 @@ export default function BackendStatus() {
     const isActive = () => active;
 
     primeBackend(backendURL);
-    void checkBackend(isActive, !isBackendRecentlyReady(backendURL));
+    const kickoff = window.setTimeout(
+      () => void checkBackend(isActive, !isBackendRecentlyReady(backendURL)),
+      0,
+    );
     const interval = window.setInterval(
       () => void checkBackend(isActive, stateRef.current !== "ready"),
       stateRef.current === "ready" ? 30000 : 9000,
     );
     return () => {
       active = false;
+      window.clearTimeout(kickoff);
       window.clearInterval(interval);
     };
   }, [backendURL, checkBackend]);

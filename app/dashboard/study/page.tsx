@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import ChatThinkingLogo, { type ChatThinkingLogoState } from "@/components/brand/ChatThinkingLogo";
 import ArtifactCanvas, { ARTIFACT_UNAVAILABLE_MESSAGE } from "@/components/study/ArtifactCanvas";
 import RevisionModeTabs from "@/components/study/RevisionModeTabs";
 import {
@@ -1632,6 +1633,7 @@ function TutorResponseCard({
   showActivity,
   activityCollapsed,
   streaming,
+  logoState,
   canRegenerate,
   onPrompt,
   onRegenerate,
@@ -1648,6 +1650,7 @@ function TutorResponseCard({
   showActivity: boolean;
   activityCollapsed: boolean;
   streaming: boolean;
+  logoState: ChatThinkingLogoState;
   canRegenerate: boolean;
   onPrompt: (prompt: string) => void;
   onRegenerate: () => void;
@@ -1660,8 +1663,8 @@ function TutorResponseCard({
   return (
     <div className="flex justify-start">
       <div className="study-message-row grid w-full grid-cols-[40px_minmax(0,1fr)] gap-3 sm:grid-cols-[44px_minmax(0,1fr)]">
-        <div className="study-message-avatar flex h-10 w-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_45px_rgba(14,116,144,0.20)] sm:h-11 sm:w-11">
-          {coachName[0]}
+        <div className="study-message-avatar study-logo-avatar flex h-10 w-10 items-center justify-center sm:h-11 sm:w-11">
+          <ChatThinkingLogo state={logoState} size={44} label={`${coachName} response status`} />
         </div>
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
@@ -1683,12 +1686,8 @@ function TutorResponseCard({
             ) : null}
 
             {pending ? (
-              <div className="study-stream-placeholder flex items-center gap-2 px-1 py-3 text-sm font-medium text-slate-500">
-                <span className="study-typing-dots" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
+              <div className="study-stream-placeholder flex items-center gap-3 px-1 py-3 text-sm font-medium text-slate-500">
+                <ChatThinkingLogo state="thinking" size={34} label="" />
                 <span>{coachName} is preparing your answer</span>
               </div>
             ) : (
@@ -3406,6 +3405,14 @@ export default function StudyPage() {
                 <div className="study-chat-thread w-full space-y-6">
                   {messages.map((message, index) => {
                     const isLatestMessage = index === messages.length - 1;
+                    const logoState: ChatThinkingLogoState =
+                      loadingAnswer && isLatestMessage
+                        ? message.content.trim()
+                          ? "streaming"
+                          : "thinking"
+                        : isLatestMessage && message.role === "coach"
+                          ? "complete"
+                          : "idle";
 
                     return message.role === "user" ? (
                       <StudentPromptCard
@@ -3429,6 +3436,7 @@ export default function StudyPage() {
                         showActivity={showPipeline && isLatestMessage}
                         activityCollapsed={activityCollapsed}
                         streaming={loadingAnswer && isLatestMessage && Boolean(message.content.trim())}
+                        logoState={logoState}
                         canRegenerate={!loadingAnswer && isLatestMessage}
                         onPrompt={setInput}
                         onRegenerate={regenerateLastAnswer}
