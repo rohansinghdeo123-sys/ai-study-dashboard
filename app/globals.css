@@ -1430,19 +1430,28 @@ body {
 
 .study-chat-orb {
   display: flex;
-  height: 3.4rem;
-  width: 3.4rem;
+  height: 5rem;
+  width: 5rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(14,116,144,0.18);
-  border-radius: 1.25rem;
-  background:
-    radial-gradient(circle at 28% 20%, rgba(255,255,255,0.42), transparent 32%),
-    linear-gradient(135deg, #0F172A, #0E7490, #14B8A6);
-  color: #FFFFFF;
-  font-size: 1.05rem;
-  font-weight: 950;
-  box-shadow: 0 22px 58px rgba(14,116,144,0.22);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #F2B84B;
+  box-shadow: none;
+}
+
+.study-chat-orb .chat-thinking-logo {
+  width: 100%;
+  height: 100%;
+}
+
+.study-landing-logo {
+  --chat-logo-glow: rgba(229,126,73,0.16);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(88,46,11,0.36)) drop-shadow(0 0 0.16rem rgba(238,136,76,0.24));
+  --chat-logo-crisp-stroke: rgba(58,31,8,0.45);
+  --chat-logo-crisp-opacity: 0.42;
+  --chat-logo-edge-highlight: rgba(255,244,205,0.82);
 }
 
 .study-hero-composer {
@@ -2127,6 +2136,15 @@ body {
   min-height: 3rem;
 }
 
+.study-response-signature {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  margin-top: 1rem;
+  margin-bottom: 0.15rem;
+  opacity: 0.94;
+}
+
 .chat-thinking-logo {
   --chat-logo-size: 2.75rem;
   --chat-logo-glow: rgba(242,184,75,0.13);
@@ -2326,12 +2344,19 @@ body {
   margin-left: -0.1rem;
 }
 
-.study-inline-status-logo {
+.study-inline-status-logo,
+.study-response-signature-logo {
   --chat-logo-glow: rgba(229,162,58,0.16);
   --chat-logo-shadow: drop-shadow(0 1px 0 rgba(92,55,11,0.44)) drop-shadow(0 0 0.18rem rgba(229,162,58,0.30));
   --chat-logo-crisp-stroke: rgba(73,43,9,0.56);
   --chat-logo-crisp-opacity: 0.54;
   --chat-logo-edge-highlight: rgba(91,54,11,0.48);
+}
+
+.study-response-signature-logo {
+  --chat-logo-glow: rgba(229,126,73,0.12);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(86,47,11,0.40)) drop-shadow(0 0 0.12rem rgba(229,126,73,0.18));
+  --chat-logo-crisp-opacity: 0.48;
 }
 
 .study-typing-dots {
@@ -3291,6 +3316,14 @@ body {
   --chat-logo-edge-highlight: rgba(90,53,10,0.46);
 }
 
+[data-theme="light"] .study-landing-logo {
+  --chat-logo-glow: rgba(229,126,73,0.13);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(92,49,10,0.42)) drop-shadow(0 0 0.12rem rgba(224,113,61,0.18));
+  --chat-logo-crisp-stroke: rgba(64,34,8,0.52);
+  --chat-logo-crisp-opacity: 0.50;
+  --chat-logo-edge-highlight: rgba(93,51,11,0.42);
+}
+
 [data-theme="light"] .study-logo-avatar .chat-thinking-logo,
 [data-theme="dark"] .study-logo-avatar .chat-thinking-logo {
   --chat-logo-glow: rgba(255,218,138,0.13);
@@ -3301,6 +3334,14 @@ body {
   --chat-logo-glow: rgba(255,207,112,0.15);
   --chat-logo-shadow: drop-shadow(0 1px 0 rgba(0,0,0,0.46)) drop-shadow(0 0 0.16rem rgba(255,211,117,0.28));
   --chat-logo-crisp-stroke: rgba(0,0,0,0.42);
+}
+
+[data-theme="dark"] .study-landing-logo,
+[data-theme="dark"] .study-response-signature-logo {
+  --chat-logo-glow: rgba(229,126,73,0.16);
+  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(0,0,0,0.44)) drop-shadow(0 0 0.16rem rgba(235,126,73,0.26));
+  --chat-logo-crisp-stroke: rgba(0,0,0,0.46);
+  --chat-logo-edge-highlight: rgba(255,232,187,0.76);
 }
 
 [data-theme="light"] .study-top-stat,
@@ -5414,6 +5455,11 @@ body {
   .study-chat-landing {
     min-height: 64svh !important;
     justify-content: center;
+  }
+
+  .study-chat-orb {
+    height: 4.2rem;
+    width: 4.2rem;
   }
 
   .study-composer-card.is-hero {

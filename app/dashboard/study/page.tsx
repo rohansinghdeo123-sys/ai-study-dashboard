@@ -1697,6 +1697,11 @@ function TutorResponseCard({
                   <CoachAnswer value={content} streaming={streaming} adaptiveBlocks={blocks} />
                 </div>
                 {!streaming ? (
+                  <div className="study-response-signature" aria-hidden="true">
+                    <ChatThinkingLogo state="idle" size={34} className="study-response-signature-logo" label="" />
+                  </div>
+                ) : null}
+                {!streaming ? (
                   <TutorActionDock
                     answer={content}
                     canRegenerate={canRegenerate}
@@ -3375,8 +3380,8 @@ export default function StudyPage() {
               <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
               {messages.length === 0 ? (
                 <div className="study-empty-state study-chat-landing flex min-h-[68svh] w-full flex-col items-center justify-center text-center">
-                  <div className="study-chat-orb">
-                    {coachName[0]}
+                  <div className="study-chat-orb" aria-hidden="true">
+                    <ChatThinkingLogo state="idle" size={76} className="study-landing-logo" label="" />
                   </div>
                   <h2 className="mt-6 text-3xl font-semibold text-slate-950 sm:text-5xl">
                     What should we learn today?
