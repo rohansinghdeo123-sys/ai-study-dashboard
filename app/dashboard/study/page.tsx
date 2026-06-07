@@ -1659,6 +1659,7 @@ function TutorResponseCard({
   socratic?: boolean;
 }) {
   const pending = !content.trim();
+  const showDeliveryLogo = pending || streaming;
 
   return (
     <div className="flex justify-start">
@@ -1682,11 +1683,27 @@ function TutorResponseCard({
               </div>
             ) : null}
 
-            {pending ? (
-              <div className="study-stream-placeholder flex items-center gap-3 px-1 py-3 text-sm font-medium text-slate-500">
-                <ChatThinkingLogo state="thinking" size={40} className="study-inline-status-logo" label="" />
-                <span>{coachName} is preparing your answer</span>
+            {showDeliveryLogo ? (
+              <div className={`study-response-status ${pending ? "is-pending" : "is-streaming"}`} aria-live="polite">
+                <ChatThinkingLogo
+                  state={pending ? "thinking" : "streaming"}
+                  size={pending ? 76 : 68}
+                  className="study-response-status-logo"
+                  label=""
+                />
+                <span className="study-response-status-copy">
+                  <span className="study-response-status-title">
+                    {pending ? `${coachName} is preparing your answer` : `${coachName} is writing your answer`}
+                  </span>
+                  <span className="study-response-status-detail">
+                    {pending ? "Preparing the right learning route." : "Delivering the answer with your selected study context."}
+                  </span>
+                </span>
               </div>
+            ) : null}
+
+            {pending ? (
+              <div className="study-stream-placeholder" />
             ) : (
               <>
                 <SourceDrawer sources={sources} />
