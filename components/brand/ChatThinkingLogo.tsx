@@ -33,6 +33,7 @@ export default function ChatThinkingLogo({
   const edgeId = `${gradientId}-agentify-logo-edge`;
   const sweepId = `${gradientId}-agentify-logo-sweep`;
   const glowId = `${gradientId}-agentify-logo-soft-glow`;
+  const coreId = `${gradientId}-agentify-logo-core`;
 
   return (
     <span
@@ -76,6 +77,12 @@ export default function ChatThinkingLogo({
             <stop offset="0.48" stopColor="rgba(255,246,199,0.96)" />
             <stop offset="1" stopColor="rgba(255,240,184,0)" />
           </linearGradient>
+          <radialGradient id={coreId} cx="50%" cy="50%" r="52%">
+            <stop offset="0" stopColor="#F9FFF8" />
+            <stop offset="0.34" stopColor="#A7F3D0" />
+            <stop offset="0.72" stopColor="#14B8A6" />
+            <stop offset="1" stopColor="rgba(20,184,166,0)" />
+          </radialGradient>
           <filter id={glowId} x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="2.2" result="blur" />
             <feColorMatrix
@@ -111,6 +118,11 @@ export default function ChatThinkingLogo({
         </g>
 
         <rect className="chat-logo-sweep" x="12.5" y="44.2" width="75" height="11.2" rx="1.4" />
+        <g className="chat-logo-orbits">
+          <ellipse className="chat-logo-orbit chat-logo-orbit-one" cx="50" cy="50" rx="28.5" ry="7.4" />
+          <ellipse className="chat-logo-orbit chat-logo-orbit-two" cx="50" cy="50" rx="7.2" ry="28.2" />
+        </g>
+        <circle className="chat-logo-core" cx="50" cy="50" r="3.1" fill={`url(#${coreId})`} />
 
         <g className="chat-logo-particles">
           {PARTICLES.map((particle, index) => (

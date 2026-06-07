@@ -1430,8 +1430,8 @@ body {
 
 .study-chat-orb {
   display: flex;
-  height: 5rem;
-  width: 5rem;
+  height: 6.35rem;
+  width: 6.35rem;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -1447,11 +1447,15 @@ body {
 }
 
 .study-landing-logo {
-  --chat-logo-glow: rgba(229,126,73,0.16);
-  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(88,46,11,0.36)) drop-shadow(0 0 0.16rem rgba(238,136,76,0.24));
-  --chat-logo-crisp-stroke: rgba(58,31,8,0.45);
-  --chat-logo-crisp-opacity: 0.42;
-  --chat-logo-edge-highlight: rgba(255,244,205,0.82);
+  --chat-logo-size: clamp(5.8rem, 9vw, 6.8rem) !important;
+  --chat-logo-glow: rgba(20,184,166,0.13);
+  --chat-logo-shadow:
+    drop-shadow(0 1px 0 rgba(88,46,11,0.34))
+    drop-shadow(0 0 0.24rem rgba(238,185,82,0.28))
+    drop-shadow(0 0 0.74rem rgba(20,184,166,0.12));
+  --chat-logo-crisp-stroke: rgba(58,31,8,0.42);
+  --chat-logo-crisp-opacity: 0.45;
+  --chat-logo-edge-highlight: rgba(255,244,205,0.86);
 }
 
 .study-hero-composer {
@@ -2136,15 +2140,6 @@ body {
   min-height: 3rem;
 }
 
-.study-response-signature {
-  display: flex;
-  width: fit-content;
-  align-items: center;
-  margin-top: 1rem;
-  margin-bottom: 0.15rem;
-  opacity: 0.94;
-}
-
 .chat-thinking-logo {
   --chat-logo-size: 2.75rem;
   --chat-logo-glow: rgba(242,184,75,0.13);
@@ -2224,6 +2219,34 @@ body {
   transform-origin: center;
 }
 
+.chat-logo-orbits {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chat-logo-orbit {
+  fill: none;
+  stroke: rgba(20,184,166,0.50);
+  stroke-width: 0.72;
+  stroke-linecap: round;
+  stroke-dasharray: 9 19;
+  transform-box: fill-box;
+  transform-origin: center;
+  vector-effect: non-scaling-stroke;
+}
+
+.chat-logo-orbit-two {
+  stroke: rgba(255,232,171,0.42);
+  stroke-dasharray: 6 21;
+}
+
+.chat-logo-core {
+  opacity: 0.62;
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 0.16rem rgba(20,184,166,0.36));
+}
+
 .chat-logo-particles {
   opacity: 0;
   pointer-events: none;
@@ -2259,9 +2282,32 @@ body {
   animation: chat-logo-lower-breathe 2.8s ease-in-out infinite;
 }
 
+.chat-thinking-logo.is-thinking .chat-logo-bar,
+.chat-thinking-logo.is-streaming .chat-logo-bar {
+  animation: chat-logo-bar-aperture 2.8s ease-in-out infinite;
+}
+
 .chat-thinking-logo.is-thinking .chat-logo-ambient,
 .chat-thinking-logo.is-streaming .chat-logo-ambient {
   animation: chat-logo-gold-pulse 2.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-orbits,
+.chat-thinking-logo.is-streaming .chat-logo-orbits,
+.study-landing-logo .chat-logo-orbits {
+  opacity: 1;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-orbit,
+.chat-thinking-logo.is-streaming .chat-logo-orbit,
+.study-landing-logo .chat-logo-orbit {
+  animation: chat-logo-orbit-breathe 2.8s ease-in-out infinite;
+}
+
+.chat-thinking-logo.is-thinking .chat-logo-core,
+.chat-thinking-logo.is-streaming .chat-logo-core,
+.study-landing-logo .chat-logo-core {
+  animation: chat-logo-core-pulse 2.8s ease-in-out infinite;
 }
 
 .chat-thinking-logo.is-thinking .chat-logo-particles,
@@ -2298,46 +2344,25 @@ body {
   animation: chat-logo-sweep 1.65s cubic-bezier(0.42, 0, 0.18, 1) infinite;
 }
 
+.study-landing-logo.chat-thinking-logo.is-thinking .chat-logo-sweep {
+  animation: chat-logo-sweep 2.45s cubic-bezier(0.42, 0, 0.18, 1) infinite;
+}
+
+.study-landing-logo.chat-thinking-logo.is-thinking .chat-logo-particles circle {
+  animation-duration: 3.2s;
+}
+
+.study-landing-logo.chat-thinking-logo.is-thinking::before {
+  opacity: 0.82;
+  transform: scale(1.08);
+}
+
 .chat-thinking-logo.is-complete .chat-logo-ambient {
   animation: chat-logo-complete-pulse 1.05s ease-out both;
 }
 
 .chat-thinking-logo.is-complete::before {
   animation: chat-logo-complete-halo 1.05s ease-out both;
-}
-
-.study-logo-avatar {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid rgba(255,236,181,0.20);
-  border-radius: 0.95rem;
-  background:
-    radial-gradient(circle at 48% 24%, rgba(255,231,166,0.16), transparent 34%),
-    linear-gradient(145deg, rgba(4,8,13,0.98), rgba(13,22,32,0.96) 58%, rgba(2,5,9,0.98)),
-    #0B111A;
-  box-shadow:
-    0 14px 34px rgba(15,23,42,0.18),
-    0 1px 0 rgba(255,255,255,0.10),
-    inset 0 0 0 1px rgba(255,236,181,0.12);
-}
-
-.study-logo-avatar::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255,244,205,0.13), transparent 42%);
-  pointer-events: none;
-}
-
-.study-logo-avatar .chat-thinking-logo {
-  position: relative;
-  z-index: 1;
-  width: calc(100% - 4px);
-  height: calc(100% - 4px);
-  border-radius: inherit;
-  --chat-logo-crisp-opacity: 0.26;
-  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(0,0,0,0.42)) drop-shadow(0 0 0.18rem rgba(255,211,117,0.34));
 }
 
 .study-stream-placeholder .chat-thinking-logo {
@@ -2350,10 +2375,6 @@ body {
   --chat-logo-crisp-stroke: rgba(73,43,9,0.56);
   --chat-logo-crisp-opacity: 0.54;
   --chat-logo-edge-highlight: rgba(91,54,11,0.48);
-}
-
-.study-response-signature-logo {
-  margin-left: -0.2rem;
 }
 
 .study-typing-dots {
@@ -2408,28 +2429,67 @@ body {
 
 @keyframes chat-logo-upper-breathe {
   0%, 100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-3.4px) scale(1.012);
   }
 }
 
 @keyframes chat-logo-lower-breathe {
   0%, 100% {
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(3px);
+    transform: translateY(3.4px) scale(1.012);
+  }
+}
+
+@keyframes chat-logo-bar-aperture {
+  0%, 100% {
+    opacity: 0.96;
+    transform: scaleX(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1.045);
   }
 }
 
 @keyframes chat-logo-gold-pulse {
   0%, 100% {
-    filter: brightness(1) drop-shadow(0 0 0.08rem rgba(242,184,75,0.14));
+    filter: brightness(1) saturate(1) drop-shadow(0 0 0.08rem rgba(242,184,75,0.14));
   }
   50% {
-    filter: brightness(1.1) drop-shadow(0 0 0.32rem rgba(242,184,75,0.36));
+    filter:
+      brightness(1.13)
+      saturate(1.08)
+      drop-shadow(0 0 0.30rem rgba(242,184,75,0.32))
+      drop-shadow(0 0 0.34rem rgba(20,184,166,0.13));
+  }
+}
+
+@keyframes chat-logo-core-pulse {
+  0%, 100% {
+    opacity: 0.52;
+    transform: scale(0.82);
+  }
+  48% {
+    opacity: 0.95;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes chat-logo-orbit-breathe {
+  0%, 100% {
+    opacity: 0.18;
+    stroke-dashoffset: 0;
+    transform: scale(0.94);
+  }
+  46% {
+    opacity: 0.52;
+    stroke-dashoffset: -5;
+    transform: scale(1.04);
   }
 }
 
@@ -2495,8 +2555,7 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .chat-thinking-logo,
   .chat-thinking-logo::before,
-  .chat-thinking-logo *,
-  .study-logo-avatar {
+  .chat-thinking-logo * {
     animation: none !important;
     transition: none !important;
   }
@@ -2509,8 +2568,14 @@ body {
   }
 
   .chat-logo-particles,
-  .chat-logo-sweep {
+  .chat-logo-sweep,
+  .chat-logo-orbits {
     opacity: 0 !important;
+  }
+
+  .chat-logo-core {
+    opacity: 0.7 !important;
+    transform: none !important;
   }
 }
 
@@ -3296,16 +3361,6 @@ body {
   color: #0E7490 !important;
 }
 
-[data-theme="light"] .study-logo-avatar,
-[data-theme="dark"] .study-logo-avatar {
-  border-color: rgba(255,236,181,0.26) !important;
-  background:
-    radial-gradient(circle at 48% 24%, rgba(255,231,166,0.16), transparent 34%),
-    linear-gradient(145deg, rgba(4,8,13,0.98), rgba(13,22,32,0.96) 58%, rgba(2,5,9,0.98)),
-    #0B111A !important;
-  color: #F2B84B !important;
-}
-
 [data-theme="light"] .chat-thinking-logo {
   --chat-logo-glow: rgba(229,162,58,0.11);
   --chat-logo-shadow: drop-shadow(0 1px 0 rgba(86,51,9,0.40)) drop-shadow(0 0 0.12rem rgba(214,151,43,0.24));
@@ -3314,17 +3369,14 @@ body {
 }
 
 [data-theme="light"] .study-landing-logo {
-  --chat-logo-glow: rgba(229,126,73,0.13);
-  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(92,49,10,0.42)) drop-shadow(0 0 0.12rem rgba(224,113,61,0.18));
-  --chat-logo-crisp-stroke: rgba(64,34,8,0.52);
+  --chat-logo-glow: rgba(20,184,166,0.12);
+  --chat-logo-shadow:
+    drop-shadow(0 1px 0 rgba(92,49,10,0.36))
+    drop-shadow(0 0 0.18rem rgba(224,157,61,0.20))
+    drop-shadow(0 0 0.68rem rgba(20,184,166,0.10));
+  --chat-logo-crisp-stroke: rgba(64,34,8,0.48);
   --chat-logo-crisp-opacity: 0.50;
   --chat-logo-edge-highlight: rgba(93,51,11,0.42);
-}
-
-[data-theme="light"] .study-logo-avatar .chat-thinking-logo,
-[data-theme="dark"] .study-logo-avatar .chat-thinking-logo {
-  --chat-logo-glow: rgba(255,218,138,0.13);
-  --chat-logo-edge-highlight: rgba(255,244,202,0.78);
 }
 
 [data-theme="dark"] .chat-thinking-logo {
@@ -3333,10 +3385,12 @@ body {
   --chat-logo-crisp-stroke: rgba(0,0,0,0.42);
 }
 
-[data-theme="dark"] .study-landing-logo,
-[data-theme="dark"] .study-response-signature-logo {
-  --chat-logo-glow: rgba(229,126,73,0.16);
-  --chat-logo-shadow: drop-shadow(0 1px 0 rgba(0,0,0,0.44)) drop-shadow(0 0 0.16rem rgba(235,126,73,0.26));
+[data-theme="dark"] .study-landing-logo {
+  --chat-logo-glow: rgba(20,184,166,0.14);
+  --chat-logo-shadow:
+    drop-shadow(0 1px 0 rgba(0,0,0,0.44))
+    drop-shadow(0 0 0.20rem rgba(235,172,73,0.30))
+    drop-shadow(0 0 0.78rem rgba(20,184,166,0.16));
   --chat-logo-crisp-stroke: rgba(0,0,0,0.46);
   --chat-logo-edge-highlight: rgba(255,232,187,0.76);
 }
@@ -5455,8 +5509,8 @@ body {
   }
 
   .study-chat-orb {
-    height: 4.2rem;
-    width: 4.2rem;
+    height: 5.2rem;
+    width: 5.2rem;
   }
 
   .study-composer-card.is-hero {
