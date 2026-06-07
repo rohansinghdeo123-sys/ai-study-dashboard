@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-const ADMIN_ROUTE = "/dashboard/internal/ops";
+const ADMIN_ROUTE = "/dashboard/internal/admin";
 
 type MenuItem = {
   name: string;
@@ -24,10 +24,10 @@ const BASE_MENU: MenuItem[] = [
 ];
 
 const ADMIN_MENU: MenuItem = {
-  name: "Ops",
+  name: "Admin",
   href: ADMIN_ROUTE,
-  abbr: "O",
-  description: "Agent control plane",
+  abbr: "A",
+  description: "Founder console",
   adminOnly: true,
 };
 

@@ -906,7 +906,7 @@ body {
   box-shadow: var(--agentify-bright-shadow) !important;
 }
 
-[data-theme="light"] a.dashboard-nav-card[href="/dashboard/internal/ops"] {
+[data-theme="light"] a.dashboard-nav-card[href="/dashboard/internal/admin"] {
   border-color: var(--agentify-bright-border-strong) !important;
   background: rgba(255,248,232,0.88) !important;
   color: #B7791F !important;

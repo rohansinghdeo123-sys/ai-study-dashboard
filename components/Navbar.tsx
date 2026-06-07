@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 
-const ADMIN_ROUTE = "/dashboard/internal/ops";
+const ADMIN_ROUTE = "/dashboard/internal/admin";
 
 function getInitials(name: string) {
   return name
@@ -27,7 +27,7 @@ function getPageMeta(pathname: string | null) {
     return { title: "Analytics", subtitle: "Mastery, momentum, and weak-topic intelligence" };
   }
   if (pathname?.startsWith(ADMIN_ROUTE)) {
-    return { title: "Ops", subtitle: "Agent registry, telemetry, and control plane" };
+    return { title: "Admin Console", subtitle: "Founder-only AgentOps and platform control" };
   }
   return { title: "Dashboard", subtitle: "Student command center and daily learning signals" };
 }
@@ -87,7 +87,7 @@ export default function Navbar({ collapsed, onToggle }: { collapsed: boolean; on
               href={ADMIN_ROUTE}
               className="hidden rounded-md border border-amber-300/25 bg-amber-300/10 px-3 py-2 text-xs font-medium text-amber-200 transition hover:bg-amber-300/15 md:inline-flex"
             >
-              Ops
+              Admin
             </Link>
           )}
 

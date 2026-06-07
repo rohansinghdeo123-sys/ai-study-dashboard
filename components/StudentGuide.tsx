@@ -185,7 +185,7 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
                   </p>
                   {isAdmin ? (
                     <p className="mt-2 text-sm leading-6 text-amber-700">
-                      Ops is only for admins and is hidden from regular student accounts.
+                      Admin Console is only for founders and is hidden from regular student accounts.
                     </p>
                   ) : null}
                 </div>

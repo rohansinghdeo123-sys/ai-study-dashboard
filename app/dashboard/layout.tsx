@@ -8,7 +8,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
-const ADMIN_ROUTE = "/dashboard/internal/ops";
+const ADMIN_ROUTE = "/dashboard/internal/admin";
 
 function getInitials(name: string) {
   return name
@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const authReady = !loading && !claimsLoading;
-  const isAdminRoute = pathname?.startsWith(ADMIN_ROUTE);
+  const isAdminRoute = pathname?.startsWith("/dashboard/internal");
   const isStudyRoute = pathname?.startsWith("/dashboard/study");
   const displayName = profile?.name || user?.displayName || user?.email?.split("@")[0] || "Student";
 
@@ -103,7 +103,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             href={ADMIN_ROUTE}
             className="dashboard-nav-card hidden rounded-2xl border border-amber-300/50 bg-amber-100/70 px-3 py-2 text-xs font-semibold text-amber-800 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl transition hover:-translate-y-0.5 md:inline-flex"
           >
-            Ops
+            Admin
           </Link>
         ) : null}
         <ThemeToggle compact />

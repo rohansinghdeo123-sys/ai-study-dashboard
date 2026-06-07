@@ -506,8 +506,8 @@ export default function DashboardPage() {
               Analytics
             </Link>
             {isAdmin ? (
-              <Link href="/dashboard/internal/ops" className="agentify-action rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15">
-                Ops
+              <Link href="/dashboard/internal/admin" className="agentify-action rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15">
+                Admin Console
               </Link>
             ) : null}
           </div>

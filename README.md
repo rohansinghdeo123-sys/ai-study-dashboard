@@ -11,6 +11,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+## Founder Admin Console
+
+The founder-only Admin Console lives at `/dashboard/internal/admin`. Set
+`NEXT_PUBLIC_FOUNDER_ADMIN_EMAILS` to the approved Rohan/Amit emails in
+production. If that value is omitted, the frontend falls back to
+`NEXT_PUBLIC_ADMIN_EMAILS`.
+
 ## Firebase Auth Branding
 
 Google sign-in displays the Firebase Auth domain in the account chooser. To avoid showing the internal Firebase project name, configure a branded auth domain in Firebase and set this env var in production:
