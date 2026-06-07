@@ -692,6 +692,10 @@ function mergeConversations(primary: StudyConversation[], secondary: StudyConver
     .slice(0, 40);
 }
 
+function getConversationDeleteKeys(conversation: Pick<StudyConversation, "id" | "sessionId">) {
+  return [conversation.id, conversation.sessionId].filter((value): value is string => Boolean(value));
+}
+
 function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
   if (typeof window === "undefined") return null;
   const speechWindow = window as Window & typeof globalThis & {
@@ -1829,6 +1833,7 @@ function CoachHistorySidebar({
   onRename,
   onPin,
   onArchive,
+  onDelete,
 }: {
   conversations: StudyConversation[];
   currentConversationId: string;
@@ -1845,6 +1850,7 @@ function CoachHistorySidebar({
   onRename: (conversation: StudyConversation) => void;
   onPin: (conversation: StudyConversation) => void;
   onArchive: (conversation: StudyConversation) => void;
+  onDelete: (conversation: StudyConversation) => void;
 }) {
   return (
     <aside className="study-coach-sidebar flex min-h-0 shrink-0 flex-col" aria-label="Tutor chat history">
@@ -1912,6 +1918,7 @@ function CoachHistorySidebar({
                   <button type="button" onClick={() => onRename(conversation)}>Rename</button>
                   <button type="button" onClick={() => onPin(conversation)}>{conversation.pinned ? "Unpin" : "Pin"}</button>
                   <button type="button" onClick={() => onArchive(conversation)}>{conversation.archived ? "Restore" : "Archive"}</button>
+                  <button type="button" className="is-danger" onClick={() => onDelete(conversation)}>Delete</button>
                 </div>
               </details>
             </div>
@@ -1991,6 +1998,7 @@ export default function StudyPage() {
   const revisionCacheRef = useRef(new Map<string, string>());
   const artifactCacheRef = useRef(new Map<string, StudyArtifactResponse>());
   const workspaceResetEpochRef = useRef(0);
+  const deletedConversationIdsRef = useRef(new Set<string>());
   const examStartedAtRef = useRef<string | null>(null);
   const examGenerationLatencyRef = useRef(0);
   const examAnswerSelectionsRef = useRef<Record<string, string>>({});
@@ -2026,7 +2034,7 @@ export default function StudyPage() {
       || examError,
   );
   const canClearCurrentWorkspace = mode === "coach"
-    ? Boolean(messages.length || pendingAttachments.length || loadingAnswer || error)
+    ? Boolean(conversations.length || messages.length || pendingAttachments.length || loadingAnswer || error)
     : mode === "revision"
       ? revisionHasState
       : mode === "exam"
@@ -2041,7 +2049,7 @@ export default function StudyPage() {
     ? "Reset generated revision notes and artifacts for this workspace."
     : mode === "exam"
       ? "Reset generated questions, answers, and current exam attempt."
-      : "Clear the visible chat workspace while keeping saved records untouched.";
+      : "Delete Study Lab chat messages and conversations while keeping profile, XP, and analytics untouched.";
   const filteredConversations = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
     return conversations.filter((conversation) => {
@@ -2188,7 +2196,14 @@ export default function StudyPage() {
         const serverConversations = Array.isArray(payload.conversations)
           ? payload.conversations.map(normalizeServerConversation).filter((item): item is StudyConversation => Boolean(item))
           : [];
-        const merged = mergeConversations(serverConversations, localConversations);
+        const deletedIds = deletedConversationIdsRef.current;
+        const filteredServerConversations = serverConversations.filter((conversation) => (
+          !getConversationDeleteKeys(conversation).some((key) => deletedIds.has(key))
+        ));
+        const filteredLocalConversations = localConversations.filter((conversation) => (
+          !getConversationDeleteKeys(conversation).some((key) => deletedIds.has(key))
+        ));
+        const merged = mergeConversations(filteredServerConversations, filteredLocalConversations);
         setConversations(merged);
         localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(merged));
       } catch {
@@ -2598,21 +2613,67 @@ export default function StudyPage() {
     examAnswerSelectionsRef.current = {};
   };
 
+  const clearAllCoachHistory = () => {
+    const currentSessionId = userId ? `coach-${userId}-${currentConversationId}` : currentConversationId;
+    const currentConversation: StudyConversation = {
+      id: currentConversationId,
+      sessionId: currentSessionId,
+      title: titleFromMessages(messages),
+      updatedAt: new Date().toISOString(),
+      chapter: "Open tutor",
+      topic: "Any subject",
+      messages,
+    };
+    const targets = mergeConversations(
+      conversations,
+      messages.length ? [currentConversation] : [],
+    );
+    const shouldConfirm = Boolean(targets.length || messages.length || pendingAttachments.length || loadingAnswer || error);
+    if (!shouldConfirm) return;
+
+    const confirmed = window.confirm(
+      "Clear all Study Lab chat history and messages? Your profile, XP, analytics, and saved exam records stay untouched.",
+    );
+    if (!confirmed) return;
+
+    targets.forEach(markConversationDeleted);
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setCurrentConversationId(createConversationId());
+    setMessages([]);
+    setConversations([]);
+    setInput("");
+    setPendingAttachments([]);
+    setStrictAttachmentGrounding(false);
+    setComposerMenuOpen(false);
+    setError("");
+    setLoadingAnswer(false);
+    setShowPipeline(false);
+    resetActivityCollapse();
+    setStages(createStages);
+    if (userId) {
+      localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify([]));
+      invalidateApiCache(`coach-conversations:${userId}`);
+    }
+    void Promise.allSettled(targets.map((conversation) => deleteConversationFromBackend(conversation)));
+  };
+
   const clearCurrentWorkspace = () => {
     if (!canClearCurrentWorkspace) return;
-    const shouldConfirm = mode === "coach"
-      ? Boolean(messages.length || pendingAttachments.length || loadingAnswer || error)
-      : mode === "revision"
-        ? revisionHasState
-        : mode === "exam"
-          ? examHasState
-          : false;
+    if (mode === "coach") {
+      clearAllCoachHistory();
+      return;
+    }
+
+    const shouldConfirm = mode === "revision"
+      ? revisionHasState
+      : mode === "exam"
+        ? examHasState
+        : false;
 
     if (shouldConfirm) {
       const confirmed = window.confirm(
-        mode === "coach"
-          ? "Clear this chat from the current workspace? Saved backend records, XP, analytics, and profile data stay untouched."
-          : mode === "revision"
+        mode === "revision"
             ? "Clear generated revision notes and artifacts from this workspace? Your saved profile, XP, and analytics stay untouched."
             : "Clear this exam workspace, generated questions, and current answers? Your saved profile, XP, and analytics stay untouched.",
       );
@@ -2636,6 +2697,26 @@ export default function StudyPage() {
       if (userId) localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(next));
       return next;
     });
+  };
+
+  const markConversationDeleted = (conversation: Pick<StudyConversation, "id" | "sessionId">) => {
+    getConversationDeleteKeys(conversation).forEach((key) => deletedConversationIdsRef.current.add(key));
+  };
+
+  const deleteConversationFromBackend = async (conversation: Pick<StudyConversation, "id" | "sessionId">) => {
+    if (!userId) return;
+    const conversationId = conversation.sessionId || conversation.id;
+    if (!conversationId) return;
+    try {
+      await apiFetch(`${backendURL}/coach/conversations/${userId}/${encodeURIComponent(conversationId)}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+        timeoutMs: 7000,
+      });
+      invalidateApiCache(`coach-conversations:${userId}`);
+    } catch {
+      // Local deletion remains immediate; backend sync can be retried by clearing again.
+    }
   };
 
   const syncConversationPatch = async (conversation: StudyConversation, patch: Partial<Pick<StudyConversation, "title" | "pinned" | "archived" | "titleLocked">>) => {
@@ -2675,6 +2756,21 @@ export default function StudyPage() {
     )));
     void syncConversationPatch(conversation, { archived: !conversation.archived });
     if (conversation.id === currentConversationId && !conversation.archived) startNewChat();
+  };
+
+  const deleteConversation = (conversation: StudyConversation) => {
+    const confirmed = window.confirm(
+      "Delete this Study Lab conversation and all its messages? Your profile, XP, analytics, and saved exam records stay untouched.",
+    );
+    if (!confirmed) return;
+
+    markConversationDeleted(conversation);
+    updateConversationList((items) => items.filter((item) => item.id !== conversation.id));
+    if (conversation.id === currentConversationId) {
+      clearChat();
+    }
+    if (userId) invalidateApiCache(`coach-conversations:${userId}`);
+    void deleteConversationFromBackend(conversation);
   };
 
   const editQuestion = (content: string) => {
@@ -3373,6 +3469,7 @@ export default function StudyPage() {
                 onRename={renameConversation}
                 onPin={togglePinConversation}
                 onArchive={toggleArchiveConversation}
+                onDelete={deleteConversation}
               />
             ) : null}
 
