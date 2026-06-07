@@ -190,14 +190,14 @@ function SessionsEmptyState() {
     <PolishedEmptyState
       icon="history"
       title="No sessions yet"
-      detail="Complete one Study Lab conversation or Autonomous Mission. Your replay, score, XP, and weak signals will appear here."
+      detail="Complete one Study Lab conversation, revision set, or exam practice attempt. Your replay, score, XP, and weak signals will appear here."
       action={
         <>
         <Link href="/dashboard/study" className="agentify-action agentify-action-primary rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_42px_rgba(14,116,144,0.20)]">
           Ask tutor
         </Link>
-        <Link href="/dashboard/mission" className="agentify-action agentify-action-secondary rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
-          Start mission
+        <Link href="/dashboard/study?mode=exam" className="agentify-action agentify-action-secondary rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700">
+          Practice exam
         </Link>
         </>
       }
@@ -308,7 +308,7 @@ export default function SessionsPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Session Library</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Replay what you learned</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-              A clean record of practice, tutor sessions, and autonomous missions so students can see progress without hunting through chats.
+              A clean record of practice, tutor sessions, and exam attempts so students can see progress without hunting through chats.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -495,7 +495,7 @@ export default function SessionsPage() {
                     })
                   ) : (
                     <p className="rounded-[1.4rem] border border-slate-200 bg-slate-50 p-5 text-sm leading-6 text-slate-500">
-                      Replay details were not saved for this session. Future missions and quiz attempts will store question-level review data here.
+                      Replay details were not saved for this session. Future Study Lab and quiz attempts will store question-level review data here.
                     </p>
                   )}
                 </div>

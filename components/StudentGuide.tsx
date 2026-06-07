@@ -28,20 +28,13 @@ const GUIDE_ITEMS: GuideItem[] = [
   },
   {
     step: "03",
-    title: "Autonomous Mission",
-    href: "/dashboard/mission",
-    detail: "Pick a chapter and topic. AgentifyAI creates a guided plan, gives a question, checks your answer, and suggests what to do next.",
-    bestFor: "Starting focused study without deciding everything yourself.",
-  },
-  {
-    step: "04",
     title: "Sessions",
     href: "/dashboard/sessions",
     detail: "Review previous attempts, replay mistakes, and continue learning from a topic you already practiced.",
-    bestFor: "Improving after a quiz or mission.",
+    bestFor: "Improving after a quiz or practice attempt.",
   },
   {
-    step: "05",
+    step: "04",
     title: "Analytics",
     href: "/dashboard/progress",
     detail: "Explore deeper performance, topic trends, rankings, activity, study time, and weak-topic signals.",
@@ -168,8 +161,8 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
                 <h3 className="mt-3 text-xl font-semibold text-slate-950">A good study flow</h3>
                 <div className="mt-5 space-y-3">
                   {[
-                    ["1", "Start with Mission", "Let the app create a focused plan and diagnostic question."],
-                    ["2", "Use Study Page", "Ask anything that was confusing in the mission."],
+                    ["1", "Start with Study Lab", "Ask a doubt, request revision notes, or generate exam practice."],
+                    ["2", "Use Revision", "Turn the selected chapter into summary, explanations, and key points."],
                     ["3", "Check Sessions", "Review what you got wrong and try again later."],
                     ["4", "Open Dashboard", "See if your XP, streak, and accuracy improved."],
                   ].map(([step, title, detail]) => (

@@ -448,7 +448,7 @@ function useDashboardData() {
         setProgress(emptyProgress);
         setLeaderboard([]);
         setLoading(false);
-        setError("NO AUTHENTICATED USER.");
+        setError("No authenticated user.");
         return;
       }
       try {
@@ -599,7 +599,7 @@ function LineChart({
   valueSuffix?: string;
 }) {
   if (!labels.length || !series.some((s) => s.data.some((v) => Number.isFinite(v)))) {
-    return <EmptyState title="NO TREND DATA" detail="Timestamped sessions are required to render this chart." />;
+    return <EmptyState title="No trend data" detail="Timestamped sessions are required to render this chart." />;
   }
 
   const velocitySeries = series[0];
@@ -1186,7 +1186,7 @@ export default function ProgressPage() {
 
       {/* Row 4: Weekly Time + Subject Breakdown */}
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <GlassPanel title="WEEKLY_STUDY_TIME" tag="TIME">
+        <GlassPanel title="Weekly study time" tag="TIME">
           {weeklyLabels.length ? (
             <div className="space-y-4">
               {weeklyLabels.map((label, i) => {
@@ -1202,11 +1202,11 @@ export default function ProgressPage() {
               })}
             </div>
           ) : (
-            <EmptyState title="NO WEEKLY DATA" detail="Complete timestamped sessions to see weekly study time." />
+            <EmptyState title="No weekly data" detail="Complete timestamped sessions to see weekly study time." />
           )}
         </GlassPanel>
 
-        <GlassPanel title="SUBJECT_BREAKDOWN" tag="SUBJ">
+        <GlassPanel title="Subject breakdown" tag="SUBJ">
           {subjects.length ? (
             <div className="space-y-4">
               {subjects.map((subj) => (
@@ -1223,14 +1223,14 @@ export default function ProgressPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="NO SUBJECT DATA" detail="Complete sessions to populate subject breakdown." />
+            <EmptyState title="No subject data" detail="Complete sessions to populate subject breakdown." />
           )}
         </GlassPanel>
       </div>
 
       {/* Row 5: Heatmap + Topic Matrix */}
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-        <GlassPanel title="ACTIVITY_HEATMAP" tag="35D" right={<TonePill tone="amber">{heatmap.reduce((a, b) => a + b.value, 0)} sessions</TonePill>}>
+        <GlassPanel title="Activity heatmap" tag="35D" right={<TonePill tone="amber">{heatmap.reduce((a, b) => a + b.value, 0)} sessions</TonePill>}>
           {heatmap.length ? (
             <div className="space-y-2">
               {Array.from({ length: Math.ceil(heatmap.length / 7) }, (_, i) => heatmap.slice(i * 7, i * 7 + 7)).map((week, wi) => (
@@ -1250,11 +1250,11 @@ export default function ProgressPage() {
               ))}
             </div>
           ) : (
-            <EmptyState title="NO ACTIVITY GRID" detail="Timestamped sessions unlock the 35-day activity view." />
+            <EmptyState title="No activity grid" detail="Timestamped sessions unlock the 35-day activity view." />
           )}
         </GlassPanel>
 
-        <GlassPanel title="TOPIC_MATRIX" tag="LOG">
+        <GlassPanel title="Topic matrix" tag="LOG">
           {topics.length ? (
             <div className="overflow-auto">
               <div className="min-w-[700px]">
@@ -1284,7 +1284,7 @@ export default function ProgressPage() {
               </div>
             </div>
           ) : (
-            <EmptyState title="NO TOPIC DATA" detail="Complete sessions to populate topic breakdown." />
+            <EmptyState title="No topic data" detail="Complete sessions to populate topic breakdown." />
           )}
         </GlassPanel>
       </div>

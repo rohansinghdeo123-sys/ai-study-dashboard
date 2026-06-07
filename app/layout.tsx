@@ -1,5 +1,4 @@
 import { AuthProvider } from "@/context/AuthContext";
-import BetaBanner from "@/components/BetaBanner";
 import "./globals.css";
 
 export const metadata = {
@@ -46,7 +45,6 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen flex-col antialiased">
         <AuthProvider>
-          <BetaBanner />
           <main className="min-h-0 w-full flex-1">
             {children}
           </main>

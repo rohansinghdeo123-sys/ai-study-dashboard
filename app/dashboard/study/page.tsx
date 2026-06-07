@@ -1379,7 +1379,9 @@ function ArtifactViewer({
           <h3 className="mt-1 text-xl font-semibold text-slate-950">{renderInlineChemistry(readableArtifactText(artifact.title))}</h3>
           {artifact.subtitle ? <p className="mt-1 text-sm leading-6 text-slate-500">{renderInlineChemistry(readableArtifactText(artifact.subtitle))}</p> : null}
         </div>
+        {artifact.type === "concept_map" ? <ConceptMapArtifact artifact={artifact} /> : null}
         {artifact.type === "flip_cards" ? <FlipCardsArtifact artifact={artifact} /> : null}
+        {artifact.type === "formula_lab" ? <FormulaLabArtifact artifact={artifact} /> : null}
         {artifact.type === "mistake_cards" ? <MistakeCardsArtifact artifact={artifact} /> : null}
       </section>
     </div>
@@ -2017,7 +2019,12 @@ export default function StudyPage() {
     ? "Clear revision workspace"
     : mode === "exam"
       ? "Clear exam workspace"
-      : "Clear current chat";
+      : "Clear history";
+  const clearCurrentWorkspaceDescription = mode === "revision"
+    ? "Reset generated revision notes and artifacts for this workspace."
+    : mode === "exam"
+      ? "Reset generated questions, answers, and current exam attempt."
+      : "Clear the visible chat workspace while keeping saved records untouched.";
   const filteredConversations = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
     return conversations.filter((conversation) => {
@@ -2528,15 +2535,6 @@ export default function StudyPage() {
   const clearChat = () => {
     abortRef.current?.abort();
     abortRef.current = null;
-    const currentConversation = conversations.find((item) => item.id === currentConversationId);
-    if (currentConversation) void deleteServerConversation(currentConversation);
-    if (userId) {
-      setConversations((current) => {
-        const next = current.filter((item) => item.id !== currentConversationId);
-        localStorage.setItem(getHistoryStorageKey(userId), JSON.stringify(next));
-        return next;
-      });
-    }
     setCurrentConversationId(createConversationId());
     setMessages([]);
     setInput("");
@@ -2584,6 +2582,26 @@ export default function StudyPage() {
   };
 
   const clearCurrentWorkspace = () => {
+    if (!canClearCurrentWorkspace) return;
+    const shouldConfirm = mode === "coach"
+      ? Boolean(messages.length || pendingAttachments.length || loadingAnswer || error)
+      : mode === "revision"
+        ? revisionHasState
+        : mode === "exam"
+          ? examHasState
+          : false;
+
+    if (shouldConfirm) {
+      const confirmed = window.confirm(
+        mode === "coach"
+          ? "Clear this chat from the current workspace? Saved backend records, XP, analytics, and profile data stay untouched."
+          : mode === "revision"
+            ? "Clear generated revision notes and artifacts from this workspace? Your saved profile, XP, and analytics stay untouched."
+            : "Clear this exam workspace, generated questions, and current answers? Your saved profile, XP, and analytics stay untouched.",
+      );
+      if (!confirmed) return;
+    }
+
     if (mode === "revision") {
       clearRevisionWorkspace();
       return;
@@ -2615,20 +2633,6 @@ export default function StudyPage() {
       invalidateApiCache(`coach-conversations:${userId}`);
     } catch {
       // Local state remains the immediate fallback; backend sync can recover on the next saved turn.
-    }
-  };
-
-  const deleteServerConversation = async (conversation: StudyConversation) => {
-    if (!userId) return;
-    try {
-      await apiFetch(`${backendURL}/coach/conversations/${userId}/${encodeURIComponent(conversation.sessionId || conversation.id)}`, {
-        method: "DELETE",
-        headers: await getAuthHeaders(),
-        timeoutMs: 5000,
-      });
-      invalidateApiCache(`coach-conversations:${userId}`);
-    } catch {
-      // Clearing locally is still the right student-facing behavior.
     }
   };
 
@@ -3319,9 +3323,10 @@ export default function StudyPage() {
                 icon="trash"
                 onClick={clearCurrentWorkspace}
                 disabled={!canClearCurrentWorkspace}
-                className="min-h-10 rounded-xl border-rose-200 bg-rose-50 px-3 py-2 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
+                className="study-clear-history-button min-h-10 rounded-xl border-rose-200 bg-rose-50 px-3 py-2 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
+                title={clearCurrentWorkspaceDescription}
               >
-                Clear
+                {mode === "coach" ? "Clear history" : "Reset"}
               </IconButton>
             </div>
           </div>
@@ -3371,7 +3376,7 @@ export default function StudyPage() {
               {messages.length === 0 ? (
                 <div className="study-empty-state study-chat-landing flex min-h-[68svh] w-full flex-col items-center justify-center text-center">
                   <div className="study-chat-orb" aria-hidden="true">
-                    <ChatThinkingLogo state="thinking" size={98} className="study-landing-logo" label="" />
+                    <ChatThinkingLogo state="thinking" size={112} className="study-landing-logo" label="" />
                   </div>
                   <h2 className="mt-6 text-3xl font-semibold text-slate-950 sm:text-5xl">
                     What should we learn today?

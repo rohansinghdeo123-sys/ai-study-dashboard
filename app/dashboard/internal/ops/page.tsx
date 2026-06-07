@@ -918,7 +918,7 @@ export default function InternalOpsPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200/80">Agent Operations</div>
-            <h1 className="mt-2 text-2xl font-semibold text-white">Autonomous agent control plane</h1>
+            <h1 className="mt-2 text-2xl font-semibold text-white">Agent control plane</h1>
             <p className="mt-1 text-sm text-slate-500">
               Monitor health, quality, latency, logs, and multi-agent communication.
             </p>
@@ -952,7 +952,7 @@ export default function InternalOpsPage() {
               Agent operations, beautifully controlled.
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-              A secure command surface for monitoring autonomous agents, reviewing system signals, and speaking to the fleet without leaving the dashboard.
+              A secure command surface for monitoring AI agents, reviewing system signals, and speaking to the fleet without leaving the dashboard.
             </p>
           </div>
           <div className="ops-subpanel rounded-xl border border-white/10 bg-white/[0.035] p-4">

@@ -18,7 +18,7 @@ function getInitials(name: string) {
 
 function getPageMeta(pathname: string | null) {
   if (pathname?.startsWith("/dashboard/study")) {
-    return { title: "Study Lab", subtitle: "AI tutoring, revision, and autonomous missions" };
+    return { title: "Study Lab", subtitle: "AI tutoring, revision, and exam practice" };
   }
   if (pathname?.startsWith("/dashboard/sessions")) {
     return { title: "Sessions", subtitle: "Learning records, replay, and performance review" };

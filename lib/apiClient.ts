@@ -66,14 +66,17 @@ export async function apiFetch(
   options: ApiFetchOptions = {},
 ) {
   const {
-    cacheKey: _cacheKey,
-    cacheTtlMs: _cacheTtlMs,
-    forceFresh: _forceFresh,
+    cacheKey,
+    cacheTtlMs,
+    forceFresh,
     retries = 0,
     timeoutMs = 9000,
     signal,
     ...requestInit
   } = options;
+  void cacheKey;
+  void cacheTtlMs;
+  void forceFresh;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
