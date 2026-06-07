@@ -4840,7 +4840,6 @@ body {
   color: #F8FAFC !important;
 }
 
-[data-theme="dark"] .dashboard-shell .hub-tile--analytics,
 [data-theme="dark"] .dashboard-shell .hub-tile--mission {
   background: linear-gradient(135deg, #07111F 0%, #0B302D 54%, #0F6157 100%) !important;
   color: #D8F6EF !important;

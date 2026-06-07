@@ -115,7 +115,7 @@ function MetricCard({ label, value, helper }: { label: string; value: string | n
   );
 }
 
-type HubIconName = "dashboard" | "study" | "analytics" | "sessions";
+type HubIconName = "dashboard" | "study" | "mission" | "sessions";
 
 function HubIcon({ name }: { name: HubIconName }) {
   if (name === "dashboard") {
@@ -138,13 +138,13 @@ function HubIcon({ name }: { name: HubIconName }) {
     );
   }
 
-  if (name === "analytics") {
+  if (name === "mission") {
     return (
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
-        <path d="M5 19V5" />
-        <path d="M5 19h14" />
-        <path d="M8 15l3-3 2 2 4-6" />
-        <path d="M16 8h3v3" />
+        <path d="M12 21a9 9 0 1 0-9-9" />
+        <path d="M12 17a5 5 0 1 0-5-5" />
+        <path d="M12 13a1 1 0 1 0-1-1" />
+        <path d="M4 20 12 12M4 20h4M4 20v-4" />
       </svg>
     );
   }
@@ -175,12 +175,12 @@ function HubTile({
   helper: string;
   action: string;
   icon: HubIconName;
-  tone: "teal" | "gold" | "study" | "analytics";
+  tone: "teal" | "gold" | "study" | "mission";
 }) {
   const toneClass =
     tone === "gold"
       ? "from-[#FFF8E7] via-[#FFF0C8] to-[#FFE3A3] text-[#744900]"
-      : tone === "analytics"
+      : tone === "mission"
         ? "from-[#ECFDF5] via-[#E5FAF3] to-[#CDEFE5] text-[#075F54]"
         : tone === "study"
         ? "from-[#F1FBFF] via-[#E7F8F6] to-[#C9F0EC] text-[#0B5363]"
@@ -256,7 +256,7 @@ export default function DashboardPage() {
   const recentSessions = sessions.slice(0, 3);
 
   const focusMessage = useMemo(() => {
-    if (!progress.total_questions) return "Start with one short Study Lab session today.";
+    if (!progress.total_questions) return "Start with one short mission today.";
     if (accuracyValue < 60) return "Focus on clarity before speed.";
     if (accuracyValue < 80) return "You are close. Practice weak spots.";
     return "Strong momentum. Move to exam-style practice.";
@@ -381,14 +381,14 @@ export default function DashboardPage() {
                 tone="study"
               />
               <HubTile
-                href="/dashboard/progress"
-                eyebrow="Analyze"
-                title="Analytics"
-                description="Review mastery, study time, weak topics, trends, and the signals behind your progress."
-                helper="Best for planning the next week"
-                action="Open analytics"
-                icon="analytics"
-                tone="analytics"
+                href="/dashboard/mission"
+                eyebrow="Improve"
+                title="Autonomous Mission"
+                description="Choose a chapter and let AgentifyAI plan, quiz, explain, and guide your next move."
+                helper="Best for guided study"
+                action="Start mission"
+                icon="mission"
+                tone="mission"
               />
               <HubTile
                 href="/dashboard/sessions"
@@ -448,14 +448,14 @@ export default function DashboardPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">How to use AgentifyAI</p>
               <h2 className="mt-2 text-xl font-semibold text-slate-950">Three simple moves</h2>
             </div>
-            <Link href="/dashboard/study" className="agentify-action rounded-full bg-[#0E7490]/10 px-3 py-2 text-xs font-semibold text-[#0E7490]">
-              Open Study Lab
+            <Link href="/dashboard/mission" className="agentify-action rounded-full bg-[#0E7490]/10 px-3 py-2 text-xs font-semibold text-[#0E7490]">
+              Guided start
             </Link>
           </div>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {[
               ["1", "Ask a doubt", "Use Study when you want a clear explanation."],
-              ["2", "Revise fast", "Use Revision when you want notes, key points, and a focused recap."],
+              ["2", "Run mission", "Use Mission when you want the app to choose the next step."],
               ["3", "Review result", "Use Sessions to learn from wrong answers."],
             ].map(([step, title, body]) => (
               <div key={step} className="rounded-3xl border border-slate-200 bg-white/65 p-4">
@@ -486,7 +486,7 @@ export default function DashboardPage() {
               );
             }) : (
               <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm leading-6 text-slate-500">
-                Complete one Study Lab practice attempt to unlock weak-topic signals.
+                Complete one mission to unlock weak-topic signals.
               </p>
             )}
           </div>
@@ -531,7 +531,7 @@ export default function DashboardPage() {
               </div>
             )) : (
               <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500">
-                No sessions yet. Start a Study Lab practice attempt to create your first record.
+                No sessions yet. Start a mission to create your first record.
               </p>
             )}
           </div>
