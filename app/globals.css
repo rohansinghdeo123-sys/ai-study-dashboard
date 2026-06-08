@@ -4386,6 +4386,32 @@ body {
   color: var(--agentify-primary-text);
 }
 
+.admin-console-shell .admin-field {
+  width: 100%;
+  min-height: 2.25rem;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 0.375rem;
+  background: rgba(255,255,255,0.045);
+  padding: 0.45rem 0.6rem;
+  color: #E2E8F0;
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.admin-console-shell .admin-field:focus {
+  border-color: rgba(103,232,249,0.42);
+  box-shadow: 0 0 0 3px rgba(14,116,144,0.18);
+}
+
+.admin-console-shell .admin-field::placeholder {
+  color: rgba(148,163,184,0.72);
+}
+
+.admin-console-shell option {
+  background: #0B1018;
+  color: #E2E8F0;
+}
+
 .ops-panel,
 .ops-card,
 .ops-subpanel,

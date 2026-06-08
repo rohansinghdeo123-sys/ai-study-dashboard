@@ -34,10 +34,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       router.replace("/login");
       return;
     }
-    if (isAdminRoute && !isAdmin) {
-      router.replace("/dashboard");
-    }
-  }, [authReady, isAdmin, isAdminRoute, router, user]);
+  }, [authReady, router, user]);
 
   useEffect(() => {
     if (!authReady || !user || !isAdmin) return;
@@ -62,7 +59,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (!user) return null;
-  if (isAdminRoute && !isAdmin) return null;
+
+  if (isAdminRoute) {
+    return <div className="min-h-[100svh] bg-[#050812]">{children}</div>;
+  }
 
   return (
     <div className="dashboard-shell relative min-h-[100svh] overflow-x-hidden bg-[#F8FAFC] text-slate-950">
