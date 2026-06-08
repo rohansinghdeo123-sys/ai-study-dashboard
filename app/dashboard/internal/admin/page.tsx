@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 const REFRESH_MS = 12000;
 
-type ConsoleTab = "overview" | "agents" | "traces" | "students" | "content" | "system" | "audit";
+type ConsoleTab = "overview" | "dataflow" | "agents" | "models" | "traces" | "students" | "content" | "system" | "audit";
 type Tone = "teal" | "gold" | "green" | "red" | "blue" | "neutral";
 
 interface ConsoleMetric {
@@ -22,6 +22,7 @@ interface ConsoleMetric {
 interface AgentStatus {
   agent_id: string;
   display_name: string;
+  role?: string;
   status: string;
   health: string;
   current_task: string;
@@ -32,6 +33,51 @@ interface AgentStatus {
   avg_latency_ms: number;
   last_quality_score: number;
   success_rate: number;
+  data_intake?: AgentDataIntake;
+  evolution?: AgentEvolution;
+}
+
+interface AgentSourceUsage {
+  source: string;
+  chunks: number;
+  rows: number;
+}
+
+interface AgentDataIntake {
+  trace_rows: number;
+  event_rows: number;
+  new_trace_rows_24h: number;
+  previous_trace_rows_24h: number;
+  new_event_rows_24h: number;
+  previous_event_rows_24h: number;
+  model_calls: number;
+  tool_calls: number;
+  turns: number;
+  sessions: number;
+  input_tokens: number;
+  output_tokens: number;
+  estimated_cost_usd: number;
+  memory_rows: number;
+  sources: AgentSourceUsage[];
+}
+
+interface AgentEvolution {
+  version: string;
+  runs_total: number;
+  runs_24h: number;
+  runs_previous_24h: number;
+  events_24h: number;
+  quality_score_current: number | null;
+  quality_score_previous: number | null;
+  quality_delta: number | null;
+  latency_current_ms: number | null;
+  latency_previous_ms: number | null;
+  latency_delta_ms: number | null;
+  success_rate: number;
+  learning_signal: string;
+  trained_on_samples: number;
+  new_data_rows: number;
+  historical_data_rows: number;
 }
 
 interface AdminTrace {
@@ -127,6 +173,72 @@ interface AdminConsolePayload {
     status_counts: Record<string, number>;
     recent_jobs: ContentJob[];
   };
+  data_intake?: {
+    generated_at: string;
+    totals: {
+      study_materials: number;
+      study_material_bytes: number;
+      study_material_label: string;
+      content_chapters: number;
+      approved_chapters: number;
+      content_chunks: number;
+      topics: number;
+      trace_rows: number;
+      event_rows: number;
+      model_calls: number;
+      tool_calls: number;
+      turns: number;
+      input_tokens: number;
+      output_tokens: number;
+      estimated_cost_usd: number;
+      model_versions: number;
+      training_samples: number;
+    };
+    freshness: {
+      traces_24h: number;
+      traces_7d: number;
+      events_24h: number;
+      events_7d: number;
+      historical_traces: number;
+      historical_events: number;
+      latest_trace_at: string | null;
+      latest_event_at: string | null;
+      last_indexed_time: string | null;
+    };
+    pipeline: Record<string, number | string | null | undefined>;
+    source_coverage: Array<{ source: string; chunks: number }>;
+    recent_jobs: ContentJob[];
+  };
+  data_registry?: Record<string, unknown>;
+  model_registry?: {
+    current: {
+      llm_provider?: string;
+      llm_model?: string;
+      fast_model?: string;
+      review_model?: string;
+      embedding_model?: string | null;
+      rag_index_version?: string;
+      prompt_version?: string;
+      agent_workflow_version?: string;
+      deployment_version?: string;
+      quality_score?: number | null;
+      latency_ms?: number | null;
+      failure_rate?: number | null;
+      grounded_answer_rate?: number | null;
+      samples?: number | null;
+    };
+    versions: Array<{
+      version: string;
+      provider: string;
+      model: string;
+      samples: number;
+      avg_latency_ms: number;
+      estimated_cost_usd: number;
+      status: string;
+      quality_score: number | null;
+    }>;
+    unsupported_actions?: string[];
+  };
   quality: {
     avg_quality_score: number | null;
     low_quality_answers: number;
@@ -156,7 +268,9 @@ const REQUIRED_AGENTS = [
 
 const TABS: Array<{ id: ConsoleTab; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "dataflow", label: "Data Flow" },
   { id: "agents", label: "Agents" },
+  { id: "models", label: "Models" },
   { id: "traces", label: "Traces" },
   { id: "students", label: "Students" },
   { id: "content", label: "Content" },
@@ -204,6 +318,31 @@ function formatMetric(metric?: ConsoleMetric) {
     if (metric.value >= 1_000) return `${(metric.value / 1_000).toFixed(1)}K`;
   }
   return String(metric.value);
+}
+
+function formatCompact(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  const numeric = Number(value);
+  if (Math.abs(numeric) >= 1_000_000) return `${(numeric / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(numeric) >= 1_000) return `${(numeric / 1_000).toFixed(1)}K`;
+  return Intl.NumberFormat().format(Math.round(numeric));
+}
+
+function formatPercent(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  const numeric = Number(value);
+  return `${numeric <= 1 ? Math.round(numeric * 100) : Math.round(numeric)}%`;
+}
+
+function formatCost(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "$0";
+  return `$${Number(value).toFixed(Number(value) >= 1 ? 2 : 5)}`;
+}
+
+function clampPercent(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return 0;
+  const normalized = Number(value) <= 1 ? Number(value) * 100 : Number(value);
+  return Math.max(0, Math.min(100, normalized));
 }
 
 function formatTime(value?: string) {
@@ -280,6 +419,212 @@ function MetricCard({ label, metric, tone }: { label: string; metric?: ConsoleMe
       <p className={cn("mt-4 text-2xl font-semibold tracking-tight", notTracked ? "text-slate-500" : "text-white")}>{formatMetric(metric)}</p>
       <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-slate-500">{metric?.note || metric?.unit || "Live backend metric"}</p>
     </article>
+  );
+}
+
+function TinyStat({ label, value, tone = "neutral" }: { label: string; value: string | number; tone?: Tone }) {
+  return (
+    <div className={cn("rounded-xl border px-3 py-2", toneClasses(tone))}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function ProgressMeter({ label, value, detail, tone = "teal" }: { label: string; value?: number | null; detail?: string; tone?: Tone }) {
+  const percent = clampPercent(value);
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="font-semibold text-slate-300">{label}</span>
+        <span className="text-slate-500">{formatPercent(value)}</span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white/[0.07]">
+        <div
+          className={cn(
+            "h-full rounded-full",
+            tone === "green" ? "bg-emerald-300" : tone === "gold" ? "bg-amber-300" : tone === "red" ? "bg-rose-300" : tone === "blue" ? "bg-sky-300" : "bg-cyan-300",
+          )}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      {detail ? <p className="text-[11px] text-slate-500">{detail}</p> : null}
+    </div>
+  );
+}
+
+function DataIntakePanel({ data }: { data: AdminConsolePayload }) {
+  const intake = data.data_intake;
+  if (!intake) {
+    return (
+      <ConsolePanel title="Agent Data Intake" eyebrow="Observed runtime data">
+        <p className="text-sm text-slate-500">Data-intake telemetry is not available from the backend yet.</p>
+      </ConsolePanel>
+    );
+  }
+
+  return (
+    <ConsolePanel title="Agent Data Intake" eyebrow="New data vs historical data">
+      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="rounded-[1.2rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">AI Training / Data Feed</p>
+              <p className="mt-1 text-xs text-slate-500">Last trace {formatTime(intake.freshness.latest_trace_at || undefined)}</p>
+            </div>
+            <StatusPill value={String(intake.pipeline.rag_index_version || "data-index")} tone="teal" />
+          </div>
+          <div className="mt-5 space-y-4">
+            <ProgressMeter label="Extraction" value={Number(intake.pipeline.extraction_complete ?? 0)} detail={`${formatCompact(intake.totals.study_materials)} files / ${intake.totals.study_material_label}`} />
+            <ProgressMeter label="Chunking" value={Number(intake.pipeline.chunking_complete ?? 0)} detail={`${formatCompact(intake.totals.content_chunks)} chunks from ${formatCompact(intake.totals.content_chapters)} chapters`} tone="green" />
+            <ProgressMeter label="Retrieval success" value={Number(intake.pipeline.retrieval_success ?? 0)} detail={`Latest index ${formatTime(intake.freshness.last_indexed_time || undefined)}`} tone="blue" />
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <TinyStat label="Input tokens" value={formatCompact(intake.totals.input_tokens)} tone="blue" />
+            <TinyStat label="Output tokens" value={formatCompact(intake.totals.output_tokens)} tone="green" />
+            <TinyStat label="Model calls" value={formatCompact(intake.totals.model_calls)} tone="teal" />
+            <TinyStat label="Tool calls" value={formatCompact(intake.totals.tool_calls)} tone="gold" />
+            <TinyStat label="Trace rows" value={formatCompact(intake.totals.trace_rows)} tone="neutral" />
+            <TinyStat label="Total cost" value={formatCost(intake.totals.estimated_cost_usd)} tone="gold" />
+          </div>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2">
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
+            <p className="text-sm font-semibold text-white">Freshness</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <TinyStat label="Traces 24h" value={formatCompact(intake.freshness.traces_24h)} tone="teal" />
+              <TinyStat label="Events 24h" value={formatCompact(intake.freshness.events_24h)} tone="green" />
+              <TinyStat label="Traces 7d" value={formatCompact(intake.freshness.traces_7d)} tone="blue" />
+              <TinyStat label="Historical" value={formatCompact(intake.freshness.historical_traces + intake.freshness.historical_events)} tone="neutral" />
+            </div>
+          </div>
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
+            <p className="text-sm font-semibold text-white">Source Coverage</p>
+            <div className="mt-4 space-y-3">
+              {intake.source_coverage.length ? intake.source_coverage.slice(0, 6).map((source) => {
+                const maxChunks = Math.max(...intake.source_coverage.map((item) => item.chunks), 1);
+                return (
+                  <div key={source.source}>
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <span className="truncate text-slate-300">{source.source}</span>
+                      <span className="text-slate-500">{formatCompact(source.chunks)}</span>
+                    </div>
+                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                      <div className="h-full rounded-full bg-cyan-300" style={{ width: `${Math.max(4, (source.chunks / maxChunks) * 100)}%` }} />
+                    </div>
+                  </div>
+                );
+              }) : <p className="text-sm text-slate-500">No source chunks indexed yet.</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ConsolePanel>
+  );
+}
+
+function AgentEvolutionCard({ agent, selected, onSelect }: { agent?: AgentStatus; selected?: boolean; onSelect?: () => void }) {
+  const evolution = agent?.evolution;
+  const intake = agent?.data_intake;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "rounded-[1.15rem] border p-4 text-left transition hover:-translate-y-0.5",
+        selected ? "border-cyan-300/40 bg-cyan-300/[0.10]" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">{agent?.display_name || "Agent"}</p>
+          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{agent?.role || agent?.current_task || "No role reported."}</p>
+        </div>
+        <StatusPill value={evolution?.learning_signal || agent?.health || "observing"} tone={evolution?.learning_signal === "regressing" ? "red" : evolution?.learning_signal === "improving" ? "green" : "blue"} />
+      </div>
+      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs font-semibold text-cyan-100">{evolution?.version || "observed-v1"}</span>
+          <span className="text-[11px] text-slate-500">{formatCompact(evolution?.trained_on_samples || 0)} samples</span>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <TinyStat label="New rows" value={formatCompact(evolution?.new_data_rows || 0)} tone="teal" />
+          <TinyStat label="Old rows" value={formatCompact(evolution?.historical_data_rows || 0)} tone="neutral" />
+          <TinyStat label="Quality" value={formatPercent(evolution?.quality_score_current ?? agent?.last_quality_score)} tone="green" />
+          <TinyStat label="Latency" value={evolution?.latency_current_ms ? `${Math.round(evolution.latency_current_ms)}ms` : "--"} tone="blue" />
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+        <div><p className="text-[10px] text-slate-500">Runs</p><p className="text-sm font-semibold text-white">{formatCompact(evolution?.runs_total || agent?.total_requests || 0)}</p></div>
+        <div><p className="text-[10px] text-slate-500">24h</p><p className="text-sm font-semibold text-cyan-100">{formatCompact(evolution?.runs_24h || 0)}</p></div>
+        <div><p className="text-[10px] text-slate-500">Tokens</p><p className="text-sm font-semibold text-white">{formatCompact((intake?.input_tokens || 0) + (intake?.output_tokens || 0))}</p></div>
+        <div><p className="text-[10px] text-slate-500">Cost</p><p className="text-sm font-semibold text-amber-100">{formatCost(intake?.estimated_cost_usd || 0)}</p></div>
+      </div>
+    </button>
+  );
+}
+
+function ModelRegistryPanel({ data }: { data: AdminConsolePayload }) {
+  const registry = data.model_registry;
+  const current = registry?.current;
+  const versions = registry?.versions || [];
+  const maxSamples = Math.max(...versions.map((item) => item.samples || 0), 1);
+  return (
+    <ConsolePanel title="Model Registry" eyebrow="Live versions and observed quality">
+      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-[1.2rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Current Live Model</p>
+              <p className="mt-1 text-xs text-slate-500">{current?.llm_provider || "provider"} / {current?.llm_model || "model"}</p>
+            </div>
+            <StatusPill value="live" tone="teal" />
+          </div>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <TinyStat label="Quality" value={formatPercent(current?.quality_score)} tone="green" />
+            <TinyStat label="Grounded" value={formatPercent(current?.grounded_answer_rate)} tone="teal" />
+            <TinyStat label="Latency" value={current?.latency_ms ? `${Math.round(current.latency_ms)}ms` : "--"} tone="blue" />
+            <TinyStat label="Failure" value={formatPercent(current?.failure_rate)} tone="red" />
+            <TinyStat label="Samples" value={formatCompact(current?.samples)} tone="neutral" />
+            <TinyStat label="Index" value={current?.rag_index_version || "data-index"} tone="gold" />
+          </div>
+          <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-400">
+            <p>Prompt: <span className="text-slate-200">{current?.prompt_version || "not set"}</span></p>
+            <p>Workflow: <span className="text-slate-200">{current?.agent_workflow_version || "not set"}</span></p>
+            <p>Deploy: <span className="text-slate-200">{current?.deployment_version || "local"}</span></p>
+          </div>
+        </div>
+        <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-white">Observed Versions</p>
+            <span className="text-xs text-slate-500">{versions.length} versions</span>
+          </div>
+          <div className="mt-4 space-y-3">
+            {versions.length ? versions.map((version) => (
+              <div key={version.version} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-white">{version.version}</p>
+                    <p className="mt-1 truncate text-[11px] text-slate-500">{version.provider} / {version.model || "model"}</p>
+                  </div>
+                  <StatusPill value={version.status} tone={version.status === "live" ? "green" : "neutral"} />
+                </div>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div className="h-full rounded-full bg-cyan-300" style={{ width: `${Math.max(4, (version.samples / maxSamples) * 100)}%` }} />
+                </div>
+                <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] text-slate-500">
+                  <span>{formatCompact(version.samples)} samples</span>
+                  <span>{formatPercent(version.quality_score)}</span>
+                  <span>{Math.round(version.avg_latency_ms || 0)}ms</span>
+                  <span>{formatCost(version.estimated_cost_usd)}</span>
+                </div>
+              </div>
+            )) : <p className="text-sm text-slate-500">No model trace versions recorded yet.</p>}
+          </div>
+        </div>
+      </div>
+    </ConsolePanel>
   );
 }
 
@@ -436,11 +781,11 @@ export default function FounderAdminConsolePage() {
   const quality = data?.quality;
 
   return (
-    <div className="min-h-[calc(100svh-5rem)] text-slate-100">
+    <div className="min-h-[100svh] text-slate-100">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[#05080D]" />
       <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(20,184,166,0.18),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(242,184,75,0.14),transparent_28%),linear-gradient(180deg,#05080D_0%,#09111D_48%,#05080D_100%)]" />
-      <div className="mx-auto flex w-full max-w-[1540px] flex-col gap-5 px-2 pb-8 sm:px-4">
-        <header className="sticky top-[4.6rem] z-20 rounded-[1.45rem] border border-white/10 bg-[#07111C]/92 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-2xl">
+      <div className="flex w-full flex-col gap-4 px-3 pb-6 pt-3 sm:px-5 2xl:px-6">
+        <header className="sticky top-0 z-20 rounded-[1.1rem] border border-white/10 bg-[#07111C]/94 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-2xl">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -449,8 +794,8 @@ export default function FounderAdminConsolePage() {
                 <span className="text-xs text-slate-500">Last sync {formatTime(header?.last_sync_time || data?.generated_at)}</span>
               </div>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">AgentifyAI Admin Console</h1>
-              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-                Founder-grade command center for Study Lab, Revision, Exam, Sessions, Analytics, backend health, agent traces, quality risks, and content readiness.
+              <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-400">
+                Founder-grade control plane for live agent traces, data intake, model versions, quality drift, content readiness, system health, and audit history.
               </p>
             </div>
             <div className="grid gap-2 sm:grid-cols-3 xl:w-[520px]">
@@ -511,6 +856,19 @@ export default function FounderAdminConsolePage() {
                 <MetricCard key={card.key} label={card.label} metric={data.overview[card.key]} tone={card.tone} />
               ))}
             </div>
+            <DataIntakePanel data={data} />
+            <ConsolePanel title="Agent Evolution" eyebrow="New data, old data, tokens, quality drift">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+                {data.agents.slice(0, 6).map((agent) => (
+                  <AgentEvolutionCard
+                    key={agent.agent_id}
+                    agent={agent}
+                    selected={selectedAgent === agent.agent_id}
+                    onSelect={() => { setSelectedAgent(agent.agent_id); setTab("agents"); }}
+                  />
+                ))}
+              </div>
+            </ConsolePanel>
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
               <ConsolePanel title="Quality Control" eyebrow="Risk surface">
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -548,39 +906,77 @@ export default function FounderAdminConsolePage() {
           </div>
         ) : null}
 
+        {data && activeTab === "dataflow" ? (
+          <div className="space-y-5">
+            <DataIntakePanel data={data} />
+            <ConsolePanel title="Per-Agent Data Consumption" eyebrow="Rows, sessions, tokens, memory, and source usage">
+              <div className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+                {data.agents.map((agent) => {
+                  const intake = agent.data_intake;
+                  return (
+                    <article key={agent.agent_id} className="rounded-[1.15rem] border border-white/10 bg-white/[0.035] p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-white">{agent.display_name}</p>
+                          <p className="mt-1 text-xs text-slate-500">{agent.agent_id}</p>
+                        </div>
+                        <StatusPill value={agent.evolution?.learning_signal || agent.health || "observing"} />
+                      </div>
+                      <div className="mt-4 grid grid-cols-3 gap-2">
+                        <TinyStat label="Trace rows" value={formatCompact(intake?.trace_rows || 0)} tone="teal" />
+                        <TinyStat label="Events" value={formatCompact(intake?.event_rows || 0)} tone="green" />
+                        <TinyStat label="Sessions" value={formatCompact(intake?.sessions || 0)} tone="blue" />
+                        <TinyStat label="Input" value={formatCompact(intake?.input_tokens || 0)} tone="neutral" />
+                        <TinyStat label="Output" value={formatCompact(intake?.output_tokens || 0)} tone="neutral" />
+                        <TinyStat label="Memory" value={formatCompact(intake?.memory_rows || 0)} tone="gold" />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        {(intake?.sources || []).slice(0, 3).map((source) => (
+                          <div key={`${agent.agent_id}-${source.source}`} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs">
+                            <span className="truncate text-slate-300">{source.source}</span>
+                            <span className="text-slate-500">{formatCompact(source.chunks || source.rows)} chunks</span>
+                          </div>
+                        ))}
+                        {!(intake?.sources || []).length ? <p className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-500">No retrieval source usage recorded yet.</p> : null}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </ConsolePanel>
+          </div>
+        ) : null}
+
+        {data && activeTab === "models" ? (
+          <div className="space-y-5">
+            <ModelRegistryPanel data={data} />
+            <ConsolePanel title="Agent Learning Signals" eyebrow="Quality and latency drift by agent">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {data.agents.map((agent) => (
+                  <AgentEvolutionCard
+                    key={agent.agent_id}
+                    agent={agent}
+                    selected={selectedAgent === agent.agent_id}
+                    onSelect={() => { setSelectedAgent(agent.agent_id); setTab("agents"); }}
+                  />
+                ))}
+              </div>
+            </ConsolePanel>
+          </div>
+        ) : null}
+
         {data && activeTab === "agents" ? (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
             <ConsolePanel title="AgentOps Fleet" eyebrow="LangSmith + AgentOps style">
-              <div className="grid gap-3 lg:grid-cols-2">
-                {REQUIRED_AGENTS.map((definition) => {
-                  const agent = agentsById.get(definition.id);
-                  const active = selectedAgent === definition.id;
-                  return (
-                    <button
-                      key={definition.id}
-                      type="button"
-                      onClick={() => { setSelectedAgent(definition.id); void audit("open_agent_detail", { agent_id: definition.id }, "agent", definition.id); }}
-                      className={cn(
-                        "rounded-[1.2rem] border p-4 text-left transition hover:-translate-y-0.5",
-                        active ? "border-cyan-300/35 bg-cyan-300/10" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-white">{definition.label}</p>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">{definition.role}</p>
-                        </div>
-                        <StatusPill value={agent?.status || "not reporting"} tone={agent ? statusTone(agent.health || agent.status) : "neutral"} />
-                      </div>
-                      <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-                        <div><p className="text-[10px] text-slate-500">Requests</p><p className="text-sm font-semibold text-white">{agent?.total_requests ?? 0}</p></div>
-                        <div><p className="text-[10px] text-slate-500">Latency</p><p className="text-sm font-semibold text-white">{agent?.avg_latency_ms ? `${Math.round(agent.avg_latency_ms)}ms` : "--"}</p></div>
-                        <div><p className="text-[10px] text-slate-500">Success</p><p className="text-sm font-semibold text-emerald-200">{agent?.success_rate ?? 0}%</p></div>
-                        <div><p className="text-[10px] text-slate-500">Errors</p><p className="text-sm font-semibold text-rose-200">{agent?.total_errors ?? 0}</p></div>
-                      </div>
-                    </button>
-                  );
-                })}
+              <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
+                {data.agents.map((agent) => (
+                  <AgentEvolutionCard
+                    key={agent.agent_id}
+                    agent={agent}
+                    selected={selectedAgent === agent.agent_id}
+                    onSelect={() => { setSelectedAgent(agent.agent_id); void audit("open_agent_detail", { agent_id: agent.agent_id }, "agent", agent.agent_id); }}
+                  />
+                ))}
               </div>
             </ConsolePanel>
 
@@ -593,6 +989,14 @@ export default function FounderAdminConsolePage() {
                     <StatusPill value={selectedAgentRecord?.health || "unknown"} />
                     <StatusPill value={`quality ${selectedAgentRecord?.last_quality_score ?? 0}`} tone="gold" />
                   </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <TinyStat label="Version" value={selectedAgentRecord?.evolution?.version || "observed-v1"} tone="teal" />
+                  <TinyStat label="Signal" value={selectedAgentRecord?.evolution?.learning_signal || "stable"} tone="green" />
+                  <TinyStat label="New data" value={formatCompact(selectedAgentRecord?.evolution?.new_data_rows || 0)} tone="blue" />
+                  <TinyStat label="Historical" value={formatCompact(selectedAgentRecord?.evolution?.historical_data_rows || 0)} tone="neutral" />
+                  <TinyStat label="Model calls" value={formatCompact(selectedAgentRecord?.data_intake?.model_calls || 0)} tone="teal" />
+                  <TinyStat label="Tool calls" value={formatCompact(selectedAgentRecord?.data_intake?.tool_calls || 0)} tone="gold" />
                 </div>
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Recent traces</p>
