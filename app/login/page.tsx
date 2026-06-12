@@ -315,7 +315,7 @@ export default function LoginPage() {
         <Link href="/" aria-label="AgentifyAI home" className="auth-brand-lockup group inline-flex items-center gap-3.5">
           <ChatThinkingLogo
             state="thinking"
-            size={56}
+            size={46}
             className="auth-brand-logo"
             label="AgentifyAI"
           />

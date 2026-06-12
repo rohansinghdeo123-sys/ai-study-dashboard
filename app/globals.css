@@ -4816,7 +4816,7 @@ body {
    ============================================================ */
 .auth-scene-final {
   --auth-final-ink: #17233A;
-  --auth-final-muted: #667085;
+  --auth-final-muted: #59657A;
   --auth-final-line: rgba(54, 65, 83, 0.13);
   --auth-final-surface: rgba(255, 255, 255, 0.82);
   --auth-final-soft-surface: rgba(255, 255, 255, 0.50);
@@ -4910,15 +4910,12 @@ body {
   --chat-logo-crisp-stroke: rgba(58, 31, 8, 0.42);
   --chat-logo-crisp-opacity: 0.45;
   --chat-logo-edge-highlight: rgba(255, 244, 205, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 1.15rem;
-  background:
-    radial-gradient(circle at 50% 48%, rgba(20, 184, 166, 0.20), transparent 47%),
-    linear-gradient(145deg, #101B2D, #0C3540);
-  box-shadow:
-    0 16px 34px rgba(14, 116, 144, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: transform 180ms ease, filter 180ms ease;
 }
 
 .auth-brand-logo.chat-thinking-logo.is-thinking .chat-logo-sweep {
@@ -4956,10 +4953,8 @@ body {
 }
 
 .auth-brand-lockup:hover .auth-brand-logo {
-  transform: translateY(-1px);
-  box-shadow:
-    0 20px 42px rgba(14, 116, 144, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+  transform: translateY(-1px) scale(1.035);
+  filter: brightness(1.06);
 }
 
 .auth-brand-name {
@@ -5202,8 +5197,7 @@ body {
   }
 
   .auth-brand-logo.chat-thinking-logo {
-    --chat-logo-size: 2.8rem !important;
-    border-radius: 0.95rem;
+    --chat-logo-size: 2.55rem !important;
   }
 
   .auth-brand-name {
