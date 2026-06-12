@@ -7,7 +7,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AlertState, AppIcon, LoadingState } from "@/components/ui/Polished";
-import { primeBackend } from "@/lib/apiClient";
+import { apiJson, primeBackend } from "@/lib/apiClient";
 
 const uiFont = Manrope({
   subsets: ["latin"],
@@ -90,6 +90,25 @@ function greetingForHour(hour: number) {
 }
 
 const RESEND_COOLDOWN_SECONDS = 30;
+
+interface PlatformPulse {
+  students: number;
+  total_xp: number;
+  top_streak: number;
+  sessions_7d: number;
+}
+
+type PulseState =
+  | { state: "loading" }
+  | { state: "live"; data: PlatformPulse }
+  | { state: "fallback" };
+
+function formatCompactNumber(value: number) {
+  if (!Number.isFinite(value) || value < 0) return "0";
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
+  return String(Math.round(value));
+}
 
 const DEMO_STEPS = ["Plan", "Quiz", "Explain", "Revise"] as const;
 const DEMO_SCENARIOS = [
@@ -209,6 +228,8 @@ export default function LoginPage() {
   const [greeting, setGreeting] = useState("Welcome back.");
   const [demoTick, setDemoTick] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [pulse, setPulse] = useState<PulseState>({ state: "loading" });
   const otpInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
@@ -232,6 +253,30 @@ export default function LoginPage() {
     const timer = window.setInterval(() => setDemoTick((tick) => tick + 1), 2400);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    apiJson<PlatformPulse>(`${backendURL}/public/pulse`, {
+      cacheKey: "public-pulse",
+      cacheTtlMs: 60000,
+      retries: 1,
+      timeoutMs: 9000,
+    })
+      .then((data) => {
+        if (!active) return;
+        if (data && Number(data.students) > 0) {
+          setPulse({ state: "live", data });
+        } else {
+          setPulse({ state: "fallback" });
+        }
+      })
+      .catch(() => {
+        if (active) setPulse({ state: "fallback" });
+      });
+    return () => {
+      active = false;
+    };
+  }, [backendURL]);
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -267,11 +312,14 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setAuthError("");
+    setGoogleBusy(true);
     try {
       primeBackend(backendURL);
       await loginWithGoogle();
     } catch (error) {
       setAuthError(getErrorMessage(error));
+    } finally {
+      setGoogleBusy(false);
     }
   };
 
@@ -347,12 +395,20 @@ export default function LoginPage() {
 
       {/* Floating top bar */}
       <header className="flex items-center justify-between px-5 pt-5 sm:px-8 sm:pt-6">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0E7490] text-sm font-black text-white shadow-[0_8px_24px_rgba(14,116,144,0.35)]">
+        <a href="/" aria-label="AgentifyAI home" className="auth-brand group flex items-center gap-3">
+          <span className="auth-brand-mark relative flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-[linear-gradient(135deg,#0F172A_0%,#0E7490_52%,#14B8A6_100%)] text-[15px] font-black text-white shadow-[0_10px_26px_rgba(14,116,144,0.32),inset_0_1px_0_rgba(255,255,255,0.26)]">
             A
-          </div>
-          <span className="text-sm font-bold tracking-tight text-[var(--agentify-primary-text)]">AgentifyAI</span>
-        </div>
+            <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[0.85rem] border border-white/20" />
+          </span>
+          <span className="leading-tight">
+            <span className="block text-[15px] font-bold tracking-tight text-[var(--agentify-primary-text)]">
+              Agentify<span className="text-[#0E7490]">AI</span>
+            </span>
+            <span className="block text-[11px] font-medium text-[var(--agentify-muted-text)]">
+              Your AI study workspace
+            </span>
+          </span>
+        </a>
         <ThemeToggle compact />
       </header>
 
@@ -408,25 +464,34 @@ export default function LoginPage() {
               </div>
             </div>
           ) : !usePhone ? (
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <button
                 type="button"
                 onClick={handleGoogleLogin}
+                disabled={googleBusy}
+                aria-busy={googleBusy}
                 className="auth-google flex min-h-[3.25rem] w-full items-center justify-center gap-3 rounded-2xl px-5 text-[0.95rem] font-semibold"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
-                  <path fill="#FFC107" d="M43.611 20.083h-1.611V20H24v8h11.303C33.646 32.657 29.202 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.061 0 5.856 1.153 7.982 3.045l5.657-5.657C34.133 6.053 29.32 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z" />
-                  <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.548 16.108 18.961 13 24 13c3.061 0 5.856 1.153 7.982 3.045l5.657-5.657C34.133 6.053 29.32 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
-                  <path fill="#4CAF50" d="M24 44c5.153 0 9.86-1.977 13.411-5.197l-6.19-5.238C29.219 35.091 26.715 36 24 36c-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44z" />
-                  <path fill="#1976D2" d="M43.611 20.083h-1.611V20H24v8h11.303c-1.15 3.388-4.292 6-8.303 6-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z" />
-                </svg>
-                Continue with Google
+                {googleBusy ? (
+                  <span className="auth-spinner" aria-hidden="true" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
+                    <path fill="#FFC107" d="M43.611 20.083h-1.611V20H24v8h11.303C33.646 32.657 29.202 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.061 0 5.856 1.153 7.982 3.045l5.657-5.657C34.133 6.053 29.32 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.651-.389-3.917z" />
+                    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.817C14.548 16.108 18.961 13 24 13c3.061 0 5.856 1.153 7.982 3.045l5.657-5.657C34.133 6.053 29.32 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+                    <path fill="#4CAF50" d="M24 44c5.153 0 9.86-1.977 13.411-5.197l-6.19-5.238C29.219 35.091 26.715 36 24 36c-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44z" />
+                    <path fill="#1976D2" d="M43.611 20.083h-1.611V20H24v8h11.303c-1.15 3.388-4.292 6-8.303 6-5.18 0-9.614-3.317-11.231-7.946l-6.527 5.033C9.555 39.556 16.271 44 24 44c11.045 0 20-8.955 20-20 0-1.341-.138-2.651-.389-3.917z" />
+                  </svg>
+                )}
+                {googleBusy ? "Opening Google sign-in…" : "Continue with Google"}
               </button>
+
+              <div className="auth-divider" aria-hidden="true">or</div>
 
               <button
                 type="button"
                 onClick={() => setUsePhone(true)}
-                className="auth-ghost flex min-h-[3rem] w-full items-center justify-center gap-2 text-sm font-semibold"
+                disabled={googleBusy}
+                className="auth-secondary flex min-h-[3rem] w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
               >
                 <AppIcon name="send" className="h-4 w-4" />
                 Use phone number instead
@@ -580,8 +645,8 @@ export default function LoginPage() {
             <div className="auth-demo mt-7 rounded-2xl p-4" aria-label="Autonomous Mission preview">
               <div className="flex items-center justify-between gap-3">
                 <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FB8BC]">
-                  <span className="auth-demo-live" aria-hidden="true" />
-                  Autonomous Mission · Live preview
+                  <span className={cn("auth-demo-live", pulse.state !== "live" && "is-idle")} aria-hidden="true" />
+                  Autonomous Mission · {pulse.state === "live" ? "Live" : "Preview"}
                 </p>
                 <span className="rounded-full bg-[#F2B84B]/15 px-2.5 py-1 text-[11px] font-bold tabular-nums text-[#F2B84B]">
                   +{demoXp} XP
@@ -603,6 +668,31 @@ export default function LoginPage() {
               <p className="mt-3 min-h-[2.5rem] text-[13px] leading-5 text-[#9FB8BC]" aria-live="polite">
                 {demoScenario}
               </p>
+
+              {pulse.state !== "fallback" ? (
+                <div className="mt-3 flex flex-wrap gap-2" aria-live="polite">
+                  {pulse.state === "loading" ? (
+                    <>
+                      <span className="polished-skeleton h-6 w-32 rounded-full" />
+                      <span className="polished-skeleton h-6 w-24 rounded-full" />
+                      <span className="polished-skeleton h-6 w-28 rounded-full" />
+                    </>
+                  ) : (
+                    <>
+                      <span className="auth-pulse-chip">
+                        {formatCompactNumber(pulse.data.students)} student{pulse.data.students === 1 ? "" : "s"} learning
+                      </span>
+                      <span className="auth-pulse-chip">{formatCompactNumber(pulse.data.total_xp)} XP earned</span>
+                      {pulse.data.sessions_7d > 0 ? (
+                        <span className="auth-pulse-chip">{formatCompactNumber(pulse.data.sessions_7d)} sessions this week</span>
+                      ) : null}
+                      {pulse.data.top_streak > 0 ? (
+                        <span className="auth-pulse-chip">top streak {pulse.data.top_streak}d</span>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -636,6 +726,12 @@ export default function LoginPage() {
           background: #14b8a6;
           box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
           animation: auth-demo-live-pulse 1.6s ease-in-out infinite;
+        }
+        .auth-demo-live.is-idle {
+          animation: none;
+          background: #9fb8bc;
+          box-shadow: none;
+          opacity: 0.6;
         }
         @keyframes auth-demo-live-pulse {
           0%, 100% { opacity: 0.5; }

@@ -4387,11 +4387,23 @@ body {
 }
 
 .auth-glass {
+  position: relative;
   background: rgba(255,255,255,0.58);
   border: 1px solid rgba(255,255,255,0.85);
   box-shadow: 0 30px 90px rgba(15,23,42,0.14), inset 0 1px 0 rgba(255,255,255,0.9);
   backdrop-filter: blur(26px);
   -webkit-backdrop-filter: blur(26px);
+}
+
+.auth-glass::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 16%;
+  right: 16%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(14,116,144,0.42), rgba(242,184,75,0.42), transparent);
+  pointer-events: none;
 }
 
 [data-theme="dark"] .auth-glass {
@@ -4469,10 +4481,105 @@ body {
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
-.auth-google:hover {
+.auth-google:hover:not(:disabled) {
   transform: translateY(-1px);
   border-color: rgba(14,116,144,0.35);
   box-shadow: 0 14px 36px rgba(14,116,144,0.14);
+}
+
+.auth-google:disabled {
+  opacity: 0.65;
+  cursor: progress;
+  transform: none;
+}
+
+.auth-spinner {
+  height: 1.05rem;
+  width: 1.05rem;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 2px solid rgba(14,116,144,0.22);
+  border-top-color: #0E7490;
+  animation: auth-spin 0.8s linear infinite;
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--agentify-muted-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, rgba(15,23,42,0.14));
+}
+
+.auth-divider::after {
+  background: linear-gradient(90deg, rgba(15,23,42,0.14), transparent);
+}
+
+[data-theme="dark"] .auth-divider::before,
+[data-theme="dark"] .auth-divider::after {
+  background: rgba(255,255,255,0.12);
+}
+
+.auth-secondary {
+  border: 1px solid rgba(15,23,42,0.10);
+  background: rgba(255,255,255,0.45);
+  color: var(--agentify-primary-text);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.auth-secondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(14,116,144,0.32);
+  background: rgba(255,255,255,0.85);
+  color: #0E7490;
+}
+
+[data-theme="dark"] .auth-secondary {
+  border-color: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+}
+
+[data-theme="dark"] .auth-secondary:hover:not(:disabled) {
+  background: rgba(255,255,255,0.09);
+  color: #5EEAD4;
+}
+
+.auth-brand-mark {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.auth-brand:hover .auth-brand-mark {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow: 0 14px 34px rgba(14,116,144,0.42), inset 0 1px 0 rgba(255,255,255,0.30);
+}
+
+.auth-pulse-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(94,234,212,0.20);
+  border-radius: 999px;
+  background: rgba(94,234,212,0.08);
+  padding: 0.28rem 0.65rem;
+  color: #CFE8E6;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 [data-theme="dark"] .auth-google {
@@ -4533,6 +4640,19 @@ body {
   border: 1px solid rgba(255,255,255,0.10);
   box-shadow: 0 30px 90px rgba(7,17,31,0.30);
   color: #E6F1F2;
+}
+
+/* Light mode: the brand showcase stays a dark surface, so rescue its light
+   text from the global light-theme compatibility layer that forces
+   text-white to near-black. */
+[data-theme="light"] .auth-brand-panel [class*="text-white"] {
+  color: #F8FAFC !important;
+}
+
+/* Light mode: premium navy text tones instead of harsh near-black. */
+[data-theme="light"] .auth-scene {
+  --agentify-primary-text: #1B2B47;
+  --agentify-muted-text: #5C6C84;
 }
 
 .auth-usp-icon {
