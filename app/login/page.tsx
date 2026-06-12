@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Fraunces, Manrope } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -90,6 +91,105 @@ function greetingForHour(hour: number) {
 
 const RESEND_COOLDOWN_SECONDS = 30;
 
+const DEMO_STEPS = ["Plan", "Quiz", "Explain", "Revise"] as const;
+const DEMO_SCENARIOS = [
+  "Alkenes — question 4 of 10. You're at 78% accuracy, so the next step adapts to your last two mistakes.",
+  "States of matter — explaining the exact idea you missed before the next quick check.",
+  "Hydrocarbons revision — 3 key formulas and 2 common traps pulled straight from your chapter.",
+];
+
+// ─── Segmented one-time-code input ──────────────────────────────────────────
+function OtpBoxes({
+  value,
+  disabled,
+  onChange,
+  onComplete,
+  firstInputRef,
+}: {
+  value: string;
+  disabled?: boolean;
+  onChange: (next: string) => void;
+  onComplete: (code: string) => void;
+  firstInputRef?: React.MutableRefObject<HTMLInputElement | null>;
+}) {
+  const LENGTH = 6;
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const chars = Array.from({ length: LENGTH }, (_, index) => value[index] ?? "");
+
+  const emit = (nextChars: string[]) => {
+    const joined = nextChars.join("").replace(/\D/g, "").slice(0, LENGTH);
+    onChange(joined);
+    if (joined.length === LENGTH) onComplete(joined);
+    return joined;
+  };
+
+  const handleChange = (index: number, raw: string) => {
+    const digits = raw.replace(/\D/g, "");
+    const next = chars.slice();
+    if (!digits) {
+      next[index] = "";
+      emit(next);
+      return;
+    }
+    let cursor = index;
+    for (const digit of digits.split("")) {
+      if (cursor >= LENGTH) break;
+      next[cursor] = digit;
+      cursor += 1;
+    }
+    emit(next);
+    refs.current[Math.min(cursor, LENGTH - 1)]?.focus();
+  };
+
+  const handleKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !chars[index] && index > 0) {
+      event.preventDefault();
+      const next = chars.slice();
+      next[index - 1] = "";
+      emit(next);
+      refs.current[index - 1]?.focus();
+    } else if (event.key === "ArrowLeft" && index > 0) {
+      refs.current[index - 1]?.focus();
+    } else if (event.key === "ArrowRight" && index < LENGTH - 1) {
+      refs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, LENGTH);
+    if (!pasted) return;
+    event.preventDefault();
+    const joined = emit(Array.from({ length: LENGTH }, (_, index) => pasted[index] ?? ""));
+    refs.current[Math.min(joined.length, LENGTH - 1)]?.focus();
+  };
+
+  return (
+    <div className="auth-otp-group" role="group" aria-label="6-digit verification code">
+      {chars.map((char, index) => (
+        <input
+          key={index}
+          ref={(element) => {
+            refs.current[index] = element;
+            if (index === 0 && firstInputRef) firstInputRef.current = element;
+          }}
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={1}
+          autoComplete={index === 0 ? "one-time-code" : "off"}
+          disabled={disabled}
+          value={char}
+          aria-label={`Digit ${index + 1}`}
+          onChange={(event) => handleChange(index, event.target.value)}
+          onKeyDown={(event) => handleKeyDown(index, event)}
+          onPaste={handlePaste}
+          className="auth-otp-box"
+        />
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Login Page Component ──────────────────────────────────────────────
 export default function LoginPage() {
   const { user, loginWithGoogle, sendPhoneOtp, verifyPhoneOtp, loading } = useAuth();
@@ -107,13 +207,30 @@ export default function LoginPage() {
   const [shake, setShake] = useState(false);
   const [granted, setGranted] = useState(false);
   const [greeting, setGreeting] = useState("Welcome back.");
+  const [demoTick, setDemoTick] = useState(0);
+  const [reduceMotion, setReduceMotion] = useState(false);
   const otpInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
   const formattedPhone = useMemo(() => normalizePhoneNumber(phoneNumber), [phoneNumber]);
+  const demoStep = reduceMotion ? 1 : demoTick % DEMO_STEPS.length;
+  const demoXp = (demoStep + 1) * 10;
+  const demoScenario = reduceMotion
+    ? DEMO_SCENARIOS[0]
+    : DEMO_SCENARIOS[Math.floor(demoTick / DEMO_STEPS.length) % DEMO_SCENARIOS.length];
 
   useEffect(() => {
     setGreeting(greetingForHour(new Date().getHours()));
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (media?.matches) {
+      setReduceMotion(true);
+      return;
+    }
+    const timer = window.setInterval(() => setDemoTick((tick) => tick + 1), 2400);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -178,16 +295,17 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = async (codeOverride?: string) => {
     setAuthError("");
-    if (otp.trim().length < 4) {
+    const code = (codeOverride ?? otp).trim();
+    if (code.length < 6) {
       setAuthError("Enter the 6-digit code from the SMS.");
       return;
     }
     try {
       primeBackend(backendURL);
       setVerifyingOtp(true);
-      await verifyPhoneOtp(otp.trim());
+      await verifyPhoneOtp(code);
     } catch (error) {
       setAuthError(getErrorMessage(error));
     } finally {
@@ -263,6 +381,12 @@ export default function LoginPage() {
             : "Sign in to your private study workspace."}
         </p>
 
+        {!granted ? (
+          <p className="mt-5 max-w-xs text-center text-[13px] leading-5 text-[var(--agentify-muted-text)] lg:hidden">
+            Your AI tutor for school — grounded in your own textbook.
+          </p>
+        ) : null}
+
         <div
           className={cn(
             "auth-glass mt-8 w-full max-w-[24.5rem] rounded-[1.75rem] p-6 sm:p-7",
@@ -330,26 +454,18 @@ export default function LoginPage() {
                   />
                 </label>
               ) : (
-                <label className="block" htmlFor="login-verification-code">
+                <div className="block">
                   <span className="mb-1.5 block text-xs font-semibold text-[var(--agentify-muted-text)]">
                     Code sent to {formattedPhone}
                   </span>
-                  <input
-                    ref={otpInputRef}
-                    id="login-verification-code"
-                    name="one-time-code"
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={6}
-                    autoComplete="one-time-code"
+                  <OtpBoxes
                     value={otp}
-                    onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="••••••"
-                    aria-describedby={authError ? "login-auth-error" : undefined}
-                    className="auth-field w-full rounded-2xl px-4 py-3.5 text-center text-xl font-semibold tracking-[0.45em] outline-none transition"
+                    disabled={verifyingOtp}
+                    onChange={(next) => setOtp(next)}
+                    onComplete={(code) => void handleVerifyOtp(code)}
+                    firstInputRef={otpInputRef}
                   />
-                </label>
+                </div>
               )}
 
               <button
@@ -396,10 +512,14 @@ export default function LoginPage() {
         </div>
 
         {!granted ? (
-          <p className="mt-6 flex items-center gap-2 text-xs text-[var(--agentify-muted-text)]">
-            <AppIcon name="check" className="h-3.5 w-3.5 text-[var(--agentify-accent)]" />
-            Private to you · Protected by Firebase Authentication
-          </p>
+          <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-[var(--agentify-muted-text)]">
+            {["Grounded in your textbook", "Private to you", "Secure sign-in"].map((item) => (
+              <li key={item} className="flex items-center gap-1.5">
+                <AppIcon name="check" className="h-3.5 w-3.5 text-[var(--agentify-accent)]" />
+                {item}
+              </li>
+            ))}
+          </ul>
         ) : null}
         </section>
 
@@ -457,40 +577,47 @@ export default function LoginPage() {
               ))}
             </ul>
 
-            <div className="auth-demo mt-7 rounded-2xl p-4">
+            <div className="auth-demo mt-7 rounded-2xl p-4" aria-label="Autonomous Mission preview">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FB8BC]">
+                <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FB8BC]">
+                  <span className="auth-demo-live" aria-hidden="true" />
                   Autonomous Mission · Live preview
                 </p>
-                <span className="rounded-full bg-[#F2B84B]/15 px-2.5 py-1 text-[11px] font-bold text-[#F2B84B]">
-                  +40 XP
+                <span className="rounded-full bg-[#F2B84B]/15 px-2.5 py-1 text-[11px] font-bold tabular-nums text-[#F2B84B]">
+                  +{demoXp} XP
                 </span>
               </div>
               <ol className="mt-4 grid grid-cols-4 gap-2">
-                {[
-                  { label: "Plan", state: "is-done" },
-                  { label: "Quiz", state: "is-active" },
-                  { label: "Explain", state: "" },
-                  { label: "Revise", state: "" },
-                ].map((step) => (
-                  <li key={step.label} className={cn("auth-demo-step", step.state)}>
-                    <span className="auth-demo-dot block h-2 w-2 rounded-full" />
-                    <span className={cn("mt-2 block text-xs font-semibold", step.state ? "text-white" : "text-[#7E979C]")}>
-                      {step.label}
-                    </span>
-                  </li>
-                ))}
+                {DEMO_STEPS.map((label, index) => {
+                  const state = index < demoStep ? "is-done" : index === demoStep ? "is-active" : "";
+                  return (
+                    <li key={label} className={cn("auth-demo-step", state)}>
+                      <span className="auth-demo-dot block h-2 w-2 rounded-full" />
+                      <span className={cn("mt-2 block text-xs font-semibold", state ? "text-white" : "text-[#7E979C]")}>
+                        {label}
+                      </span>
+                    </li>
+                  );
+                })}
               </ol>
-              <p className="mt-3 text-[13px] leading-5 text-[#9FB8BC]">
-                “Alkenes — question 4 of 10. You’re at 78% accuracy, so the next step adapts to your last two mistakes.”
+              <p className="mt-3 min-h-[2.5rem] text-[13px] leading-5 text-[#9FB8BC]" aria-live="polite">
+                {demoScenario}
               </p>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="pb-6 text-center text-xs text-[var(--agentify-muted-text)]">
-        By continuing, you agree to our Terms and Privacy Policy.
+      <footer className="px-5 pb-6 text-center text-xs text-[var(--agentify-muted-text)]">
+        By continuing, you agree to our{" "}
+        <Link href="/terms" className="font-semibold text-[var(--agentify-accent)] underline-offset-2 hover:underline">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="font-semibold text-[var(--agentify-accent)] underline-offset-2 hover:underline">
+          Privacy Policy
+        </Link>
+        .
       </footer>
 
       <style jsx global>{`
@@ -502,8 +629,23 @@ export default function LoginPage() {
         .animate-shake {
           animation: shake 0.5s ease-in-out;
         }
+        .auth-demo-live {
+          height: 0.4rem;
+          width: 0.4rem;
+          border-radius: 999px;
+          background: #14b8a6;
+          box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
+          animation: auth-demo-live-pulse 1.6s ease-in-out infinite;
+        }
+        @keyframes auth-demo-live-pulse {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
         @media (prefers-reduced-motion: reduce) {
           .animate-shake {
+            animation: none;
+          }
+          .auth-demo-live {
             animation: none;
           }
         }
