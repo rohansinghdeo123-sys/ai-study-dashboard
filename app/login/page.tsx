@@ -7,7 +7,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AlertState, AppIcon, LoadingState } from "@/components/ui/Polished";
-import { apiJson, primeBackend } from "@/lib/apiClient";
+import { primeBackend } from "@/lib/apiClient";
 
 const uiFont = Manrope({
   subsets: ["latin"],
@@ -90,25 +90,6 @@ function greetingForHour(hour: number) {
 }
 
 const RESEND_COOLDOWN_SECONDS = 30;
-
-interface PlatformPulse {
-  students: number;
-  total_xp: number;
-  top_streak: number;
-  sessions_7d: number;
-}
-
-type PulseState =
-  | { state: "loading" }
-  | { state: "live"; data: PlatformPulse }
-  | { state: "fallback" };
-
-function formatCompactNumber(value: number) {
-  if (!Number.isFinite(value) || value < 0) return "0";
-  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (value >= 1_000) return `${(value / 1_000).toFixed(value >= 10_000 ? 0 : 1)}K`;
-  return String(Math.round(value));
-}
 
 const DEMO_STEPS = ["Plan", "Quiz", "Explain", "Revise"] as const;
 const DEMO_SCENARIOS = [
@@ -229,7 +210,6 @@ export default function LoginPage() {
   const [demoTick, setDemoTick] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
-  const [pulse, setPulse] = useState<PulseState>({ state: "loading" });
   const otpInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
@@ -253,30 +233,6 @@ export default function LoginPage() {
     const timer = window.setInterval(() => setDemoTick((tick) => tick + 1), 2400);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    apiJson<PlatformPulse>(`${backendURL}/public/pulse`, {
-      cacheKey: "public-pulse",
-      cacheTtlMs: 60000,
-      retries: 1,
-      timeoutMs: 9000,
-    })
-      .then((data) => {
-        if (!active) return;
-        if (data && Number(data.students) > 0) {
-          setPulse({ state: "live", data });
-        } else {
-          setPulse({ state: "fallback" });
-        }
-      })
-      .catch(() => {
-        if (active) setPulse({ state: "fallback" });
-      });
-    return () => {
-      active = false;
-    };
-  }, [backendURL]);
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -387,15 +343,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={cn("auth-scene flex min-h-[100dvh] flex-col overflow-hidden antialiased", uiFont.className)}>
+    <div className={cn("auth-scene flex min-h-[100dvh] flex-col overflow-x-hidden antialiased", uiFont.className)}>
       <div className="auth-blob auth-blob-teal" aria-hidden="true" />
       <div className="auth-blob auth-blob-gold" aria-hidden="true" />
       <div className="auth-blob auth-blob-mint" aria-hidden="true" />
       <div className="auth-halo" aria-hidden="true" />
 
       {/* Floating top bar */}
-      <header className="flex items-center justify-between px-5 pt-5 sm:px-8 sm:pt-6">
-        <a href="/" aria-label="AgentifyAI home" className="auth-brand group flex items-center gap-3">
+      <header className="auth-header flex items-center justify-between px-5 pt-5 sm:px-8 sm:pt-6">
+        <Link href="/" aria-label="AgentifyAI home" className="auth-brand group flex items-center gap-3">
           <span className="auth-brand-mark relative flex h-10 w-10 items-center justify-center rounded-[0.85rem] bg-[linear-gradient(135deg,#0F172A_0%,#0E7490_52%,#14B8A6_100%)] text-[15px] font-black text-white shadow-[0_10px_26px_rgba(14,116,144,0.32),inset_0_1px_0_rgba(255,255,255,0.26)]">
             A
             <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[0.85rem] border border-white/20" />
@@ -408,17 +364,23 @@ export default function LoginPage() {
               Your AI study workspace
             </span>
           </span>
-        </a>
+        </Link>
         <ThemeToggle compact />
       </header>
 
       {/* Auth + brand showcase */}
-      <main className="mx-auto grid w-full max-w-[78rem] flex-1 grid-cols-1 content-center gap-10 px-5 py-6 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-14">
+      <main className="auth-main mx-auto grid w-full max-w-[76rem] flex-1 grid-cols-1 content-center gap-10 px-5 py-8 sm:px-8 lg:grid-cols-[minmax(0,1.04fr)_minmax(23rem,0.96fr)] lg:items-center lg:gap-16">
         {/* Auth column (first on mobile) */}
-        <section aria-label="Sign in" className="order-1 flex flex-col items-center lg:order-2">
+        <section aria-label="Sign in" className="auth-column order-1 flex flex-col items-center lg:order-2">
+        {!granted ? (
+          <p className="auth-signin-eyebrow text-[11px] font-bold uppercase tracking-[0.2em]">
+            Student sign in
+          </p>
+        ) : null}
         <h1
           className={cn(
             "auth-greeting max-w-[24ch] text-center text-[2.4rem] font-medium leading-[1.08] text-[var(--agentify-primary-text)] sm:text-5xl",
+            !granted && "mt-3",
             displayFont.className,
           )}
         >
@@ -431,21 +393,21 @@ export default function LoginPage() {
             </>
           )}
         </h1>
-        <p className="mt-4 max-w-md text-center text-sm leading-6 text-[var(--agentify-muted-text)] sm:text-base">
+        <p className="auth-subtitle mt-4 max-w-md text-center text-sm leading-6 text-[var(--agentify-muted-text)] sm:text-base">
           {granted
             ? "Opening your private study workspace…"
-            : "Sign in to your private study workspace."}
+            : "Continue where you left off with Google or your phone. No new password to remember."}
         </p>
 
         {!granted ? (
           <p className="mt-5 max-w-xs text-center text-[13px] leading-5 text-[var(--agentify-muted-text)] lg:hidden">
-            Your AI tutor for school — grounded in your own textbook.
+            Your AI study companion for clear explanations, practice, and next steps.
           </p>
         ) : null}
 
         <div
           className={cn(
-            "auth-glass mt-8 w-full max-w-[24.5rem] rounded-[1.75rem] p-6 sm:p-7",
+            "auth-card auth-glass mt-8 w-full max-w-[24.5rem] rounded-[1.75rem] p-6 sm:p-7",
             shake && "animate-shake",
           )}
         >
@@ -456,7 +418,7 @@ export default function LoginPage() {
               </span>
               <p className="mt-4 text-sm font-semibold text-[var(--agentify-primary-text)]">You&apos;re in.</p>
               <p className="mt-1 text-xs leading-5 text-[var(--agentify-muted-text)]">
-                First load can take a moment while your study space wakes up.
+                Opening your dashboard now.
               </p>
               <div className="mx-auto mt-5 w-full max-w-[13rem] space-y-2">
                 <span className="polished-skeleton block h-2.5 w-full rounded-full" />
@@ -577,8 +539,8 @@ export default function LoginPage() {
         </div>
 
         {!granted ? (
-          <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-[var(--agentify-muted-text)]">
-            {["Grounded in your textbook", "Private to you", "Secure sign-in"].map((item) => (
+          <ul className="auth-trust mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-[var(--agentify-muted-text)]">
+            {["No password to remember", "Private progress", "Secure sign-in"].map((item) => (
               <li key={item} className="flex items-center gap-1.5">
                 <AppIcon name="check" className="h-3.5 w-3.5 text-[var(--agentify-accent)]" />
                 {item}
@@ -586,25 +548,31 @@ export default function LoginPage() {
             ))}
           </ul>
         ) : null}
+        {!granted ? (
+          <Link href="/" className="auth-home-link mt-5 inline-flex items-center gap-2 text-xs font-semibold">
+            <AppIcon name="home" className="h-3.5 w-3.5" />
+            New here? See how AgentifyAI works
+          </Link>
+        ) : null}
         </section>
 
         {/* Brand / USP showcase */}
-        <section aria-label="Why AgentifyAI" className="order-2 lg:order-1">
+        <section aria-label="Why AgentifyAI" className="order-2 hidden lg:order-1 lg:block">
           <div className="auth-brand-panel rounded-[2rem] p-6 sm:p-8">
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#F2B84B]">Why AgentifyAI</p>
             <h2
               className={cn(
-                "mt-3 text-3xl font-medium leading-[1.12] tracking-tight text-white sm:text-4xl",
+                "auth-brand-title mt-3 text-3xl font-medium leading-[1.12] tracking-tight text-white sm:text-4xl",
                 displayFont.className,
               )}
             >
               Meet your personal <em className="italic text-[#5EEAD4]">AI agent</em> for school.
             </h2>
-            <p className="mt-3 max-w-md text-sm leading-6 text-[#9FB8BC]">
-              It plans, teaches, tests, and revises with you — and gets sharper every session.
+            <p className="auth-brand-copy mt-3 max-w-md text-sm leading-6 text-[#9FB8BC]">
+              It plans, teaches, tests, and revises with you, adapting to your progress as you study.
             </p>
 
-            <ul className="mt-6 space-y-4">
+            <ul className="auth-usp-list mt-6 space-y-4">
               {[
                 {
                   icon: "mission" as const,
@@ -621,8 +589,8 @@ export default function LoginPage() {
                 {
                   icon: "book" as const,
                   gold: false,
-                  title: "Grounded in your textbook",
-                  detail: "Answers come from approved NCERT material — never random internet facts.",
+                  title: "Grounded in course material",
+                  detail: "When approved material is available, explanations stay close to the chapter instead of open-web guesswork.",
                 },
               ].map((usp) => (
                 <li key={usp.title} className="flex items-start gap-3.5">
@@ -645,8 +613,8 @@ export default function LoginPage() {
             <div className="auth-demo mt-7 rounded-2xl p-4" aria-label="Autonomous Mission preview">
               <div className="flex items-center justify-between gap-3">
                 <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FB8BC]">
-                  <span className={cn("auth-demo-live", pulse.state !== "live" && "is-idle")} aria-hidden="true" />
-                  Autonomous Mission · {pulse.state === "live" ? "Live" : "Preview"}
+                  <span className="auth-demo-indicator" aria-hidden="true" />
+                  Autonomous Mission · Interactive preview
                 </p>
                 <span className="rounded-full bg-[#F2B84B]/15 px-2.5 py-1 text-[11px] font-bold tabular-nums text-[#F2B84B]">
                   +{demoXp} XP
@@ -669,36 +637,17 @@ export default function LoginPage() {
                 {demoScenario}
               </p>
 
-              {pulse.state !== "fallback" ? (
-                <div className="mt-3 flex flex-wrap gap-2" aria-live="polite">
-                  {pulse.state === "loading" ? (
-                    <>
-                      <span className="polished-skeleton h-6 w-32 rounded-full" />
-                      <span className="polished-skeleton h-6 w-24 rounded-full" />
-                      <span className="polished-skeleton h-6 w-28 rounded-full" />
-                    </>
-                  ) : (
-                    <>
-                      <span className="auth-pulse-chip">
-                        {formatCompactNumber(pulse.data.students)} student{pulse.data.students === 1 ? "" : "s"} learning
-                      </span>
-                      <span className="auth-pulse-chip">{formatCompactNumber(pulse.data.total_xp)} XP earned</span>
-                      {pulse.data.sessions_7d > 0 ? (
-                        <span className="auth-pulse-chip">{formatCompactNumber(pulse.data.sessions_7d)} sessions this week</span>
-                      ) : null}
-                      {pulse.data.top_streak > 0 ? (
-                        <span className="auth-pulse-chip">top streak {pulse.data.top_streak}d</span>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              ) : null}
+              <div className="mt-3 flex flex-wrap gap-2" aria-label="Mission capabilities">
+                {["Adaptive next step", "Mistake-aware explanations", "Progress remembered"].map((item) => (
+                  <span key={item} className="auth-proof-chip">{item}</span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="px-5 pb-6 text-center text-xs text-[var(--agentify-muted-text)]">
+      <footer className="auth-footer px-5 pb-6 text-center text-xs text-[var(--agentify-muted-text)]">
         By continuing, you agree to our{" "}
         <Link href="/terms" className="font-semibold text-[var(--agentify-accent)] underline-offset-2 hover:underline">
           Terms
@@ -719,19 +668,13 @@ export default function LoginPage() {
         .animate-shake {
           animation: shake 0.5s ease-in-out;
         }
-        .auth-demo-live {
+        .auth-demo-indicator {
           height: 0.4rem;
           width: 0.4rem;
           border-radius: 999px;
           background: #14b8a6;
           box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.18);
           animation: auth-demo-live-pulse 1.6s ease-in-out infinite;
-        }
-        .auth-demo-live.is-idle {
-          animation: none;
-          background: #9fb8bc;
-          box-shadow: none;
-          opacity: 0.6;
         }
         @keyframes auth-demo-live-pulse {
           0%, 100% { opacity: 0.5; }
@@ -741,7 +684,7 @@ export default function LoginPage() {
           .animate-shake {
             animation: none;
           }
-          .auth-demo-live {
+          .auth-demo-indicator {
             animation: none;
           }
         }

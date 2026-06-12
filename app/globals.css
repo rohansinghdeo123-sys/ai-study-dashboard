@@ -4549,6 +4549,11 @@ body {
   color: #0E7490;
 }
 
+.auth-secondary:disabled {
+  cursor: progress;
+  opacity: 0.55;
+}
+
 [data-theme="dark"] .auth-secondary {
   border-color: rgba(255,255,255,0.12);
   background: rgba(255,255,255,0.05);
@@ -4568,7 +4573,29 @@ body {
   box-shadow: 0 14px 34px rgba(14,116,144,0.42), inset 0 1px 0 rgba(255,255,255,0.30);
 }
 
-.auth-pulse-chip {
+.auth-signin-eyebrow {
+  color: #0E7490;
+}
+
+[data-theme="dark"] .auth-signin-eyebrow {
+  color: #5EEAD4;
+}
+
+.auth-home-link {
+  color: var(--agentify-muted-text);
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.auth-home-link:hover {
+  color: #0E7490;
+  transform: translateY(-1px);
+}
+
+[data-theme="dark"] .auth-home-link:hover {
+  color: #5EEAD4;
+}
+
+.auth-proof-chip {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -4612,6 +4639,18 @@ body {
 .auth-ghost:disabled { opacity: 0.55; cursor: not-allowed; }
 
 [data-theme="dark"] .auth-ghost:hover:not(:disabled) { color: #5EEAD4; }
+
+.auth-brand:focus-visible,
+.auth-home-link:focus-visible,
+.auth-google:focus-visible,
+.auth-secondary:focus-visible,
+.auth-primary:focus-visible,
+.auth-ghost:focus-visible,
+.auth-field:focus-visible,
+.auth-otp-box:focus-visible {
+  outline: 3px solid rgba(20,184,166,0.42);
+  outline-offset: 3px;
+}
 
 .auth-greeting {
   text-wrap: balance;
@@ -4702,6 +4741,74 @@ body {
 [data-theme="dark"] .auth-success-badge {
   background: rgba(94,234,212,0.14);
   color: #5EEAD4;
+}
+
+@media (min-width: 1024px) and (max-height: 800px) {
+  .auth-header {
+    padding-top: 1rem !important;
+  }
+
+  .auth-main {
+    gap: 2.5rem !important;
+    padding-bottom: 0.75rem !important;
+    padding-top: 0.75rem !important;
+  }
+
+  .auth-column .auth-greeting {
+    font-size: 2.5rem !important;
+  }
+
+  .auth-subtitle {
+    margin-top: 0.65rem !important;
+  }
+
+  .auth-card {
+    margin-top: 1.25rem !important;
+    padding: 1.2rem !important;
+  }
+
+  .auth-trust {
+    margin-top: 1rem !important;
+  }
+
+  .auth-home-link {
+    margin-top: 0.75rem !important;
+  }
+
+  .auth-brand-panel {
+    padding: 1.25rem !important;
+  }
+
+  .auth-brand-title {
+    font-size: 1.9rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .auth-brand-copy {
+    line-height: 1.25rem;
+    margin-top: 0.45rem !important;
+  }
+
+  .auth-usp-list {
+    margin-top: 1rem !important;
+  }
+
+  .auth-usp-list > li + li {
+    margin-top: 0.65rem !important;
+  }
+
+  .auth-demo {
+    margin-top: 1rem !important;
+    padding: 0.8rem !important;
+  }
+
+  .auth-demo [aria-label="Mission capabilities"] {
+    display: none;
+  }
+
+  .auth-footer {
+    padding-bottom: 0.75rem !important;
+  }
 }
 
 /* ============================================================
