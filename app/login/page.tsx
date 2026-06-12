@@ -238,11 +238,13 @@ export default function LoginPage() {
         <ThemeToggle compact />
       </header>
 
-      {/* Centered auth experience */}
-      <main className="flex flex-1 flex-col items-center justify-center px-5 py-10">
+      {/* Auth + brand showcase */}
+      <main className="mx-auto grid w-full max-w-[78rem] flex-1 grid-cols-1 content-center gap-10 px-5 py-6 sm:px-8 lg:grid-cols-2 lg:items-center lg:gap-14">
+        {/* Auth column (first on mobile) */}
+        <section aria-label="Sign in" className="order-1 flex flex-col items-center lg:order-2">
         <h1
           className={cn(
-            "auth-greeting max-w-[24ch] text-center text-[2.6rem] font-medium leading-[1.08] text-[var(--agentify-primary-text)] sm:text-6xl",
+            "auth-greeting max-w-[24ch] text-center text-[2.4rem] font-medium leading-[1.08] text-[var(--agentify-primary-text)] sm:text-5xl",
             displayFont.className,
           )}
         >
@@ -399,6 +401,92 @@ export default function LoginPage() {
             Private to you · Protected by Firebase Authentication
           </p>
         ) : null}
+        </section>
+
+        {/* Brand / USP showcase */}
+        <section aria-label="Why AgentifyAI" className="order-2 lg:order-1">
+          <div className="auth-brand-panel rounded-[2rem] p-6 sm:p-8">
+            <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#F2B84B]">Why AgentifyAI</p>
+            <h2
+              className={cn(
+                "mt-3 text-3xl font-medium leading-[1.12] tracking-tight text-white sm:text-4xl",
+                displayFont.className,
+              )}
+            >
+              Meet your personal <em className="italic text-[#5EEAD4]">AI agent</em> for school.
+            </h2>
+            <p className="mt-3 max-w-md text-sm leading-6 text-[#9FB8BC]">
+              It plans, teaches, tests, and revises with you — and gets sharper every session.
+            </p>
+
+            <ul className="mt-6 space-y-4">
+              {[
+                {
+                  icon: "mission" as const,
+                  gold: false,
+                  title: "Autonomous Mission",
+                  detail: "Your agent plans the chapter, quizzes you, explains mistakes, and decides the next step.",
+                },
+                {
+                  icon: "spark" as const,
+                  gold: true,
+                  title: "An agent that learns you",
+                  detail: "It remembers weak topics and adapts every answer to your pace and level.",
+                },
+                {
+                  icon: "book" as const,
+                  gold: false,
+                  title: "Grounded in your textbook",
+                  detail: "Answers come from approved NCERT material — never random internet facts.",
+                },
+              ].map((usp) => (
+                <li key={usp.title} className="flex items-start gap-3.5">
+                  <span
+                    className={cn(
+                      "auth-usp-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                      usp.gold && "auth-usp-icon--gold",
+                    )}
+                  >
+                    <AppIcon name={usp.icon} className="h-5 w-5" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-white">{usp.title}</span>
+                    <span className="mt-0.5 block text-[13px] leading-5 text-[#9FB8BC]">{usp.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="auth-demo mt-7 rounded-2xl p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#9FB8BC]">
+                  Autonomous Mission · Live preview
+                </p>
+                <span className="rounded-full bg-[#F2B84B]/15 px-2.5 py-1 text-[11px] font-bold text-[#F2B84B]">
+                  +40 XP
+                </span>
+              </div>
+              <ol className="mt-4 grid grid-cols-4 gap-2">
+                {[
+                  { label: "Plan", state: "is-done" },
+                  { label: "Quiz", state: "is-active" },
+                  { label: "Explain", state: "" },
+                  { label: "Revise", state: "" },
+                ].map((step) => (
+                  <li key={step.label} className={cn("auth-demo-step", step.state)}>
+                    <span className="auth-demo-dot block h-2 w-2 rounded-full" />
+                    <span className={cn("mt-2 block text-xs font-semibold", step.state ? "text-white" : "text-[#7E979C]")}>
+                      {step.label}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 text-[13px] leading-5 text-[#9FB8BC]">
+                “Alkenes — question 4 of 10. You’re at 78% accuracy, so the next step adapts to your last two mistakes.”
+              </p>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="pb-6 text-center text-xs text-[var(--agentify-muted-text)]">

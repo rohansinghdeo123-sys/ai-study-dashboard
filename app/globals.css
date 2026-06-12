@@ -4489,6 +4489,55 @@ body {
   background-clip: text;
 }
 
+.auth-brand-panel {
+  background:
+    radial-gradient(circle at 88% -10%, rgba(242,184,75,0.16), transparent 36%),
+    radial-gradient(circle at -10% 110%, rgba(20,184,166,0.20), transparent 40%),
+    linear-gradient(150deg, #0B1B2B 0%, #0E2C3A 55%, #0E4A52 100%);
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow: 0 30px 90px rgba(7,17,31,0.30);
+  color: #E6F1F2;
+}
+
+.auth-usp-icon {
+  background: rgba(94,234,212,0.10);
+  border: 1px solid rgba(94,234,212,0.22);
+  color: #5EEAD4;
+}
+
+.auth-usp-icon--gold {
+  background: rgba(242,184,75,0.10);
+  border-color: rgba(242,184,75,0.28);
+  color: #F2B84B;
+}
+
+.auth-demo {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.auth-demo-dot {
+  background: rgba(255,255,255,0.28);
+}
+
+.auth-demo-step.is-done .auth-demo-dot {
+  background: #14B8A6;
+}
+
+.auth-demo-step.is-active .auth-demo-dot {
+  background: #5EEAD4;
+  box-shadow: 0 0 0 4px rgba(94,234,212,0.18);
+  animation: auth-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes auth-pulse {
+  50% { box-shadow: 0 0 0 8px rgba(94,234,212,0.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-demo-step.is-active .auth-demo-dot { animation: none; }
+}
+
 .auth-success-badge {
   background: rgba(20,184,166,0.16);
   color: #0F766E;
