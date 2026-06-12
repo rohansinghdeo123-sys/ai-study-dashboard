@@ -4123,56 +4123,149 @@ body {
 /* ============================================================
    7. LOGIN, SESSIONS, AND AGENTIFIED ENTRANCE
    ============================================================ */
-.login-shell::before {
-  content: "";
+/* The login page is authored light-first: its surfaces read the shared
+   --agentify-* variables (which flip with data-theme), so dark mode only
+   needs the small overrides at the end of this block. */
+.login-shell {
+  background: var(--agentify-page-bg);
+  color: var(--agentify-primary-text);
+}
+
+[data-theme="light"] .login-shell {
+  background: var(--agentify-bright-page);
+}
+
+.login-backdrop {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(112deg, rgba(20,184,166,0.11), transparent 38%),
-    linear-gradient(292deg, rgba(242,184,75,0.08), transparent 32%),
-    linear-gradient(135deg, rgba(255,255,255,0.02), transparent 42%);
+    radial-gradient(circle at 86% -8%, rgba(242,184,75,0.14), transparent 38%),
+    radial-gradient(circle at -6% 32%, rgba(20,184,166,0.10), transparent 34%);
 }
 
-.login-main,
-.login-layout {
-  min-height: 100dvh;
-}
-
-.login-auth-zone {
-  position: relative;
-  isolation: isolate;
-}
-
-.login-auth-zone::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-left: 1px solid rgba(255,255,255,0.07);
-  content: "";
+[data-theme="dark"] .login-backdrop {
   background:
-    linear-gradient(150deg, rgba(14,116,144,0.08), transparent 34%),
-    linear-gradient(330deg, rgba(242,184,75,0.06), transparent 30%),
-    rgba(2,6,23,0.14);
+    radial-gradient(circle at 86% -8%, rgba(242,184,75,0.07), transparent 36%),
+    radial-gradient(circle at -6% 32%, rgba(20,184,166,0.09), transparent 34%);
 }
 
-.login-passport-card,
-.login-mission-card,
-.login-auth-card,
-.sessions-hero-card {
-  position: relative;
-  overflow: hidden;
+.login-topbar,
+.login-card,
+.login-chip {
+  background: var(--agentify-card-bg);
+  border: 1px solid var(--agentify-border);
 }
 
 .login-topbar {
-  position: absolute;
-  overflow: hidden;
+  box-shadow: var(--agentify-bright-shadow, 0 14px 40px rgba(0,0,0,0.22));
 }
 
-.login-topbar::before,
-.login-passport-card::before,
-.login-mission-card::before,
-.login-auth-card::before,
+.login-card {
+  box-shadow: var(--agentify-bright-shadow-elevated, 0 24px 70px rgba(0,0,0,0.30));
+}
+
+[data-theme="light"] .login-mission-card {
+  background: var(--agentify-bright-panel);
+}
+
+.login-auth-card {
+  transition: border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.login-card-granted {
+  border-color: rgba(20,184,166,0.42);
+}
+
+.login-hero-title {
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.login-step {
+  background: var(--agentify-bright-card-soft, rgba(255,255,255,0.045));
+  border: 1px solid var(--agentify-border);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.login-step:hover {
+  transform: translateY(-2px);
+  border-color: rgba(14,116,144,0.30);
+  box-shadow: 0 14px 34px rgba(15,23,42,0.08);
+}
+
+[data-theme="dark"] .login-step:hover {
+  border-color: rgba(94,234,212,0.30);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.32);
+}
+
+.login-step-icon {
+  background: rgba(14,116,144,0.10);
+  color: #0E7490;
+}
+
+[data-theme="dark"] .login-step-icon {
+  background: rgba(94,234,212,0.12);
+  color: #5EEAD4;
+}
+
+.login-gold-eyebrow {
+  color: #B7791F;
+}
+
+[data-theme="dark"] .login-gold-eyebrow {
+  color: #F2B84B;
+}
+
+.login-field {
+  background: var(--agentify-bright-field, rgba(2,6,23,0.42));
+  border: 1px solid var(--agentify-border);
+  color: var(--agentify-primary-text);
+}
+
+.login-field::placeholder {
+  color: var(--agentify-muted-text);
+  opacity: 0.75;
+}
+
+.login-field:focus {
+  border-color: #0E7490;
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.12);
+}
+
+[data-theme="dark"] .login-field:focus {
+  border-color: #5EEAD4;
+}
+
+.login-google-button {
+  border-radius: 16px !important;
+  min-height: 52px;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.login-google-button:hover {
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.08);
+}
+
+.login-success-badge {
+  background: rgba(20,184,166,0.14);
+  color: #0F766E;
+}
+
+[data-theme="dark"] .login-success-badge {
+  background: rgba(94,234,212,0.14);
+  color: #5EEAD4;
+}
+
+.sessions-hero-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 4%, rgba(20,184,166,0.12), transparent 30%),
+    radial-gradient(circle at 90% 0%, rgba(242,184,75,0.12), transparent 30%),
+    linear-gradient(135deg, rgba(14,17,24,0.96), rgba(9,11,16,0.98)) !important;
+}
+
 .sessions-hero-card::before {
   content: "";
   position: absolute;
@@ -4185,198 +4278,22 @@ body {
   opacity: 0.72;
 }
 
-.login-topbar > *,
-.login-passport-card > *,
-.login-mission-card > *,
-.login-auth-card > *,
 .sessions-hero-card > * {
   position: relative;
   z-index: 1;
 }
 
-.login-particles {
-  opacity: 0.34;
-}
-
-.login-mission-card {
-  background:
-    linear-gradient(118deg, rgba(20,184,166,0.12), transparent 36%),
-    linear-gradient(298deg, rgba(242,184,75,0.11), transparent 34%),
-    linear-gradient(135deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025)) !important;
-}
-
-.login-shell .login-surface::before {
-  background:
-    linear-gradient(115deg, rgba(255,255,255,0.10), transparent 30%),
-    linear-gradient(298deg, rgba(20,184,166,0.10), transparent 30%),
-    linear-gradient(32deg, rgba(242,184,75,0.08), transparent 28%);
-}
-
-.login-hero-title {
-  letter-spacing: 0;
-  text-wrap: balance;
-}
-
-.login-mission-step {
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
-}
-
-.login-signal-card {
-  box-shadow: 0 14px 34px rgba(0,0,0,0.12);
-}
-
-.login-signal-card,
-.login-trust-pill {
-  backdrop-filter: blur(18px);
-}
-
-.login-signal-card,
-.login-google-button,
-.login-input,
-.login-provider-card {
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
-}
-
-.login-mission-step:hover {
-  transform: translateY(-2px);
-  border-color: rgba(20,184,166,0.24) !important;
-  background: rgba(255,255,255,0.055) !important;
-}
-
-.login-signal-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(20,184,166,0.22) !important;
-  background: rgba(255,255,255,0.06) !important;
-}
-
-.login-google-button {
-  border-radius: 18px !important;
-  min-height: 52px;
-}
-
-.login-google-button:hover,
-.login-input:focus {
-  box-shadow: 0 0 0 4px rgba(20,184,166,0.08);
-}
-
-.sessions-hero-card {
-  background:
-    radial-gradient(circle at 12% 4%, rgba(20,184,166,0.12), transparent 30%),
-    radial-gradient(circle at 90% 0%, rgba(242,184,75,0.12), transparent 30%),
-    linear-gradient(135deg, rgba(14,17,24,0.96), rgba(9,11,16,0.98)) !important;
-}
-
-[data-theme="light"] .login-shell {
-  background: var(--agentify-bright-page) !important;
-  color: var(--agentify-bright-text) !important;
-}
-
-[data-theme="light"] .login-auth-zone::before {
-  border-left-color: var(--agentify-bright-border);
-  background:
-    linear-gradient(150deg, rgba(255,255,255,0.72), transparent 42%),
-    linear-gradient(330deg, rgba(242,184,75,0.08), transparent 34%),
-    rgba(255,252,246,0.24);
-}
-
-[data-theme="light"] .login-particles {
-  opacity: 0.16;
-}
-
-[data-theme="light"] .login-topbar,
-[data-theme="light"] .login-passport-card,
-[data-theme="light"] .login-mission-card,
-[data-theme="light"] .login-auth-card,
 [data-theme="light"] .sessions-hero-card {
   border-color: var(--agentify-bright-border) !important;
-  background: var(--agentify-bright-card) !important;
+  background: var(--agentify-bright-panel) !important;
   box-shadow: var(--agentify-bright-shadow-elevated) !important;
 }
 
-[data-theme="light"] .login-shell .text-white {
-  color: var(--agentify-bright-text) !important;
-}
-
-[data-theme="light"] .login-shell .agentify-action-primary,
-[data-theme="light"] .login-shell .agentify-action-danger {
-  color: #FFFFFF !important;
-}
-
-[data-theme="light"] .login-shell .text-slate-400,
-[data-theme="light"] .login-shell .text-slate-500 {
-  color: var(--agentify-bright-muted) !important;
-}
-
-[data-theme="light"] .login-shell .text-slate-100,
-[data-theme="light"] .login-shell .text-slate-200,
-[data-theme="light"] .login-shell .text-slate-300 {
-  color: #334155 !important;
-}
-
-[data-theme="light"] .login-input {
-  color: var(--agentify-bright-text) !important;
-}
-
-[data-theme="light"] .login-shell [class*="text-cyan"] {
-  color: #0E7490 !important;
-}
-
-[data-theme="light"] .login-shell [class*="text-emerald"] {
-  color: #047857 !important;
-}
-
-[data-theme="light"] .login-shell [class*="text-amber"] {
-  color: #B7791F !important;
-}
-
-[data-theme="light"] .login-shell .bg-black\/20,
-[data-theme="light"] .login-shell .bg-black\/30 {
-  background: var(--agentify-bright-card-soft) !important;
-}
-
-[data-theme="light"] .login-mission-step,
-[data-theme="light"] .login-signal-card,
-[data-theme="light"] .login-trust-pill,
-[data-theme="light"] .login-provider-card,
-[data-theme="light"] .login-input {
-  border-color: var(--agentify-bright-border) !important;
-  background: var(--agentify-bright-card) !important;
-}
-
-[data-theme="light"] .login-signal-card:hover {
-  background: var(--agentify-bright-card-strong) !important;
-}
-
-[data-theme="light"] .login-mission-card {
-  background: var(--agentify-bright-panel) !important;
-}
-
-[data-theme="light"] .sessions-hero-card {
-  background: var(--agentify-bright-panel) !important;
-}
-
-[data-theme="light"] .login-topbar::before,
-[data-theme="light"] .login-passport-card::before,
-[data-theme="light"] .login-mission-card::before,
 [data-theme="light"] .sessions-hero-card::before {
   background:
     linear-gradient(115deg, rgba(255,255,255,0.84), transparent 30%),
     radial-gradient(circle at 80% 8%, rgba(20,184,166,0.10), transparent 34%),
     radial-gradient(circle at 8% 100%, rgba(242,184,75,0.10), transparent 34%);
-}
-
-[data-theme="light"] .login-shell .login-surface::before {
-  background:
-    linear-gradient(115deg, rgba(255,255,255,0.84), transparent 32%),
-    linear-gradient(298deg, rgba(20,184,166,0.08), transparent 30%),
-    linear-gradient(32deg, rgba(242,184,75,0.08), transparent 28%);
-}
-
-@media (max-width: 1023px) {
-  .login-auth-zone::before {
-    border-top: 1px solid rgba(148,163,184,0.14);
-    border-left: 0;
-  }
 }
 
 /* ============================================================
@@ -5544,8 +5461,7 @@ body {
   .study-side-card,
   .sessions-hero-card,
   .login-auth-card,
-  .login-mission-card,
-  .login-passport-card {
+  .login-mission-card {
     border-radius: var(--mobile-card-radius, 16px) !important;
   }
 
@@ -5669,17 +5585,8 @@ body {
     height: 128px !important;
   }
 
-  .login-shell main {
-    min-height: 100svh;
-  }
-
-  .login-shell h1 {
-    font-size: clamp(2.4rem, 13vw, 4.2rem) !important;
-    line-height: 1.02 !important;
-  }
-
-  .login-mission-step {
-    min-height: 112px;
+  .login-topbar {
+    padding-inline: 0.85rem;
   }
 }
 
