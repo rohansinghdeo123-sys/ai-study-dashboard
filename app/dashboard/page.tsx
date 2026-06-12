@@ -236,7 +236,7 @@ function DashboardDataAlert({ message, onRetry }: { message: string; onRetry: ()
 }
 
 export default function DashboardPage() {
-  const { user, userId, loading, claimsLoading, isAdmin, getAuthHeaders } = useAuth();
+  const { user, userId, loading, isAdmin, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -264,7 +264,7 @@ export default function DashboardPage() {
   }, [accuracyValue, progress.total_questions]);
 
   useEffect(() => {
-    if (loading || claimsLoading || !userId) return;
+    if (loading || !userId) return;
     let active = true;
 
     async function loadDashboard() {
@@ -328,7 +328,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [backendURL, claimsLoading, getAuthHeaders, loading, reloadToken, userId]);
+  }, [backendURL, getAuthHeaders, loading, reloadToken, userId]);
 
   const retryDashboard = () => {
     invalidateApiCache(`progress:${userId}`);
@@ -338,7 +338,7 @@ export default function DashboardPage() {
     setReloadToken((current) => current + 1);
   };
 
-  if (loading || claimsLoading) {
+  if (loading) {
     return (
       <LoadingState title="Preparing dashboard..." detail="Loading your hub, progress signals, and next best study move." />
     );

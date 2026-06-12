@@ -20,10 +20,10 @@ function getInitials(name: string) {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, profile, loading, claimsLoading, isAdmin, logout } = useAuth();
+  const { user, profile, loading, isAdmin, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const authReady = !loading && !claimsLoading;
+  const authReady = !loading;
   const isAdminRoute = pathname?.startsWith("/dashboard/internal");
   const isStudyRoute = pathname?.startsWith("/dashboard/study");
   const displayName = profile?.name || user?.displayName || user?.email?.split("@")[0] || "Student";

@@ -6,7 +6,7 @@ import { Fraunces, Manrope } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import { AlertState, AppIcon, LoadingState } from "@/components/ui/Polished";
-import { ensureBackendReady, primeBackend } from "@/lib/apiClient";
+import { primeBackend } from "@/lib/apiClient";
 
 const uiFont = Manrope({
   subsets: ["latin"],
@@ -117,27 +117,15 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    router.prefetch("/dashboard");
     primeBackend(backendURL);
-  }, [backendURL]);
+  }, [backendURL, router]);
 
   useEffect(() => {
     if (!loading && user) {
       setGranted(true);
-      let active = true;
-      let timeout: ReturnType<typeof setTimeout> | undefined;
-
-      const openDashboard = async () => {
-        await ensureBackendReady(backendURL, { timeoutMs: 14000, pollMs: 1200 }).catch(() => null);
-        if (!active) return;
-        timeout = setTimeout(() => router.push("/dashboard"), 250);
-      };
-
-      void openDashboard();
-
-      return () => {
-        active = false;
-        if (timeout) clearTimeout(timeout);
-      };
+      primeBackend(backendURL);
+      router.replace("/dashboard");
     }
   }, [backendURL, user, loading, router]);
 
