@@ -4500,6 +4500,129 @@ body {
 }
 
 /* ============================================================
+   7c. DASHBOARD COMMAND CENTER
+   ============================================================ */
+.dash-card {
+  background: rgba(255,255,255,0.74);
+  border: 1px solid rgba(255,255,255,0.85);
+  box-shadow: 0 18px 60px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] .dash-card {
+  background: rgba(13,22,38,0.66);
+  border-color: rgba(255,255,255,0.09);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.dash-space {
+  position: relative;
+  overflow: hidden;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.dash-space::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--dash-space-accent, #14B8A6);
+  opacity: 0.85;
+}
+
+.dash-space--teal { --dash-space-accent: linear-gradient(180deg, #0E7490, #14B8A6); }
+.dash-space--mint { --dash-space-accent: linear-gradient(180deg, #14B8A6, #99F6E4); }
+.dash-space--gold { --dash-space-accent: linear-gradient(180deg, #F2B84B, #B7791F); }
+.dash-space--ink  { --dash-space-accent: linear-gradient(180deg, #0F172A, #0E7490); }
+
+.dash-space:hover {
+  transform: translateY(-3px);
+  border-color: rgba(14,116,144,0.35);
+  box-shadow: 0 26px 70px rgba(14,116,144,0.16), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+[data-theme="dark"] .dash-space:hover {
+  border-color: rgba(94,234,212,0.30);
+  box-shadow: 0 26px 70px rgba(0,0,0,0.5);
+}
+
+.dash-space-icon {
+  background: rgba(14,116,144,0.10);
+  color: #0E7490;
+  transition: transform 180ms ease;
+}
+
+.dash-space:hover .dash-space-icon { transform: scale(1.06); }
+
+[data-theme="dark"] .dash-space-icon {
+  background: rgba(94,234,212,0.12);
+  color: #5EEAD4;
+}
+
+.dash-space-arrow {
+  transition: transform 180ms ease, opacity 180ms ease;
+  opacity: 0.45;
+}
+
+.dash-space:hover .dash-space-arrow { transform: translateX(4px); opacity: 1; }
+
+.dash-ticker {
+  border-top: 1px solid var(--agentify-border);
+  border-bottom: 1px solid var(--agentify-border);
+}
+
+.dash-ticker-item + .dash-ticker-item {
+  border-left: 1px solid var(--agentify-border);
+}
+
+@media (max-width: 639px) {
+  .dash-ticker-item:nth-child(3) { border-left: 0; }
+  .dash-ticker-item:nth-child(n+3) { border-top: 1px solid var(--agentify-border); }
+}
+
+.dash-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.dash-ring {
+  background:
+    radial-gradient(closest-side, var(--dash-ring-hole, #FFFFFF) 79%, transparent 80% 100%),
+    conic-gradient(#0E7490 0deg, #14B8A6 calc(var(--dash-ring-value) * 3.6deg), rgba(15,23,42,0.08) 0deg);
+}
+
+[data-theme="dark"] .dash-ring {
+  --dash-ring-hole: #0D1626;
+  background:
+    radial-gradient(closest-side, var(--dash-ring-hole) 79%, transparent 80% 100%),
+    conic-gradient(#5EEAD4 0deg, #14B8A6 calc(var(--dash-ring-value) * 3.6deg), rgba(255,255,255,0.10) 0deg);
+}
+
+.dash-bar {
+  background: rgba(15,23,42,0.07);
+}
+
+[data-theme="dark"] .dash-bar {
+  background: rgba(255,255,255,0.10);
+}
+
+.dash-row {
+  background: rgba(255,255,255,0.55);
+  border: 1px solid var(--agentify-border);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.dash-row:hover { border-color: rgba(14,116,144,0.30); }
+
+[data-theme="dark"] .dash-row {
+  background: rgba(255,255,255,0.04);
+}
+
+.dash-gold-eyebrow { color: #B7791F; }
+[data-theme="dark"] .dash-gold-eyebrow { color: #F2B84B; }
+
+/* ============================================================
    8. OPS LEARNING INTELLIGENCE WORKSPACE
    ============================================================ */
 .ops-shell {
