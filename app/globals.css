@@ -8957,20 +8957,31 @@ body {
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns,
 .dashboard-final-leaderboard .dashboard-leaderboard-row {
-  /* Student takes a bounded share of the slack; Level/Streak/XP each flex
-     (1fr) so they spread evenly across the full-width row instead of capping
-     at 10rem and clustering at the far right with a dead gap. */
+  /* Rank fixed, Student a wide flexible name column, then Level/Streak/XP as a
+     fixed-width stat trio grouped on the right. Vertical dividers (below) give
+     the wide row structure so it reads as an elegant table, not floating
+     numbers stretched across empty space. */
   grid-template-columns:
-    minmax(6.5rem, 7.5rem)
-    minmax(14rem, 1.75fr)
-    minmax(8rem, 1fr)
-    minmax(8rem, 1fr)
-    minmax(8.5rem, 1fr);
+    5.5rem
+    minmax(0, 1fr)
+    9rem
+    9rem
+    9.5rem;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns span:first-child {
   padding-inline: 0;
   text-align: center;
+}
+
+.dashboard-final-leaderboard .dashboard-leaderboard-columns span:nth-child(n + 3) {
+  text-align: center;
+}
+
+.dashboard-final-leaderboard .dashboard-leaderboard-columns span:nth-child(n + 3),
+.dashboard-final-leaderboard .dashboard-leaderboard-stat,
+.dashboard-final-leaderboard .dashboard-leaderboard-xp {
+  border-left: 1px solid var(--dashboard-final-line);
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns {
