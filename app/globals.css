@@ -8508,7 +8508,9 @@ body {
   --dashboard-final-soft: rgba(255, 255, 255, 0.52);
   --dashboard-final-line: rgba(54, 65, 83, 0.13);
   --dashboard-final-line-strong: rgba(54, 65, 83, 0.19);
-  --dashboard-final-shadow: 0 22px 70px rgba(23, 35, 58, 0.075);
+  --dashboard-final-shadow: 0 14px 42px rgba(23, 35, 58, 0.065);
+  --dashboard-muted: #526075;
+  --dashboard-faint: #687489;
   width: 100%;
   max-width: none;
   min-height: calc(100svh - 6.5rem);
@@ -8523,8 +8525,27 @@ body {
   --dashboard-final-soft: rgba(255, 255, 255, 0.045);
   --dashboard-final-line: rgba(255, 255, 255, 0.11);
   --dashboard-final-line-strong: rgba(255, 255, 255, 0.17);
-  --dashboard-final-shadow: 0 26px 86px rgba(0, 0, 0, 0.30);
+  --dashboard-final-shadow: 0 18px 52px rgba(0, 0, 0, 0.25);
+  --dashboard-muted: #B3C0D0;
+  --dashboard-faint: #91A0B4;
   color: #F7F8FA;
+}
+
+.dashboard-shell:has(.dashboard-final-overview) > main {
+  padding-top: 6rem !important;
+}
+
+.dashboard-final-data-alert {
+  align-items: stretch;
+  gap: 0.65rem;
+  padding: 0 0 0.75rem;
+}
+
+.dashboard-final-data-alert > button {
+  min-height: 2.9rem;
+  align-self: stretch;
+  border-radius: 0.8rem;
+  padding-inline: 1rem;
 }
 
 .dashboard-final-hero,
@@ -8549,21 +8570,21 @@ body {
 .dashboard-final-hero {
   position: relative;
   display: grid;
-  min-height: 12.6rem;
-  grid-template-columns: minmax(0, 1fr) minmax(22rem, 34rem);
+  min-height: 12rem;
+  grid-template-columns: minmax(0, 1fr) clamp(20rem, 25vw, 30rem);
   align-items: stretch;
   overflow: hidden;
-  border-radius: 1.4rem;
+  border-radius: 1.25rem;
   background:
-    radial-gradient(circle at 79% 22%, rgba(20, 184, 166, 0.16), transparent 19rem),
-    radial-gradient(circle at 96% 10%, rgba(242, 184, 75, 0.15), transparent 17rem),
+    radial-gradient(circle at 76% 18%, rgba(20, 184, 166, 0.13), transparent 18rem),
+    radial-gradient(circle at 96% 8%, rgba(242, 184, 75, 0.13), transparent 16rem),
     var(--dashboard-final-panel);
 }
 
 [data-theme="dark"] .dashboard-final-hero {
   background:
-    radial-gradient(circle at 79% 22%, rgba(20, 184, 166, 0.14), transparent 20rem),
-    radial-gradient(circle at 96% 10%, rgba(242, 184, 75, 0.10), transparent 18rem),
+    radial-gradient(circle at 76% 18%, rgba(20, 184, 166, 0.12), transparent 19rem),
+    radial-gradient(circle at 96% 8%, rgba(242, 184, 75, 0.09), transparent 17rem),
     linear-gradient(120deg, rgba(7, 17, 31, 0.96), rgba(8, 25, 36, 0.88));
 }
 
@@ -8591,16 +8612,17 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 2.3rem clamp(2rem, 3.5vw, 3.5rem);
+  min-width: 0;
+  padding: 2rem clamp(1.75rem, 3vw, 3rem);
 }
 
 .dashboard-final-hero-copy h1 {
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   color: var(--dashboard-text);
-  font-size: clamp(2.7rem, 4.2vw, 4.25rem);
+  font-size: clamp(2.65rem, 3.65vw, 4rem);
   font-weight: 680;
-  letter-spacing: -0.06em;
-  line-height: 0.96;
+  letter-spacing: -0.055em;
+  line-height: 1;
 }
 
 .dashboard-final-hero-copy h1 span {
@@ -8615,7 +8637,7 @@ body {
 
 .dashboard-final-hero-copy > p {
   max-width: 43rem;
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   color: var(--dashboard-muted);
   font-size: 0.94rem;
   line-height: 1.55rem;
@@ -8629,7 +8651,7 @@ body {
   justify-items: center;
   overflow: hidden;
   border-left: 1px solid var(--dashboard-final-line);
-  padding: 1.8rem 2rem;
+  padding: 1.75rem 2rem;
   text-align: center;
 }
 
@@ -8642,6 +8664,21 @@ body {
   border-radius: 50%;
   opacity: 0.72;
   transform: perspective(240px) rotateX(68deg) translateY(4.6rem);
+}
+
+.dashboard-final-hero-rank::after {
+  content: "";
+  position: absolute;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(242, 184, 75, 0.18), rgba(242, 184, 75, 0.05) 40%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .dashboard-final-hero-rank::after {
+  background: radial-gradient(circle, rgba(242, 184, 75, 0.20), rgba(20, 184, 166, 0.04) 44%, transparent 72%);
 }
 
 .dashboard-final-hero-rank > span,
@@ -8658,19 +8695,19 @@ body {
 .dashboard-final-hero-rank > strong {
   position: relative;
   z-index: 2;
-  margin-block: 0.35rem;
-  background: linear-gradient(135deg, #B7791F, #F2B84B 52%, #0E7490 130%);
+  margin-block: 0.3rem;
+  background: linear-gradient(135deg, #A96810 0%, #E2A62F 42%, #F6D179 68%, #0E7490 145%);
   background-clip: text;
   color: transparent;
-  font-size: clamp(3.2rem, 5vw, 5rem);
+  font-size: clamp(3.15rem, 4.5vw, 4.7rem);
   font-weight: 720;
   letter-spacing: -0.065em;
   line-height: 0.95;
-  text-shadow: 0 12px 34px rgba(216, 155, 43, 0.28);
+  filter: drop-shadow(0 8px 16px rgba(216, 155, 43, 0.20));
 }
 
 [data-theme="dark"] .dashboard-final-hero-rank > strong {
-  background-image: linear-gradient(135deg, #FFF1BA, #F2B84B 54%, #14B8A6 132%);
+  background-image: linear-gradient(135deg, #FFF1BA 0%, #F2B84B 54%, #14B8A6 142%);
 }
 
 .dashboard-final-rank-lines {
@@ -8698,6 +8735,7 @@ body {
 .dashboard-final-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
   gap: 0.8rem;
   margin-top: 0.8rem;
 }
@@ -8705,13 +8743,12 @@ body {
 .dashboard-final-metric {
   --metric-accent: #0E7490;
   --metric-accent-soft: rgba(14, 116, 144, 0.10);
-  display: flex;
+  display: grid;
   min-width: 0;
-  min-height: 11.8rem;
-  flex-direction: column;
-  justify-content: space-between;
-  border-radius: 1.15rem;
-  padding: 1.35rem 1.45rem 1.15rem;
+  min-height: 11.25rem;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  border-radius: 1rem;
+  padding: 1.2rem 1.25rem 1rem;
   transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
@@ -8737,15 +8774,22 @@ body {
 
 .dashboard-final-metric-heading {
   display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
+  min-width: 0;
+  grid-template-columns: 2.8rem minmax(0, 1fr);
   align-items: start;
-  gap: 1rem;
+  gap: 0.9rem;
+}
+
+.dashboard-final-metric-heading > div {
+  display: grid;
+  min-width: 0;
+  align-content: start;
 }
 
 .dashboard-final-metric-icon {
   display: grid;
-  width: 3rem;
-  height: 3rem;
+  width: 2.8rem;
+  height: 2.8rem;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--metric-accent) 32%, transparent);
   border-radius: 0.85rem;
@@ -8761,6 +8805,7 @@ body {
 
 .dashboard-final-metric-label {
   display: flex;
+  min-height: 1.4rem;
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
@@ -8784,16 +8829,17 @@ body {
 }
 
 .dashboard-final-metric-value {
-  margin-top: 0.55rem;
+  margin-top: 0.35rem;
   color: var(--dashboard-text);
-  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-size: clamp(2rem, 2.6vw, 2.55rem);
   font-weight: 680;
   letter-spacing: -0.055em;
   line-height: 1;
 }
 
 .dashboard-final-metric-helper {
-  margin-top: 0.45rem;
+  min-height: 1.15rem;
+  margin-top: 0.4rem;
   color: var(--dashboard-muted);
   font-size: 0.74rem;
   line-height: 1.15rem;
@@ -8801,7 +8847,7 @@ body {
 
 .dashboard-final-metric-progress {
   height: 0.3rem;
-  margin-top: 1.25rem;
+  margin-top: 1rem;
   overflow: hidden;
   border-radius: 999px;
   background: var(--dashboard-final-line);
@@ -8816,7 +8862,10 @@ body {
 }
 
 .dashboard-final-metric-footer {
-  margin-top: 0.8rem;
+  display: flex;
+  min-height: 1.1rem;
+  align-items: center;
+  margin-top: 0.65rem;
   color: var(--dashboard-muted);
   font-size: 0.72rem;
   line-height: 1.1rem;
@@ -8825,7 +8874,7 @@ body {
 .dashboard-final-panel {
   margin-top: 0.8rem;
   overflow: hidden;
-  border-radius: 1.15rem;
+  border-radius: 1rem;
 }
 
 .dashboard-final-panel-header {
@@ -8948,7 +8997,7 @@ body {
 }
 
 .dashboard-final-leaderboard .dashboard-final-panel-header {
-  padding: 1.7rem 2rem;
+  padding: 1.55rem 1.75rem;
 }
 
 .dashboard-final-leaderboard .dashboard-final-panel-header h2 {
@@ -8957,34 +9006,32 @@ body {
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns,
 .dashboard-final-leaderboard .dashboard-leaderboard-row {
-  /* Student takes a bounded share of the slack; Level/Streak/XP each flex
-     (1fr) so they spread evenly across the full-width row instead of capping
-     at 10rem and clustering at the far right with a dead gap. */
   grid-template-columns:
-    minmax(6.5rem, 7.5rem)
-    minmax(14rem, 1.75fr)
-    minmax(8rem, 1fr)
-    minmax(8rem, 1fr)
-    minmax(8.5rem, 1fr);
-}
-
-.dashboard-final-leaderboard .dashboard-leaderboard-columns span:first-child {
-  padding-inline: 0;
-  text-align: center;
+    6.5rem
+    minmax(20rem, 40rem)
+    repeat(3, minmax(8rem, 9rem));
+  justify-content: space-between;
+  column-gap: clamp(1.5rem, 4vw, 7rem);
+  padding-inline: clamp(1.25rem, 2.5vw, 3rem);
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns {
-  min-height: 2.85rem;
+  min-height: 2.75rem;
   border-color: var(--dashboard-final-line);
   font-size: 0.66rem;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns span {
-  padding-inline: 1.5rem;
+  padding-inline: 0;
+}
+
+.dashboard-final-leaderboard .dashboard-leaderboard-columns span:first-child,
+.dashboard-final-leaderboard .dashboard-leaderboard-columns span:nth-child(n + 3) {
+  text-align: center;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-row {
-  min-height: 7rem;
+  min-height: 6.25rem;
   border-color: var(--dashboard-final-line);
 }
 
@@ -8999,8 +9046,8 @@ body {
 
 .dashboard-final-leaderboard .dashboard-rank-cell {
   position: relative;
-  width: 5.2rem;
-  height: 4.25rem;
+  width: 4.5rem;
+  height: 3.7rem;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -9011,7 +9058,7 @@ body {
 .dashboard-final-leaderboard .dashboard-rank-cell strong {
   position: relative;
   z-index: 1;
-  font-size: 1.65rem;
+  font-size: 1.45rem;
   font-weight: 760;
   letter-spacing: -0.06em;
 }
@@ -9020,22 +9067,22 @@ body {
 .dashboard-final-leaderboard .dashboard-rank-cell::after {
   content: "";
   position: absolute;
-  top: 0.65rem;
-  width: 1.05rem;
-  height: 2.85rem;
-  border: 2px solid currentColor;
-  opacity: 0.58;
+  top: 0.55rem;
+  width: 0.9rem;
+  height: 2.55rem;
+  border: 1.5px solid currentColor;
+  opacity: 0.52;
 }
 
 .dashboard-final-leaderboard .dashboard-rank-cell::before {
-  left: 0.45rem;
+  left: 0.35rem;
   border-right: 0;
   border-radius: 100% 0 0 100%;
   transform: rotate(-8deg);
 }
 
 .dashboard-final-leaderboard .dashboard-rank-cell::after {
-  right: 0.45rem;
+  right: 0.35rem;
   border-left: 0;
   border-radius: 0 100% 100% 0;
   transform: rotate(8deg);
@@ -9051,49 +9098,49 @@ body {
 }
 
 .dashboard-final-leaderboard .dashboard-student-cell {
-  gap: 1rem;
-  padding: 1rem 1.5rem;
+  gap: 0.9rem;
+  padding: 0;
 }
 
 .dashboard-final-leaderboard .dashboard-student-avatar {
-  width: 3.65rem;
-  height: 3.65rem;
+  width: 3.15rem;
+  height: 3.15rem;
   border-radius: 50%;
   background:
     linear-gradient(145deg, rgba(14, 116, 144, 0.14), rgba(20, 184, 166, 0.08));
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.36),
     0 10px 30px rgba(14, 116, 144, 0.08);
 }
 
 .dashboard-final-leaderboard .dashboard-student-name {
-  font-size: 1rem;
+  font-size: 0.94rem;
   font-weight: 720;
 }
 
 .dashboard-final-leaderboard .dashboard-student-note {
-  margin-top: 0.38rem;
-  font-size: 0.72rem;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-stat,
 .dashboard-final-leaderboard .dashboard-leaderboard-xp {
   justify-items: center;
-  padding-inline: 1.25rem;
+  padding-inline: 0;
   text-align: center;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-level strong {
   display: grid;
-  width: 2.9rem;
-  height: 3.15rem;
+  width: 2.55rem;
+  height: 2.8rem;
   place-items: center;
   border: 1px solid rgba(20, 184, 166, 0.36);
   background: rgba(20, 184, 166, 0.09);
   color: #0E7490;
   clip-path: polygon(50% 0, 94% 22%, 94% 76%, 50% 100%, 6% 76%, 6% 22%);
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 780;
 }
 
@@ -9118,7 +9165,7 @@ body {
   align-items: center;
   gap: 0.38rem;
   color: var(--dashboard-text);
-  font-size: 1rem;
+  font-size: 0.94rem;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-streak strong svg {
@@ -9134,7 +9181,7 @@ body {
 
 .dashboard-final-leaderboard .dashboard-leaderboard-xp strong {
   color: #B7791F;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 780;
 }
 
@@ -9164,11 +9211,18 @@ body {
 
   .dashboard-final-leaderboard .dashboard-leaderboard-columns,
   .dashboard-final-leaderboard .dashboard-leaderboard-row {
-    grid-template-columns: 5.5rem minmax(11rem, 1.6fr) minmax(6.5rem, 1fr) minmax(6.5rem, 1fr) minmax(7rem, 1fr);
+    grid-template-columns: 5.5rem minmax(14rem, 1fr) 7rem 7rem 7rem;
+    justify-content: stretch;
+    column-gap: 0.75rem;
+    padding-inline: 1rem;
   }
 }
 
 @media (max-width: 767px) {
+  .dashboard-shell:has(.dashboard-final-overview) > main {
+    padding-top: 4.85rem !important;
+  }
+
   .dashboard-final-overview {
     min-height: auto;
     padding-top: 0.15rem;
@@ -9241,6 +9295,9 @@ body {
   .dashboard-final-leaderboard .dashboard-leaderboard-columns,
   .dashboard-final-leaderboard .dashboard-leaderboard-row {
     grid-template-columns: 4.5rem minmax(0, 1fr) 5.8rem;
+    justify-content: stretch;
+    column-gap: 0;
+    padding-inline: 0.5rem;
   }
 
   .dashboard-final-leaderboard .dashboard-leaderboard-columns span {
