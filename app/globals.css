@@ -8308,7 +8308,7 @@ body {
 }
 
 .study-mode-fullscreen {
-  padding-top: 5.8rem !important;
+  padding-top: 8rem !important;
 }
 
 .study-revision-toolbar {
@@ -8385,6 +8385,26 @@ body {
 .study-revision-selectors .study-select:focus {
   border-color: rgba(14, 116, 144, 0.45);
   box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.10);
+}
+
+[data-theme="light"] .study-revision-selectors .study-select {
+  color-scheme: light;
+}
+
+[data-theme="light"] .study-revision-selectors .study-select option {
+  background: #FFFFFF;
+  color: #17233A;
+}
+
+[data-theme="dark"] .study-revision-selectors .study-select {
+  color-scheme: dark;
+  background: #0B1524;
+  color: #F7F8FA;
+}
+
+[data-theme="dark"] .study-revision-selectors .study-select option {
+  background: #0B1524;
+  color: #F7F8FA;
 }
 
 .study-revision-controls .study-panel-tabs {
@@ -8466,7 +8486,7 @@ body {
   }
 
   .study-mode-fullscreen {
-    padding-top: 9rem !important;
+    padding-top: 9.5rem !important;
   }
 
   .study-revision-selectors {
