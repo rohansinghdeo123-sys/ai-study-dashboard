@@ -362,7 +362,7 @@ function HubTile({
 
 function DashboardDataAlert({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="mx-auto flex w-full max-w-[1510px] flex-col gap-2 px-1 pt-2 sm:flex-row sm:items-center">
+    <div className="dashboard-final-data-alert flex w-full flex-col gap-2 px-1 pt-2 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <AlertState tone="amber" message={message} />
       </div>
@@ -389,11 +389,12 @@ function LeaderboardRow({
   const isCurrent = entry.user_id === currentUserId;
   const studentName = getStudentName(entry, currentUserId, currentDisplayName);
   const level = Math.floor(entry.xp / 100) + 1;
+  const levelLabel = getLevelLabel(level);
 
   return (
     <li className="dashboard-leaderboard-row" data-current={isCurrent ? "true" : "false"}>
       <div className="dashboard-rank-cell" data-rank={entry.rank <= 3 ? entry.rank : undefined}>
-        {entry.rank}
+        <strong>{entry.rank}</strong>
       </div>
       <div className="dashboard-student-cell">
         <span className="dashboard-student-avatar" aria-hidden="true">
@@ -414,11 +415,14 @@ function LeaderboardRow({
       </div>
       <div className="dashboard-leaderboard-stat dashboard-leaderboard-level">
         <strong>{level}</strong>
-        <span>Level</span>
+        <span>{levelLabel}</span>
       </div>
       <div className="dashboard-leaderboard-stat dashboard-leaderboard-streak">
-        <strong>{entry.streak}</strong>
-        <span>Days</span>
+        <strong>
+          <AppIcon name="clock" />
+          {entry.streak} d
+        </strong>
+        <span>Current</span>
       </div>
       <div className="dashboard-leaderboard-xp">
         <strong>{formatNumber(entry.xp)}</strong>
