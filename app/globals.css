@@ -7739,7 +7739,10 @@ body {
 .dashboard-leaderboard-columns,
 .dashboard-leaderboard-row {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) 6.5rem 6.5rem 7rem;
+  /* Student takes a bounded share of the slack; Level/Streak/XP each flex so
+     they spread evenly across a full-width row instead of clustering at the
+     far right with a dead gap after the student name. */
+  grid-template-columns: 4.5rem minmax(10rem, 1.5fr) minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(7.5rem, 1fr);
   align-items: center;
 }
 
@@ -7757,6 +7760,12 @@ body {
 
 .dashboard-leaderboard-columns span {
   padding-inline: 1rem;
+}
+
+/* Rank header centered to sit on the same axis as the centered rank badge. */
+.dashboard-leaderboard-columns span:first-child {
+  padding-inline: 0;
+  text-align: center;
 }
 
 .dashboard-leaderboard-columns span:nth-child(n + 3) {
@@ -8666,7 +8675,7 @@ body {
   font-weight: 720;
   letter-spacing: -0.065em;
   line-height: 0.95;
-  text-shadow: 0 14px 36px rgba(216, 155, 43, 0.16);
+  text-shadow: 0 12px 34px rgba(216, 155, 43, 0.28);
 }
 
 [data-theme="dark"] .dashboard-final-hero-rank > strong {
