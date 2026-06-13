@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/Polished";
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   useEffect,
@@ -328,7 +329,6 @@ const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: App
 const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
   { id: "coach", label: "Chat", detail: "Ask doubts and continue your study conversation.", icon: "study" },
   { id: "revision", label: "Revision", detail: "Open notes, explanations, key points, and artifacts.", icon: "book" },
-  { id: "exam", label: "Exam", detail: "Generate grounded MCQs and probable questions.", icon: "check" },
 ];
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
@@ -1827,7 +1827,6 @@ function CoachHistorySidebar({
   onNewChat,
   onCollapse,
   onRevision,
-  onExam,
   showArchived,
   onToggleArchived,
   onRename,
@@ -1844,7 +1843,6 @@ function CoachHistorySidebar({
   onNewChat: () => void;
   onCollapse: () => void;
   onRevision: () => void;
-  onExam: () => void;
   showArchived: boolean;
   onToggleArchived: () => void;
   onRename: (conversation: StudyConversation) => void;
@@ -1886,10 +1884,10 @@ function CoachHistorySidebar({
             <AppIcon name="book" />
             <span>Revision workspace</span>
           </button>
-          <button type="button" onClick={onExam} className="study-sidebar-action is-muted">
+          <Link href="/dashboard/exam" className="study-sidebar-action is-muted">
             <AppIcon name="check" />
-            <span>Exam workspace</span>
-          </button>
+            <span>Open Exam Mode</span>
+          </Link>
         </div>
       </div>
 
@@ -3463,7 +3461,6 @@ export default function StudyPage() {
                   setMode("revision");
                   setActiveRevisionPanel("summary");
                 }}
-                onExam={() => setMode("exam")}
                 showArchived={showArchivedChats}
                 onToggleArchived={() => setShowArchivedChats((current) => !current)}
                 onRename={renameConversation}

@@ -18,10 +18,10 @@ function getInitials(name: string) {
 
 function getPageMeta(pathname: string | null) {
   if (pathname?.startsWith("/dashboard/study")) {
-    return { title: "Study Lab", subtitle: "AI tutoring, revision, and exam practice" };
+    return { title: "Study Lab", subtitle: "AI tutoring, explanations, and revision" };
   }
-  if (pathname?.startsWith("/dashboard/sessions")) {
-    return { title: "Sessions", subtitle: "Learning records, replay, and performance review" };
+  if (pathname?.startsWith("/dashboard/exam")) {
+    return { title: "Exam Mode", subtitle: "Grounded assessment, probable questions, and review" };
   }
   if (pathname?.startsWith("/dashboard/progress")) {
     return { title: "Analytics", subtitle: "Mastery, momentum, and weak-topic intelligence" };

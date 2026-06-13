@@ -79,14 +79,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Link
           href="/dashboard"
           aria-label="AgentifyAI learning hub"
-          className="dashboard-brand-lockup dashboard-nav-card flex items-center gap-2.5 rounded-2xl border border-white/70 bg-white/78 px-3 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition hover:-translate-y-0.5"
+          className="auth-brand-lockup dashboard-brand-lockup group inline-flex items-center gap-3.5"
         >
-          <ChatThinkingLogo state="thinking" size={42} className="dashboard-brand-logo" label="AgentifyAI" />
+          <ChatThinkingLogo state="thinking" size={46} className="auth-brand-logo dashboard-brand-logo" label="AgentifyAI" />
           <span className="block">
-            <span className="dashboard-brand-name block text-base font-extrabold leading-4 tracking-[-0.035em] text-slate-950">
+            <span className="auth-brand-name dashboard-brand-name block text-base font-extrabold leading-4 tracking-[-0.035em]">
               Agentify<span>AI</span>
             </span>
-            <span className="dashboard-brand-tagline mt-1 hidden text-[10px] font-semibold text-slate-500 sm:block">Learning hub</span>
+            <span className="auth-brand-tagline dashboard-brand-tagline mt-1 hidden text-[10px] font-semibold sm:block">
+              Your personal study agent
+            </span>
           </span>
         </Link>
       </div>

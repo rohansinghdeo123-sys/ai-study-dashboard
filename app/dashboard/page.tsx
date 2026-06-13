@@ -24,6 +24,18 @@ interface LeaderboardEntry {
   streak: number;
 }
 
+interface SessionRecord {
+  id: string;
+  subject: string;
+  topic: string;
+  total_questions: number;
+  score: number;
+  xp_earned: number;
+  time_spent_seconds: number;
+  session_type: string;
+  completed_at: string;
+}
+
 function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -70,6 +82,36 @@ function normalizeLeaderboard(value: unknown): LeaderboardEntry[] {
       };
     })
     .filter((entry): entry is LeaderboardEntry => entry !== null);
+}
+
+function normalizeSessions(value: unknown): SessionRecord[] {
+  const list = Array.isArray(value)
+    ? value
+    : isRecord(value) && Array.isArray(value.sessions)
+      ? value.sessions
+      : [];
+
+  return list
+    .map((item, index): SessionRecord | null => {
+      if (!isRecord(item)) return null;
+      return {
+        id: String(item.id ?? item.session_id ?? `${item.topic || "session"}-${index}`),
+        subject: String(item.subject || "Study"),
+        topic: String(item.topic || "Learning session"),
+        total_questions: Math.max(0, toNumber(item.total_questions ?? item.questions)),
+        score: Math.max(0, toNumber(item.score ?? item.correct)),
+        xp_earned: Math.max(0, toNumber(item.xp_earned ?? item.xp)),
+        time_spent_seconds: Math.max(0, toNumber(item.time_spent_seconds ?? item.duration_seconds)),
+        session_type: String(item.session_type || item.type || "study"),
+        completed_at: String(item.completed_at ?? item.completedAt ?? item.timestamp ?? item.date ?? item.createdAt ?? ""),
+      };
+    })
+    .filter((session): session is SessionRecord => session !== null)
+    .sort((left, right) => {
+      const leftTime = new Date(left.completed_at).getTime();
+      const rightTime = new Date(right.completed_at).getTime();
+      return (Number.isFinite(rightTime) ? rightTime : 0) - (Number.isFinite(leftTime) ? leftTime : 0);
+    });
 }
 
 function buildLeaderboard({
@@ -129,6 +171,37 @@ function getStudentName(entry: LeaderboardEntry, currentUserId: string, currentD
   return entry.display_name || entry.name || `Student ${entry.rank}`;
 }
 
+function getSessionAccuracy(session: SessionRecord) {
+  if (!session.total_questions) return 0;
+  return Math.round((session.score / session.total_questions) * 100);
+}
+
+function getSessionLabel(session: SessionRecord) {
+  const type = session.session_type.toLowerCase();
+  if (type.includes("exam")) return "Exam Mode";
+  if (type.includes("mission")) return "Autonomous Mission";
+  return "Study practice";
+}
+
+function getSessionDestination(session: SessionRecord) {
+  const topic = encodeURIComponent(session.topic);
+  const type = session.session_type.toLowerCase();
+  if (type.includes("exam")) return `/dashboard/exam?topic=${topic}`;
+  if (type.includes("mission")) return `/dashboard/mission?topic=${topic}`;
+  return `/dashboard/study?topic=${topic}`;
+}
+
+function formatSessionDate(value: string) {
+  const date = new Date(value);
+  if (!value || Number.isNaN(date.getTime())) return "Recently";
+  return date.toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function MetricCard({
   label,
   value,
@@ -152,7 +225,7 @@ function MetricCard({
   );
 }
 
-type HubIconName = "dashboard" | "study" | "mission" | "sessions";
+type HubIconName = "dashboard" | "study" | "mission" | "exam";
 
 function HubIcon({ name }: { name: HubIconName }) {
   if (name === "dashboard") {
@@ -188,9 +261,8 @@ function HubIcon({ name }: { name: HubIconName }) {
 
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-6 w-6">
-      <path d="M12 8v5l3 2" />
-      <path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" />
-      <path d="M4.5 5.5v4h4" />
+      <path d="M8 3.5h8A1.5 1.5 0 0 1 17.5 5v14A1.5 1.5 0 0 1 16 20.5H8A1.5 1.5 0 0 1 6.5 19V5A1.5 1.5 0 0 1 8 3.5Z" />
+      <path d="M9 8h6M9 12h2M13 12h2M9 16h2M13 16h2" />
     </svg>
   );
 }
@@ -320,6 +392,36 @@ function LeaderboardRow({
   );
 }
 
+function RecentSessionRow({ session }: { session: SessionRecord }) {
+  const sessionAccuracy = getSessionAccuracy(session);
+
+  return (
+    <li className="dashboard-session-row">
+      <div className="dashboard-session-icon" aria-hidden="true">
+        {session.session_type.toLowerCase().includes("exam") ? "E" : session.session_type.toLowerCase().includes("mission") ? "M" : "S"}
+      </div>
+      <div className="dashboard-session-main">
+        <div>
+          <span>{getSessionLabel(session)}</span>
+          <h3>{session.topic.replace(/_/g, " ")}</h3>
+        </div>
+        <p>{session.subject} / {formatSessionDate(session.completed_at)}</p>
+      </div>
+      <div className="dashboard-session-stat">
+        <strong>{sessionAccuracy}%</strong>
+        <span>Accuracy</span>
+      </div>
+      <div className="dashboard-session-stat">
+        <strong>+{session.xp_earned}</strong>
+        <span>XP</span>
+      </div>
+      <Link href={getSessionDestination(session)} className="dashboard-session-action">
+        Revise
+      </Link>
+    </li>
+  );
+}
+
 export default function DashboardPage() {
   const { user, userId, loading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
@@ -333,6 +435,8 @@ export default function DashboardPage() {
     streak: 0,
   });
   const [leaderboardSource, setLeaderboardSource] = useState<unknown>([]);
+  const [sessions, setSessions] = useState<SessionRecord[]>([]);
+  const [sessionsError, setSessionsError] = useState("");
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
@@ -357,6 +461,7 @@ export default function DashboardPage() {
   const currentRank = rankedLeaderboard.find((entry) => entry.user_id === userId);
   const topLeaderboard = rankedLeaderboard.slice(0, 10);
   const currentOutsideTop = currentRank && currentRank.rank > 10 ? currentRank : null;
+  const recentSessions = sessions.slice(0, 3);
 
   const focusMessage = useMemo(() => {
     if (!progress.total_questions) return "Start with one short mission today.";
@@ -376,7 +481,7 @@ export default function DashboardPage() {
         await ensureBackendReady(backendURL, { timeoutMs: 12000, pollMs: 1200 }).catch(() => null);
         const headers = await getAuthHeaders();
         const forceFresh = reloadToken > 0;
-        const [progressJson, leaderboardJson] = await Promise.all([
+        const [progressJson, leaderboardJson, sessionsJson] = await Promise.all([
           apiJson<unknown>(`${backendURL}/get-progress/${userId}`, {
             headers,
             cacheKey: `progress:${userId}`,
@@ -393,12 +498,22 @@ export default function DashboardPage() {
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
+          apiJson<unknown>(`${backendURL}/sessions/${userId}`, {
+            headers,
+            cacheKey: `sessions:${userId}`,
+            cacheTtlMs: 30000,
+            forceFresh,
+            retries: 1,
+            timeoutMs: 7000,
+          }).catch(() => null),
         ]);
 
         if (!active) return;
         const normalizedProgress = normalizeProgress(progressJson);
         setProgress(normalizedProgress);
         setLeaderboardSource(leaderboardJson ?? []);
+        setSessions(normalizeSessions(sessionsJson));
+        setSessionsError(sessionsJson === null ? "Recent learning could not refresh right now." : "");
         setDataError(
           progressJson === null || leaderboardJson === null
             ? "Some progress signals could not refresh. Showing your latest available results."
@@ -421,6 +536,7 @@ export default function DashboardPage() {
   const retryDashboard = () => {
     invalidateApiCache(`progress:${userId}`);
     invalidateApiCache("leaderboard");
+    invalidateApiCache(`sessions:${userId}`);
     setReloadToken((current) => current + 1);
   };
 
@@ -462,7 +578,7 @@ export default function DashboardPage() {
                 href="/dashboard/study"
                 eyebrow="Ask"
                 title="Study Page"
-                description="Ask doubts, get examples, create revision notes, and practice exam-style questions."
+                description="Ask doubts, get examples, create revision notes, and build focused recall tools."
                 helper="Best when you are stuck"
                 action="Ask a doubt"
                 icon="study"
@@ -479,13 +595,13 @@ export default function DashboardPage() {
                 tone="mission"
               />
               <HubTile
-                href="/dashboard/sessions"
-                eyebrow="Review"
-                title="Sessions"
-                description="Replay past attempts, review answers, and learn from mistakes before the next test."
-                helper="Best after practice"
-                action="Review work"
-                icon="sessions"
+                href="/dashboard/exam"
+                eyebrow="Test"
+                title="Exam Mode"
+                description="Generate grounded MCQs and probable questions, submit once, and review every mistake."
+                helper="Best for focused exam preparation"
+                action="Start exam"
+                icon="exam"
                 tone="gold"
               />
             </div>
@@ -532,6 +648,36 @@ export default function DashboardPage() {
         <MetricCard label="Accuracy" value={`${accuracyValue}%`} helper="Across recorded questions" accent="teal" />
         <MetricCard label="Streak" value={`${progress.streak} d`} helper="Current learning streak" accent="gold" />
         <MetricCard label="XP" value={formatNumber(progress.xp)} helper={loadingData ? "Updating…" : "Total experience earned"} accent="mint" />
+      </section>
+
+      <section className="dashboard-recent-panel" aria-labelledby="recent-learning-title">
+        <div className="dashboard-recent-header">
+          <div>
+            <p className="dashboard-section-kicker">Recent Learning</p>
+            <h2 id="recent-learning-title">Continue from your latest work</h2>
+            <p>Only your three newest attempts are shown here, with the result that matters and a direct route back to practice.</p>
+          </div>
+          <span>{recentSessions.length} recent</span>
+        </div>
+
+        {sessionsError ? <div className="dashboard-recent-notice">{sessionsError}</div> : null}
+
+        {recentSessions.length ? (
+          <ol className="dashboard-session-list">
+            {recentSessions.map((session) => <RecentSessionRow key={session.id} session={session} />)}
+          </ol>
+        ) : (
+          <div className="dashboard-session-empty">
+            <div>
+              <h3>No completed attempts yet</h3>
+              <p>Your latest Exam Mode and Autonomous Mission results will appear here automatically.</p>
+            </div>
+            <div>
+              <Link href="/dashboard/exam">Start Exam Mode</Link>
+              <Link href="/dashboard/mission">Start a mission</Link>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="dashboard-leaderboard-panel" aria-labelledby="leaderboard-title">

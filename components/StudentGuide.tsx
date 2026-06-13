@@ -23,15 +23,15 @@ const GUIDE_ITEMS: GuideItem[] = [
     step: "02",
     title: "Study Page",
     href: "/dashboard/study",
-    detail: "Ask doubts, get simple explanations, generate revision notes, make key points, and practice exam questions.",
+    detail: "Ask doubts, get simple explanations, generate revision notes, and make key points.",
     bestFor: "Learning a topic when something feels confusing.",
   },
   {
     step: "03",
-    title: "Sessions",
-    href: "/dashboard/sessions",
-    detail: "Review previous attempts, replay mistakes, and continue learning from a topic you already practiced.",
-    bestFor: "Improving after a quiz or practice attempt.",
+    title: "Exam Mode",
+    href: "/dashboard/exam",
+    detail: "Generate grounded MCQs and probable questions, submit once, then review every explanation.",
+    bestFor: "Testing readiness without leaving the connected course material.",
   },
   {
     step: "04",
@@ -161,10 +161,10 @@ export default function StudentGuide({ isAdmin = false }: { isAdmin?: boolean })
                 <h3 className="mt-3 text-xl font-semibold text-slate-950">A good study flow</h3>
                 <div className="mt-5 space-y-3">
                   {[
-                    ["1", "Start with Study Lab", "Ask a doubt, request revision notes, or generate exam practice."],
+                    ["1", "Start with Study Lab", "Ask a doubt or turn a chapter into focused revision notes."],
                     ["2", "Use Revision", "Turn the selected chapter into summary, explanations, and key points."],
-                    ["3", "Check Sessions", "Review what you got wrong and try again later."],
-                    ["4", "Open Dashboard", "See if your XP, streak, and accuracy improved."],
+                    ["3", "Open Exam Mode", "Test the topic and review each mistake immediately."],
+                    ["4", "Open Dashboard", "See recent attempts, XP, streak, accuracy, and rank."],
                   ].map(([step, title, detail]) => (
                     <div key={step} className="student-guide-soft-card flex gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#0E7490] text-xs font-bold text-white">

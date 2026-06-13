@@ -19,7 +19,7 @@ type MenuItem = {
 const BASE_MENU: MenuItem[] = [
   { name: "Dashboard", href: "/dashboard", abbr: "D", description: "Command center" },
   { name: "Study Lab", href: "/dashboard/study", abbr: "S", description: "Personal AI tutor" },
-  { name: "Sessions", href: "/dashboard/sessions", abbr: "R", description: "Replay and records" },
+  { name: "Exam Mode", href: "/dashboard/exam", abbr: "E", description: "Grounded assessment" },
   { name: "Analytics", href: "/dashboard/progress", abbr: "A", description: "Learning intelligence" },
 ];
 
