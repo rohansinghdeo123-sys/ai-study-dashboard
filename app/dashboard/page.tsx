@@ -555,7 +555,7 @@ export default function DashboardPage() {
               Good to see you, {firstName}
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-500">
-              Pick one section from the hub. Each card opens a focused learning space, and the Guide button explains the whole app.
+              Pick one section from the hub. Each card opens a focused learning space built around one clear student task.
             </p>
           </div>
 

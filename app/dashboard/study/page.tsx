@@ -1825,6 +1825,8 @@ function CoachHistorySidebar({
   onCollapse,
   showArchived,
   onToggleArchived,
+  onClearHistory,
+  canClearHistory,
   onRename,
   onPin,
   onArchive,
@@ -1839,6 +1841,8 @@ function CoachHistorySidebar({
   onCollapse: () => void;
   showArchived: boolean;
   onToggleArchived: () => void;
+  onClearHistory: () => void;
+  canClearHistory: boolean;
   onRename: (conversation: StudyConversation) => void;
   onPin: (conversation: StudyConversation) => void;
   onArchive: (conversation: StudyConversation) => void;
@@ -1901,11 +1905,17 @@ function CoachHistorySidebar({
       </div>
 
       <div className="study-sidebar-footer">
-        <AppIcon name="spark" />
-        <div>
-          <p>Lesson memory active</p>
-          <span>Follow-up context stays connected</span>
+        <div className="study-sidebar-memory">
+          <AppIcon name="spark" />
+          <div>
+            <p>Lesson memory active</p>
+            <span>Follow-up context stays connected</span>
+          </div>
         </div>
+        <button type="button" onClick={onClearHistory} disabled={!canClearHistory} className="study-sidebar-clear">
+          <AppIcon name="trash" />
+          <span>Clear history</span>
+        </button>
       </div>
     </aside>
   );
@@ -1983,7 +1993,6 @@ export default function StudyPage() {
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
-  const needsTopicPicker = mode === "revision" || mode === "exam";
   const activeRevisionTool = activeRevisionPanel === "artifact" ? null : REVISION_TOOLS.find((tool) => tool.id === activeRevisionPanel) || REVISION_TOOLS[0];
   const progressPercent = examQuestions.length ? Math.round((answeredExamCount / examQuestions.length) * 100) : 0;
   const revisionHasState = Boolean(
@@ -2012,16 +2021,6 @@ export default function StudyPage() {
       : mode === "exam"
         ? examHasState
         : false;
-  const clearCurrentWorkspaceLabel = mode === "revision"
-    ? "Clear revision workspace"
-    : mode === "exam"
-      ? "Clear exam workspace"
-      : "Clear history";
-  const clearCurrentWorkspaceDescription = mode === "revision"
-    ? "Reset generated revision notes and artifacts for this workspace."
-    : mode === "exam"
-      ? "Reset generated questions, answers, and current exam attempt."
-      : "Delete Study Lab chat messages and conversations while keeping profile, XP, and analytics untouched.";
   const filteredConversations = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
     return conversations.filter((conversation) => {
@@ -3324,63 +3323,6 @@ export default function StudyPage() {
             ))}
           </div>
 
-          <div className="study-header-actions flex flex-col gap-2 lg:flex-row lg:items-center">
-            {needsTopicPicker ? (
-              <div className="study-topic-strip flex min-w-0 flex-col gap-2 rounded-2xl border border-slate-200/70 bg-white/58 p-1.5 sm:flex-row">
-                <select
-                  value={selectedChapter.value}
-                  aria-label="Chapter"
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    setChapter(next);
-                    setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
-                  }}
-                  className="study-select min-h-10 rounded-xl border border-transparent bg-white/75 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
-                >
-                  {CHAPTERS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={selectedTopicValue}
-                  aria-label="Topic"
-                  onChange={(event) => setTopic(event.target.value)}
-                  className="study-select min-h-10 rounded-xl border border-transparent bg-white/75 px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0E7490]"
-                >
-                  {selectedChapter.topics.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
-            <div className="flex gap-2">
-              {mode !== "coach" ? (
-                <IconButton
-                  label="Start a new chat"
-                  icon="plus"
-                  onClick={startNewChat}
-                  className="min-h-10 rounded-xl bg-white/78 px-3 py-2 text-slate-700"
-                >
-                  New
-                </IconButton>
-              ) : null}
-              <IconButton
-                label={clearCurrentWorkspaceLabel}
-                icon="trash"
-                onClick={clearCurrentWorkspace}
-                disabled={!canClearCurrentWorkspace}
-                className="study-clear-history-button min-h-10 rounded-xl border-rose-200 bg-rose-50 px-3 py-2 text-rose-600 hover:border-rose-300 hover:bg-rose-100"
-                title={clearCurrentWorkspaceDescription}
-              >
-                {mode === "coach" ? "Clear history" : "Reset"}
-              </IconButton>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -3398,6 +3340,8 @@ export default function StudyPage() {
                 onCollapse={() => setSidebarOpen(false)}
                 showArchived={showArchivedChats}
                 onToggleArchived={() => setShowArchivedChats((current) => !current)}
+                onClearHistory={clearCurrentWorkspace}
+                canClearHistory={canClearCurrentWorkspace}
                 onRename={renameConversation}
                 onPin={togglePinConversation}
                 onArchive={toggleArchiveConversation}
@@ -3498,19 +3442,60 @@ export default function StudyPage() {
         {mode === "revision" ? (
           <div className="study-mode-fullscreen flex min-h-0 flex-1 flex-col overflow-hidden p-0">
             <div className="study-focus-workspace flex min-h-0 flex-1 flex-col gap-4">
-              <div className="study-focus-toolbar rounded-[1.7rem] border border-white/60 bg-white/76 p-3 shadow-[0_18px_54px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#0E7490]">Revision canvas</p>
-                    <h2 className="mt-1 text-2xl font-semibold text-slate-950">{selectedTopic.label}</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">Open one focused workspace at a time so notes and artifacts have room to breathe.</p>
-                    <ol className="study-revision-path mt-3 flex flex-wrap items-center gap-2" aria-label="Revision setup">
-                      <li><span>1</span> Chemistry</li>
-                      <li><span>2</span> {selectedChapter.label}</li>
-                      <li><span>3</span> {selectedTopic.label}</li>
-                      <li><span>4</span> Choose a revision tool</li>
-                    </ol>
+              <div className="study-focus-toolbar study-revision-toolbar">
+                <button
+                  type="button"
+                  onClick={clearCurrentWorkspace}
+                  disabled={!canClearCurrentWorkspace}
+                  className="study-revision-reset"
+                >
+                  <AppIcon name="trash" />
+                  <span>Reset revision</span>
+                </button>
+                <div className="study-revision-heading">
+                  <p className="dashboard-section-kicker">Revision Canvas</p>
+                  <h2>{selectedTopic.label}</h2>
+                  <p>Select the exact chapter and section, then choose one focused revision format.</p>
+                </div>
+
+                <div className="study-revision-controls" aria-label="Revision setup">
+                  <div className="study-revision-selectors">
+                    <label>
+                      <span>Chapter</span>
+                      <select
+                        value={selectedChapter.value}
+                        aria-label="Chapter"
+                        onChange={(event) => {
+                          const next = event.target.value;
+                          setChapter(next);
+                          setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
+                        }}
+                        className="study-select"
+                      >
+                        {CHAPTERS.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <span>Section</span>
+                      <select
+                        value={selectedTopicValue}
+                        aria-label="Section"
+                        onChange={(event) => setTopic(event.target.value)}
+                        className="study-select"
+                      >
+                        {selectedChapter.topics.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
+
                   <RevisionModeTabs activeTab={activeRevisionPanel} onChange={setActiveRevisionPanel} />
                 </div>
               </div>
