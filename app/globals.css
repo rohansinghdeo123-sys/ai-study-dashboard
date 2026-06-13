@@ -7739,10 +7739,7 @@ body {
 .dashboard-leaderboard-columns,
 .dashboard-leaderboard-row {
   display: grid;
-  /* Student takes a bounded share of the slack; Level/Streak/XP each flex so
-     they spread evenly across a full-width row instead of clustering at the
-     far right with a dead gap after the student name. */
-  grid-template-columns: 4.5rem minmax(10rem, 1.5fr) minmax(7rem, 1fr) minmax(7rem, 1fr) minmax(7.5rem, 1fr);
+  grid-template-columns: 4rem minmax(0, 1fr) 6.5rem 6.5rem 7rem;
   align-items: center;
 }
 
@@ -7760,12 +7757,6 @@ body {
 
 .dashboard-leaderboard-columns span {
   padding-inline: 1rem;
-}
-
-/* Rank header centered to sit on the same axis as the centered rank badge. */
-.dashboard-leaderboard-columns span:first-child {
-  padding-inline: 0;
-  text-align: center;
 }
 
 .dashboard-leaderboard-columns span:nth-child(n + 3) {
@@ -8966,12 +8957,20 @@ body {
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns,
 .dashboard-final-leaderboard .dashboard-leaderboard-row {
+  /* Student takes a bounded share of the slack; Level/Streak/XP each flex
+     (1fr) so they spread evenly across the full-width row instead of capping
+     at 10rem and clustering at the far right with a dead gap. */
   grid-template-columns:
-    minmax(7rem, 8.5rem)
-    minmax(20rem, 1fr)
-    minmax(8rem, 10rem)
-    minmax(8rem, 10rem)
-    minmax(8rem, 10rem);
+    minmax(6.5rem, 7.5rem)
+    minmax(14rem, 1.75fr)
+    minmax(8rem, 1fr)
+    minmax(8rem, 1fr)
+    minmax(8.5rem, 1fr);
+}
+
+.dashboard-final-leaderboard .dashboard-leaderboard-columns span:first-child {
+  padding-inline: 0;
+  text-align: center;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns {
@@ -9165,7 +9164,7 @@ body {
 
   .dashboard-final-leaderboard .dashboard-leaderboard-columns,
   .dashboard-final-leaderboard .dashboard-leaderboard-row {
-    grid-template-columns: 6.5rem minmax(16rem, 1fr) 7rem 7rem 7rem;
+    grid-template-columns: 5.5rem minmax(11rem, 1.6fr) minmax(6.5rem, 1fr) minmax(6.5rem, 1fr) minmax(7rem, 1fr);
   }
 }
 
