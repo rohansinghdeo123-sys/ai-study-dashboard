@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/Polished";
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   useEffect,
@@ -1748,15 +1747,14 @@ function ModeButton({
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
+      data-active={active ? "true" : "false"}
       onClick={onClick}
       title={detail}
-      className={`study-mode-button inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-3 text-left text-sm font-semibold transition ${
-        active
-          ? "bg-white text-[#0E7490] shadow-[0_10px_26px_rgba(14,116,144,0.10)]"
-          : "text-slate-500 hover:bg-white/70 hover:text-slate-900"
-      }`}
+      className="study-mode-button"
     >
-      <span className={`study-mode-icon flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${active ? "bg-[#0E7490] text-white" : "bg-slate-100 text-slate-500"}`}>
+      <span className="study-mode-icon">
         <AppIcon name={icon} className="h-3.5 w-3.5" />
       </span>
       <span>{label}</span>
@@ -1821,12 +1819,10 @@ function CoachHistorySidebar({
   conversations,
   currentConversationId,
   search,
-  coachName,
   onSearchChange,
   onSelect,
   onNewChat,
   onCollapse,
-  onRevision,
   showArchived,
   onToggleArchived,
   onRename,
@@ -1837,12 +1833,10 @@ function CoachHistorySidebar({
   conversations: StudyConversation[];
   currentConversationId: string;
   search: string;
-  coachName: string;
   onSearchChange: (value: string) => void;
   onSelect: (conversation: StudyConversation) => void;
   onNewChat: () => void;
   onCollapse: () => void;
-  onRevision: () => void;
   showArchived: boolean;
   onToggleArchived: () => void;
   onRename: (conversation: StudyConversation) => void;
@@ -1852,20 +1846,14 @@ function CoachHistorySidebar({
 }) {
   return (
     <aside className="study-coach-sidebar flex min-h-0 shrink-0 flex-col" aria-label="Tutor chat history">
-      <div className="study-sidebar-topline flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="study-sidebar-mark">A</span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">AgentifyAI</p>
-            <p className="truncate text-[11px]">Tutor with {coachName}</p>
-          </div>
-        </div>
+      <div className="study-sidebar-toolbar flex items-center justify-between gap-3">
+        <p>Chat history</p>
         <button type="button" className="study-sidebar-icon" onClick={onCollapse} title="Hide history sidebar" aria-label="Hide history sidebar">
           <AppIcon name="panelLeft" />
         </button>
       </div>
 
-      <div className="mt-5 grid gap-1.5">
+      <div className="mt-3 grid gap-1.5">
         <button type="button" onClick={onNewChat} className="study-sidebar-action">
           <AppIcon name="plus" />
           <span>New chat</span>
@@ -1877,21 +1865,7 @@ function CoachHistorySidebar({
         </label>
       </div>
 
-      <div className="mt-6">
-        <p className="study-sidebar-section-label">Study spaces</p>
-        <div className="mt-2 grid gap-1">
-          <button type="button" onClick={onRevision} className="study-sidebar-action is-muted">
-            <AppIcon name="book" />
-            <span>Revision workspace</span>
-          </button>
-          <Link href="/dashboard/exam" className="study-sidebar-action is-muted">
-            <AppIcon name="check" />
-            <span>Open Exam Mode</span>
-          </Link>
-        </div>
-      </div>
-
-      <div className="mt-6 flex min-h-0 flex-1 flex-col">
+      <div className="mt-5 flex min-h-0 flex-1 flex-col">
         <div className="flex items-center justify-between gap-2 px-2">
           <p className="study-sidebar-section-label !px-0">{showArchived ? "Archived chats" : "Chats"}</p>
           <button type="button" onClick={onToggleArchived} className="text-[11px] font-semibold text-slate-400 transition hover:text-[#0E7490]">
@@ -3272,22 +3246,6 @@ export default function StudyPage() {
                   </div>
                 ) : null}
               </div>
-              <button
-                type="button"
-                onClick={() => setMode("revision")}
-                className="study-chat-pill"
-              >
-                <AppIcon name="book" className="h-3.5 w-3.5" />
-                <span>Revision</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("exam")}
-                className="study-chat-pill"
-              >
-                <AppIcon name="check" className="h-3.5 w-3.5" />
-                <span>Exam</span>
-              </button>
             </div>
 
             <div className="flex shrink-0 items-center gap-2">
@@ -3345,27 +3303,9 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="study-lab-shell flex h-full min-h-0 w-full flex-col overflow-hidden bg-white/70 backdrop-blur-2xl">
-      <section className="study-lab-header border-b border-white/45 bg-white/64 px-3 py-2.5 backdrop-blur-2xl sm:px-5">
+    <div className="study-lab-shell flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <section className="study-lab-header px-3 py-2.5 sm:px-5">
         <div data-mode={mode} className="study-workspace-bar flex w-full flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="study-workspace-identity flex min-w-0 items-center gap-3">
-            <span className="study-workspace-mark flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-black text-white shadow-[0_18px_42px_rgba(14,116,144,0.18)]">
-              A
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-slate-950">
-                {mode === "coach" ? `AI Tutor with ${coachName}` : mode === "revision" ? "Revision Workspace" : mode === "exam" ? "Exam Workspace" : "Study History"}
-              </p>
-              <p className="truncate text-[11px] font-medium text-slate-500">
-                {mode === "coach"
-                  ? "Full-screen chat workspace"
-                  : mode === "history"
-                    ? `${conversations.length} saved conversations`
-                    : `${selectedChapter.label} / ${selectedTopic.label}`}
-              </p>
-            </div>
-          </div>
-
           <div className="study-mode-segment" role="tablist" aria-label="Study mode">
             {STUDY_MODES.map((item) => (
               <ModeButton
@@ -3452,15 +3392,10 @@ export default function StudyPage() {
                 conversations={filteredConversations}
                 currentConversationId={currentConversationId}
                 search={historySearch}
-                coachName={coachName}
                 onSearchChange={setHistorySearch}
                 onSelect={resumeConversation}
                 onNewChat={startNewChat}
                 onCollapse={() => setSidebarOpen(false)}
-                onRevision={() => {
-                  setMode("revision");
-                  setActiveRevisionPanel("summary");
-                }}
                 showArchived={showArchivedChats}
                 onToggleArchived={() => setShowArchivedChats((current) => !current)}
                 onRename={renameConversation}
@@ -3486,14 +3421,11 @@ export default function StudyPage() {
               <div className="study-chat-scroll flex-1 overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
               {messages.length === 0 ? (
                 <div className="study-empty-state study-chat-landing flex min-h-[68svh] w-full flex-col items-center justify-center text-center">
-                  <div className="study-chat-orb" aria-hidden="true">
-                    <ChatThinkingLogo state="thinking" size={112} className="study-landing-logo" label="" />
-                  </div>
-                  <h2 className="mt-6 text-3xl font-semibold text-slate-950 sm:text-5xl">
+                  <h2 className="text-3xl font-semibold text-slate-950 sm:text-5xl">
                     What should we learn today?
                   </h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt from your study material, request a simple explanation, or prepare for an exam.
+                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt from your study material or request a simple explanation.
                   </p>
 
                   <div className="mt-8 w-full">
