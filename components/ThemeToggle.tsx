@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type ThemeMode = "dark" | "light";
+const THEME_CHANGE_EVENT = "agentify-theme-change";
 
 function getStoredTheme(): ThemeMode {
   if (typeof window === "undefined") return "light";
@@ -14,16 +15,22 @@ function applyTheme(theme: ThemeMode) {
   localStorage.setItem("agentify-theme", theme);
 }
 
-export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
-  const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme());
+function subscribeToTheme(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(THEME_CHANGE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(THEME_CHANGE_EVENT, onStoreChange);
+  };
+}
 
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
+  const theme = useSyncExternalStore(subscribeToTheme, getStoredTheme, () => "light");
 
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
+    applyTheme(nextTheme);
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   };
 
   return (

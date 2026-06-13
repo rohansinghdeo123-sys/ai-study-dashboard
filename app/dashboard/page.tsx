@@ -15,34 +15,13 @@ interface ProgressState {
   streak: number;
 }
 
-interface SessionRecord {
-  id?: string | number;
-  topic?: string;
-  subject?: string;
-  score?: number;
-  correct?: number;
-  total_questions?: number;
-  questions?: number;
-  xp_earned?: number;
-  xp?: number;
-  timestamp?: string;
-  date?: string;
-  createdAt?: string;
-}
-
 interface LeaderboardEntry {
+  rank: number;
   user_id: string;
   display_name?: string;
   name?: string;
-  email?: string;
-  phone?: string;
-  xp?: number;
-}
-
-interface WeakArea {
-  topic?: string;
-  accuracy?: number;
-  value?: number;
+  xp: number;
+  streak: number;
 }
 
 function toNumber(value: unknown, fallback = 0) {
@@ -66,22 +45,63 @@ function normalizeProgress(value: unknown): ProgressState {
   };
 }
 
-function normalizeSessions(value: unknown): SessionRecord[] {
-  if (Array.isArray(value)) return value.filter(Boolean) as SessionRecord[];
-  if (isRecord(value) && Array.isArray(value.sessions)) return value.sessions.filter(Boolean) as SessionRecord[];
+function getLeaderboardRows(value: unknown) {
+  if (Array.isArray(value)) return value;
+  if (!isRecord(value)) return [];
+  if (Array.isArray(value.leaderboard)) return value.leaderboard;
+  if (Array.isArray(value.rankings)) return value.rankings;
+  if (Array.isArray(value.users)) return value.users;
   return [];
 }
 
 function normalizeLeaderboard(value: unknown): LeaderboardEntry[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter(Boolean).map((item) => item as LeaderboardEntry).slice(0, 3);
+  return getLeaderboardRows(value)
+    .map((item, index): LeaderboardEntry | null => {
+      if (!isRecord(item)) return null;
+      const userId = String(item.user_id ?? item.uid ?? item.id ?? item.terminal_id ?? "");
+      if (!userId) return null;
+      return {
+        rank: toNumber(item.rank, index + 1),
+        user_id: userId,
+        display_name: item.display_name ? String(item.display_name) : undefined,
+        name: item.name ? String(item.name) : undefined,
+        xp: toNumber(item.xp ?? item.total_xp),
+        streak: toNumber(item.streak),
+      };
+    })
+    .filter((entry): entry is LeaderboardEntry => entry !== null);
 }
 
-function normalizeWeakAreas(value: unknown): WeakArea[] {
-  const source = isRecord(value) ? value : {};
-  const weak = Array.isArray(source.weak_areas) ? source.weak_areas : [];
-  const heatmap = Array.isArray(source.topic_heatmap) ? source.topic_heatmap : [];
-  return [...weak, ...heatmap].filter(Boolean).slice(0, 3) as WeakArea[];
+function buildLeaderboard({
+  source,
+  currentUserId,
+  currentDisplayName,
+  progress,
+}: {
+  source: unknown;
+  currentUserId: string;
+  currentDisplayName: string;
+  progress: ProgressState;
+}) {
+  const entries = new Map<string, LeaderboardEntry>();
+
+  for (const entry of normalizeLeaderboard(source)) {
+    entries.set(entry.user_id, entry);
+  }
+
+  const current = entries.get(currentUserId);
+  entries.set(currentUserId, {
+    rank: current?.rank ?? entries.size + 1,
+    user_id: currentUserId,
+    display_name: currentDisplayName,
+    name: current?.name,
+    xp: Math.max(current?.xp ?? 0, progress.xp),
+    streak: Math.max(current?.streak ?? 0, progress.streak),
+  });
+
+  return [...entries.values()]
+    .sort((a, b) => b.xp - a.xp || b.streak - a.streak)
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
 function accuracy(progress: ProgressState) {
@@ -89,29 +109,46 @@ function accuracy(progress: ProgressState) {
   return Math.round((progress.total_correct / progress.total_questions) * 100);
 }
 
-function formatTopic(value?: string) {
-  return (value || "Study topic").replace(/_/g, " ");
-}
-
-function getSessionDate(session: SessionRecord) {
-  const raw = session.timestamp || session.date || session.createdAt;
-  if (!raw) return "No date";
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.getTime())) return "No date";
-  return parsed.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
-}
-
-function getDisplayName(entry: LeaderboardEntry, fallback: string) {
-  return entry.display_name || entry.name || entry.email || entry.phone || fallback;
-}
-
-function MetricCard({ label, value, helper }: { label: string; value: string | number; helper: string }) {
+function getInitials(value: string) {
   return (
-    <div className="rounded-[1.5rem] border border-white/60 bg-white/70 p-5 shadow-[0_18px_55px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
-      <p className="mt-2 text-sm text-slate-500">{helper}</p>
-    </div>
+    value
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "AI"
+  );
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("en-IN").format(value);
+}
+
+function getStudentName(entry: LeaderboardEntry, currentUserId: string, currentDisplayName: string) {
+  if (entry.user_id === currentUserId) return currentDisplayName;
+  return entry.display_name || entry.name || `Student ${entry.rank}`;
+}
+
+function MetricCard({
+  label,
+  value,
+  helper,
+  accent,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  accent: "teal" | "gold" | "cyan" | "mint";
+}) {
+  return (
+    <article className="dashboard-core-metric" data-accent={accent}>
+      <div className="dashboard-core-metric-top">
+        <p>{label}</p>
+        <span aria-hidden="true" />
+      </div>
+      <p className="dashboard-core-metric-value">{value}</p>
+      <p className="dashboard-core-metric-helper">{helper}</p>
+    </article>
   );
 }
 
@@ -183,8 +220,8 @@ function HubTile({
       : tone === "mission"
         ? "from-[#ECFDF5] via-[#E5FAF3] to-[#CDEFE5] text-[#075F54]"
         : tone === "study"
-        ? "from-[#F1FBFF] via-[#E7F8F6] to-[#C9F0EC] text-[#0B5363]"
-        : "from-[#EAFDFC] via-[#DFF8F3] to-[#D5F0EA] text-[#0E5264]";
+          ? "from-[#F1FBFF] via-[#E7F8F6] to-[#C9F0EC] text-[#0B5363]"
+          : "from-[#EAFDFC] via-[#DFF8F3] to-[#D5F0EA] text-[#0E5264]";
 
   return (
     <Link
@@ -235,26 +272,91 @@ function DashboardDataAlert({ message, onRetry }: { message: string; onRetry: ()
   );
 }
 
+function LeaderboardRow({
+  entry,
+  currentUserId,
+  currentDisplayName,
+}: {
+  entry: LeaderboardEntry;
+  currentUserId: string;
+  currentDisplayName: string;
+}) {
+  const isCurrent = entry.user_id === currentUserId;
+  const studentName = getStudentName(entry, currentUserId, currentDisplayName);
+  const level = Math.floor(entry.xp / 100) + 1;
+
+  return (
+    <li className="dashboard-leaderboard-row" data-current={isCurrent ? "true" : "false"}>
+      <div className="dashboard-rank-cell" data-rank={entry.rank <= 3 ? entry.rank : undefined}>
+        {entry.rank}
+      </div>
+      <div className="dashboard-student-cell">
+        <span className="dashboard-student-avatar" aria-hidden="true">
+          {getInitials(studentName)}
+        </span>
+        <span className="min-w-0">
+          <span className="dashboard-student-name">
+            {studentName}
+            {isCurrent ? <span className="dashboard-you-label">You</span> : null}
+          </span>
+          <span className="dashboard-student-mobile-meta">
+            Level {level} · {entry.streak} day streak
+          </span>
+        </span>
+      </div>
+      <div className="dashboard-leaderboard-stat dashboard-leaderboard-level">
+        <strong>{level}</strong>
+        <span>Level</span>
+      </div>
+      <div className="dashboard-leaderboard-stat dashboard-leaderboard-streak">
+        <strong>{entry.streak}</strong>
+        <span>Days</span>
+      </div>
+      <div className="dashboard-leaderboard-xp">
+        <strong>{formatNumber(entry.xp)}</strong>
+        <span>XP</span>
+      </div>
+    </li>
+  );
+}
+
 export default function DashboardPage() {
-  const { user, userId, loading, isAdmin, getAuthHeaders } = useAuth();
+  const { user, userId, loading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
-  const [progress, setProgress] = useState<ProgressState>({ total_tests: 0, total_questions: 0, total_correct: 0, xp: 0, streak: 0 });
-  const [sessions, setSessions] = useState<SessionRecord[]>([]);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [weakAreas, setWeakAreas] = useState<WeakArea[]>([]);
+  const [progress, setProgress] = useState<ProgressState>({
+    total_tests: 0,
+    total_questions: 0,
+    total_correct: 0,
+    xp: 0,
+    streak: 0,
+  });
+  const [leaderboardSource, setLeaderboardSource] = useState<unknown>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
 
-  const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
+  const displayName = user?.displayName || user?.email?.split("@")[0] || user?.phoneNumber || "Student";
   const firstName = displayName.split(" ")[0] || "Student";
-  // Keep /dashboard as the four-space hub; the detailed dashboard is opt-in.
   const showOverview = searchParams.get("workspace") === "overview";
   const accuracyValue = accuracy(progress);
   const level = Math.floor(progress.xp / 100) + 1;
-  const recentSessions = sessions.slice(0, 3);
+
+  const rankedLeaderboard = useMemo(
+    () =>
+      buildLeaderboard({
+        source: leaderboardSource,
+        currentUserId: userId,
+        currentDisplayName: displayName,
+        progress,
+      }),
+    [displayName, leaderboardSource, progress, userId],
+  );
+
+  const currentRank = rankedLeaderboard.find((entry) => entry.user_id === userId);
+  const topLeaderboard = rankedLeaderboard.slice(0, 10);
+  const currentOutsideTop = currentRank && currentRank.rank > 10 ? currentRank : null;
 
   const focusMessage = useMemo(() => {
     if (!progress.total_questions) return "Start with one short mission today.";
@@ -274,18 +376,10 @@ export default function DashboardPage() {
         await ensureBackendReady(backendURL, { timeoutMs: 12000, pollMs: 1200 }).catch(() => null);
         const headers = await getAuthHeaders();
         const forceFresh = reloadToken > 0;
-        const [progressJson, sessionsJson, leaderboardJson, analyticsJson] = await Promise.all([
+        const [progressJson, leaderboardJson] = await Promise.all([
           apiJson<unknown>(`${backendURL}/get-progress/${userId}`, {
             headers,
             cacheKey: `progress:${userId}`,
-            cacheTtlMs: 30000,
-            forceFresh,
-            retries: 1,
-            timeoutMs: 7000,
-          }).catch(() => null),
-          apiJson<unknown>(`${backendURL}/sessions/${userId}`, {
-            headers,
-            cacheKey: `sessions:${userId}`,
             cacheTtlMs: 30000,
             forceFresh,
             retries: 1,
@@ -299,26 +393,20 @@ export default function DashboardPage() {
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
-          apiJson<unknown>(`${backendURL}/analytics/${userId}`, {
-            headers,
-            cacheKey: `analytics:${userId}`,
-            cacheTtlMs: 30000,
-            forceFresh,
-            retries: 1,
-            timeoutMs: 7000,
-          }).catch(() => null),
         ]);
 
         if (!active) return;
-        const missingSignals = [progressJson, sessionsJson, leaderboardJson, analyticsJson].filter((value) => value === null).length;
-        setDataError(missingSignals ? "Some progress signals could not refresh. Showing the latest available learning view." : "");
-        setProgress(normalizeProgress(progressJson));
-        setSessions(normalizeSessions(sessionsJson));
-        setLeaderboard(normalizeLeaderboard(leaderboardJson));
-        setWeakAreas(normalizeWeakAreas(analyticsJson));
+        const normalizedProgress = normalizeProgress(progressJson);
+        setProgress(normalizedProgress);
+        setLeaderboardSource(leaderboardJson ?? []);
+        setDataError(
+          progressJson === null || leaderboardJson === null
+            ? "Some progress signals could not refresh. Showing your latest available results."
+            : "",
+        );
       } catch {
         if (!active) return;
-        setDataError("Progress signals could not refresh. Showing a safe learning view.");
+        setDataError("Progress could not refresh. Showing a safe learning view.");
       } finally {
         if (active) setLoadingData(false);
       }
@@ -332,16 +420,12 @@ export default function DashboardPage() {
 
   const retryDashboard = () => {
     invalidateApiCache(`progress:${userId}`);
-    invalidateApiCache(`sessions:${userId}`);
-    invalidateApiCache(`analytics:${userId}`);
     invalidateApiCache("leaderboard");
     setReloadToken((current) => current + 1);
   };
 
   if (loading) {
-    return (
-      <LoadingState title="Preparing dashboard..." detail="Loading your hub, progress signals, and next best study move." />
-    );
+    return <LoadingState title="Preparing dashboard…" detail="Loading your learning hub and progress." />;
   }
 
   if (!showOverview) {
@@ -368,8 +452,8 @@ export default function DashboardPage() {
                 href="/dashboard?workspace=overview"
                 eyebrow="Overview"
                 title="Dashboard"
-                description="Check your level, XP, accuracy, streak, weak areas, and today's best next step."
-                helper="Best for a quick check-in"
+                description="See your level, accuracy, streak, XP, and current student rank."
+                helper="Your essential progress view"
                 action="View progress"
                 icon="dashboard"
                 tone="teal"
@@ -411,156 +495,90 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Today&apos;s focus</p>
             <p className="mt-3 text-2xl font-semibold text-slate-950">{focusMessage}</p>
             <div className="mx-auto mt-5 h-2 max-w-xl rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6,#F2B84B)] transition-all" style={{ width: `${Math.max(6, Math.min(100, accuracyValue || 6))}%` }} />
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6,#F2B84B)] transition-[width]"
+                style={{ width: `${Math.max(6, Math.min(100, accuracyValue || 6))}%` }}
+              />
             </div>
           </div>
         </section>
-
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-5">
+    <div className="dashboard-overview mx-auto w-full max-w-[1180px]" aria-busy={loadingData}>
       {dataError ? <DashboardDataAlert message={dataError} onRetry={retryDashboard} /> : null}
-      <section className="rounded-[2rem] border border-white/70 bg-white/74 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+
+      <header className="dashboard-overview-header">
+        <div className="min-w-0">
+          <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
+            <Link href="/dashboard">Learning Hub</Link>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">Dashboard</span>
+          </nav>
+          <h1>Student Progress</h1>
+          <p>Your essential learning signals and student rank, all in one focused view.</p>
+        </div>
+        <div className="dashboard-rank-summary" aria-label={`Your rank is ${currentRank?.rank ?? 1} of ${rankedLeaderboard.length}`}>
+          <span>Your Rank</span>
+          <strong>#{currentRank?.rank ?? 1}</strong>
+          <small>of {rankedLeaderboard.length} students</small>
+        </div>
+      </header>
+
+      <section className="dashboard-core-metrics" aria-label="Core progress metrics" aria-live="polite">
+        <MetricCard label="Level" value={`${level}`} helper="Based on total XP" accent="cyan" />
+        <MetricCard label="Accuracy" value={`${accuracyValue}%`} helper="Across recorded questions" accent="teal" />
+        <MetricCard label="Streak" value={`${progress.streak} d`} helper="Current learning streak" accent="gold" />
+        <MetricCard label="XP" value={formatNumber(progress.xp)} helper={loadingData ? "Updating…" : "Total experience earned"} accent="mint" />
+      </section>
+
+      <section className="dashboard-leaderboard-panel" aria-labelledby="leaderboard-title">
+        <div className="dashboard-leaderboard-header">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">Dashboard workspace</p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-950">Learning overview</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-              A focused overview of progress, weak areas, rankings, and the next best study move.
-            </p>
+            <p className="dashboard-section-kicker">Global Rankings</p>
+            <h2 id="leaderboard-title">Student Leaderboard</h2>
+            <p>Ranked by total XP. Streak breaks ties between students with equal XP.</p>
           </div>
-          <Link href="/dashboard" className="agentify-action agentify-action-secondary rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
-            Back to hub
-          </Link>
+          <div className="dashboard-leaderboard-count">
+            <span aria-hidden="true" />
+            {rankedLeaderboard.length} students
+          </div>
         </div>
+
+        <div className="dashboard-leaderboard-columns" aria-hidden="true">
+          <span>Rank</span>
+          <span>Student</span>
+          <span>Level</span>
+          <span>Streak</span>
+          <span>XP</span>
+        </div>
+
+        <ol className="dashboard-leaderboard-list">
+          {topLeaderboard.map((entry) => (
+            <LeaderboardRow
+              key={entry.user_id}
+              entry={entry}
+              currentUserId={userId}
+              currentDisplayName={displayName}
+            />
+          ))}
+        </ol>
+
+        {currentOutsideTop ? (
+          <div className="dashboard-current-position">
+            <span>Your Position</span>
+            <ol>
+              <LeaderboardRow
+                entry={currentOutsideTop}
+                currentUserId={userId}
+                currentDisplayName={displayName}
+              />
+            </ol>
+          </div>
+        ) : null}
       </section>
-
-      <section className="grid gap-4 md:grid-cols-4">
-        <MetricCard label="Level" value={`LVL ${level}`} helper="Based on XP earned" />
-        <MetricCard label="Accuracy" value={`${accuracyValue}%`} helper="All recorded questions" />
-        <MetricCard label="Streak" value={`${progress.streak}d`} helper="Learning momentum" />
-        <MetricCard label="XP" value={progress.xp} helper={loadingData ? "Updating..." : "Current progress"} />
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">How to use AgentifyAI</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-950">Three simple moves</h2>
-            </div>
-            <Link href="/dashboard/mission" className="agentify-action rounded-full bg-[#0E7490]/10 px-3 py-2 text-xs font-semibold text-[#0E7490]">
-              Guided start
-            </Link>
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            {[
-              ["1", "Ask a doubt", "Use Study when you want a clear explanation."],
-              ["2", "Run mission", "Use Mission when you want the app to choose the next step."],
-              ["3", "Review result", "Use Sessions to learn from wrong answers."],
-            ].map(([step, title, body]) => (
-              <div key={step} className="rounded-3xl border border-slate-200 bg-white/65 p-4">
-                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#0E7490] text-sm font-bold text-white">{step}</span>
-                <h3 className="mt-4 text-sm font-semibold text-slate-950">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Weak areas</p>
-          <h2 className="mt-2 text-xl font-semibold text-slate-950">What to repair next</h2>
-          <div className="mt-5 space-y-3">
-            {weakAreas.length ? weakAreas.map((area, index) => {
-              const score = Math.round(toNumber(area.accuracy ?? area.value));
-              return (
-                <div key={`${area.topic}-${index}`} className="rounded-2xl border border-slate-200 bg-white/65 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold capitalize text-slate-900">{formatTopic(area.topic)}</p>
-                    <span className="text-sm font-bold text-[#0E7490]">{score}%</span>
-                  </div>
-                  <div className="mt-3 h-1.5 rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-[#14B8A6]" style={{ width: `${Math.max(5, Math.min(100, score))}%` }} />
-                  </div>
-                </div>
-              );
-            }) : (
-              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm leading-6 text-slate-500">
-                Complete one mission to unlock weak-topic signals.
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-[2rem] border border-white/60 bg-white/62 p-5 shadow-[0_18px_60px_rgba(15,23,42,0.07)] backdrop-blur-2xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Advanced tools</p>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Kept out of the main path so students can focus, but still available when needed.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/dashboard/progress" className="agentify-action agentify-action-secondary rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-[#0E7490]/30 hover:text-[#0E7490]">
-              Analytics
-            </Link>
-            {isAdmin ? (
-              <Link href="/dashboard/internal/admin" className="agentify-action rounded-full border border-amber-300/30 bg-amber-300/10 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-300/15">
-                Admin Console
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Recent sessions</p>
-          <div className="mt-5 space-y-3">
-            {recentSessions.length ? recentSessions.map((session, index) => (
-              <div key={session.id ?? index} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/65 p-4">
-                <div>
-                  <p className="text-sm font-semibold capitalize text-slate-900">{formatTopic(session.topic)}</p>
-                  <p className="mt-1 text-xs text-slate-500">{getSessionDate(session)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-[#0E7490]">{toNumber(session.score ?? session.correct)}/{toNumber(session.total_questions ?? session.questions)}</p>
-                  <p className="mt-1 text-xs text-slate-500">{toNumber(session.xp_earned ?? session.xp)} XP</p>
-                </div>
-              </div>
-            )) : (
-              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500">
-                No sessions yet. Start a mission to create your first record.
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-[2rem] border border-white/60 bg-white/72 p-5 shadow-[0_22px_80px_rgba(15,23,42,0.08)] backdrop-blur-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Leaderboard</p>
-          <div className="mt-5 space-y-3">
-            {leaderboard.length ? leaderboard.map((entry, index) => (
-              <div key={entry.user_id || index} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/65 p-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-sm font-bold text-[#0E7490]">#{index + 1}</span>
-                  <p className="text-sm font-semibold text-slate-900">{getDisplayName(entry, `Student ${index + 1}`)}</p>
-                </div>
-                <p className="text-sm font-bold text-[#0E7490]">{toNumber(entry.xp)} XP</p>
-              </div>
-            )) : (
-              <p className="rounded-2xl border border-slate-200 bg-white/65 p-4 text-sm text-slate-500">
-                Rankings will appear after students earn XP.
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-
     </div>
   );
 }

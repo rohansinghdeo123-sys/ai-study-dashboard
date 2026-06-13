@@ -3,6 +3,7 @@
 import ThemeToggle from "@/components/ThemeToggle";
 import StudentGuide from "@/components/StudentGuide";
 import BackendStatus from "@/components/BackendStatus";
+import ChatThinkingLogo from "@/components/brand/ChatThinkingLogo";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -77,14 +78,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="fixed left-4 top-4 z-50 flex items-center gap-2 sm:left-6">
         <Link
           href="/dashboard"
-          className="dashboard-nav-card flex items-center gap-2 rounded-2xl border border-white/70 bg-white/78 px-3 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition hover:-translate-y-0.5"
+          aria-label="AgentifyAI learning hub"
+          className="dashboard-brand-lockup dashboard-nav-card flex items-center gap-2.5 rounded-2xl border border-white/70 bg-white/78 px-3 py-2 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-2xl transition hover:-translate-y-0.5"
         >
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#0F172A,#0E7490,#14B8A6)] text-sm font-bold text-white">
-            A
-          </span>
-          <span className="hidden sm:block">
-            <span className="block text-sm font-semibold leading-4 text-slate-950">AgentifyAI</span>
-            <span className="block text-[11px] text-slate-500">Home hub</span>
+          <ChatThinkingLogo state="thinking" size={42} className="dashboard-brand-logo" label="AgentifyAI" />
+          <span className="block">
+            <span className="dashboard-brand-name block text-base font-extrabold leading-4 tracking-[-0.035em] text-slate-950">
+              Agentify<span>AI</span>
+            </span>
+            <span className="dashboard-brand-tagline mt-1 hidden text-[10px] font-semibold text-slate-500 sm:block">Learning hub</span>
           </span>
         </Link>
       </div>

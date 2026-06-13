@@ -16,7 +16,7 @@ const GUIDE_ITEMS: GuideItem[] = [
     step: "01",
     title: "Dashboard",
     href: "/dashboard?workspace=overview",
-    detail: "See your level, XP, streak, accuracy, weak areas, recent sessions, and the next study move.",
+    detail: "See your level, accuracy, streak, XP, and current student leaderboard rank.",
     bestFor: "Checking where you stand today.",
   },
   {
