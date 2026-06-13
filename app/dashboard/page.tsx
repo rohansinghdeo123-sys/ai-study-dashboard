@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { AlertState, LoadingState } from "@/components/ui/Polished";
+import { AlertState, AppIcon, LoadingState, type AppIconName } from "@/components/ui/Polished";
 import { apiJson, ensureBackendReady, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -166,6 +166,13 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en-IN").format(value);
 }
 
+function getLevelLabel(level: number) {
+  if (level >= 10) return "Master";
+  if (level >= 7) return "Advanced";
+  if (level >= 4) return "Intermediate";
+  return "Beginner";
+}
+
 function getStudentName(entry: LeaderboardEntry, currentUserId: string, currentDisplayName: string) {
   if (entry.user_id === currentUserId) return currentDisplayName;
   return entry.display_name || entry.name || `Student ${entry.rank}`;
@@ -206,21 +213,47 @@ function MetricCard({
   label,
   value,
   helper,
+  footer,
+  progressValue,
+  icon,
+  badge,
   accent,
 }: {
   label: string;
   value: string;
   helper: string;
+  footer: string;
+  progressValue: number;
+  icon: AppIconName;
+  badge?: string;
   accent: "teal" | "gold" | "cyan" | "mint";
 }) {
   return (
-    <article className="dashboard-core-metric" data-accent={accent}>
-      <div className="dashboard-core-metric-top">
-        <p>{label}</p>
-        <span aria-hidden="true" />
+    <article className="dashboard-final-metric" data-accent={accent}>
+      <div className="dashboard-final-metric-heading">
+        <span className="dashboard-final-metric-icon" aria-hidden="true">
+          <AppIcon name={icon} />
+        </span>
+        <div>
+          <div className="dashboard-final-metric-label">
+            <p>{label}</p>
+            {badge ? <span>{badge}</span> : null}
+          </div>
+          <p className="dashboard-final-metric-value">{value}</p>
+          <p className="dashboard-final-metric-helper">{helper}</p>
+        </div>
       </div>
-      <p className="dashboard-core-metric-value">{value}</p>
-      <p className="dashboard-core-metric-helper">{helper}</p>
+      <div
+        className="dashboard-final-metric-progress"
+        role="progressbar"
+        aria-label={`${label} progress`}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progressValue)}
+      >
+        <span style={{ width: `${Math.max(2, Math.min(100, progressValue))}%` }} />
+      </div>
+      <p className="dashboard-final-metric-footer">{footer}</p>
     </article>
   );
 }
@@ -329,7 +362,7 @@ function HubTile({
 
 function DashboardDataAlert({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-2 px-1 pt-2 sm:flex-row sm:items-center sm:px-4">
+    <div className="mx-auto flex w-full max-w-[1510px] flex-col gap-2 px-1 pt-2 sm:flex-row sm:items-center">
       <div className="min-w-0 flex-1">
         <AlertState tone="amber" message={message} />
       </div>
@@ -371,8 +404,11 @@ function LeaderboardRow({
             {studentName}
             {isCurrent ? <span className="dashboard-you-label">You</span> : null}
           </span>
+          <span className="dashboard-student-note">
+            {isCurrent ? "Keep building your learning momentum." : `${formatNumber(entry.xp)} experience points`}
+          </span>
           <span className="dashboard-student-mobile-meta">
-            Level {level} · {entry.streak} day streak
+            Level {level} - {entry.streak} day streak
           </span>
         </span>
       </div>
@@ -446,6 +482,9 @@ export default function DashboardPage() {
   const showOverview = searchParams.get("workspace") === "overview";
   const accuracyValue = accuracy(progress);
   const level = Math.floor(progress.xp / 100) + 1;
+  const levelProgress = progress.xp % 100;
+  const nextLevelXp = level * 100;
+  const levelLabel = getLevelLabel(level);
 
   const rankedLeaderboard = useMemo(
     () =>
@@ -461,6 +500,7 @@ export default function DashboardPage() {
   const currentRank = rankedLeaderboard.find((entry) => entry.user_id === userId);
   const topLeaderboard = rankedLeaderboard.slice(0, 10);
   const currentOutsideTop = currentRank && currentRank.rank > 10 ? currentRank : null;
+  const studentCountLabel = `${rankedLeaderboard.length} ${rankedLeaderboard.length === 1 ? "student" : "students"}`;
   const recentSessions = sessions.slice(0, 3);
 
   const focusMessage = useMemo(() => {
@@ -623,41 +663,90 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dashboard-overview mx-auto w-full max-w-[1180px]" aria-busy={loadingData}>
+    <div className="dashboard-overview dashboard-final-overview mx-auto w-full" aria-busy={loadingData}>
       {dataError ? <DashboardDataAlert message={dataError} onRetry={retryDashboard} /> : null}
 
-      <header className="dashboard-overview-header">
-        <div className="min-w-0">
+      <header className="dashboard-final-hero">
+        <div className="dashboard-final-hero-copy">
           <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
             <Link href="/dashboard">Learning Hub</Link>
             <span aria-hidden="true">/</span>
             <span aria-current="page">Dashboard</span>
           </nav>
-          <h1>Student Progress</h1>
+          <h1>
+            Student <span>Progress</span>
+          </h1>
           <p>Your essential learning signals and student rank, all in one focused view.</p>
         </div>
-        <div className="dashboard-rank-summary" aria-label={`Your rank is ${currentRank?.rank ?? 1} of ${rankedLeaderboard.length}`}>
+        <div
+          className="dashboard-final-hero-rank"
+          aria-label={`Your rank is ${currentRank?.rank ?? 1} of ${rankedLeaderboard.length}`}
+        >
           <span>Your Rank</span>
           <strong>#{currentRank?.rank ?? 1}</strong>
-          <small>of {rankedLeaderboard.length} students</small>
+          <small>of {studentCountLabel}</small>
+          <div className="dashboard-final-rank-lines" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </div>
         </div>
       </header>
 
-      <section className="dashboard-core-metrics" aria-label="Core progress metrics" aria-live="polite">
-        <MetricCard label="Level" value={`${level}`} helper="Based on total XP" accent="cyan" />
-        <MetricCard label="Accuracy" value={`${accuracyValue}%`} helper="Across recorded questions" accent="teal" />
-        <MetricCard label="Streak" value={`${progress.streak} d`} helper="Current learning streak" accent="gold" />
-        <MetricCard label="XP" value={formatNumber(progress.xp)} helper={loadingData ? "Updating…" : "Total experience earned"} accent="mint" />
+      <section className="dashboard-final-metrics" aria-label="Core progress metrics" aria-live="polite">
+        <MetricCard
+          label="Level"
+          value={`${level}`}
+          helper="Based on total XP"
+          footer={`${formatNumber(Math.max(0, nextLevelXp - progress.xp))} XP to Level ${level + 1}`}
+          progressValue={levelProgress}
+          icon="spark"
+          badge={levelLabel}
+          accent="cyan"
+        />
+        <MetricCard
+          label="Accuracy"
+          value={`${accuracyValue}%`}
+          helper="Across recorded questions"
+          footer={`${formatNumber(progress.total_correct)} / ${formatNumber(progress.total_questions)} correct`}
+          progressValue={accuracyValue}
+          icon="mission"
+          accent="teal"
+        />
+        <MetricCard
+          label="Streak"
+          value={`${progress.streak} d`}
+          helper="Current learning streak"
+          footer={progress.streak ? "Keep the streak alive today." : "Complete a session to start your streak."}
+          progressValue={Math.min(100, progress.streak * 14)}
+          icon="clock"
+          accent="gold"
+        />
+        <MetricCard
+          label="XP"
+          value={formatNumber(progress.xp)}
+          helper={loadingData ? "Updating..." : "Experience points"}
+          footer={progress.xp ? "Every completed activity grows your XP." : "Keep learning to earn XP."}
+          progressValue={levelProgress}
+          icon="spark"
+          accent="mint"
+        />
       </section>
 
-      <section className="dashboard-recent-panel" aria-labelledby="recent-learning-title">
-        <div className="dashboard-recent-header">
+      <section className="dashboard-final-panel dashboard-final-recent" aria-labelledby="recent-learning-title">
+        <div className="dashboard-final-panel-header">
           <div>
             <p className="dashboard-section-kicker">Recent Learning</p>
             <h2 id="recent-learning-title">Continue from your latest work</h2>
-            <p>Only your three newest attempts are shown here, with the result that matters and a direct route back to practice.</p>
+            <p>Only your three newest attempts are shown, with a direct route back to practice.</p>
           </div>
-          <span>{recentSessions.length} recent</span>
+          <div className="dashboard-final-panel-actions">
+            <span>{recentSessions.length} recent</span>
+            <button type="button" onClick={retryDashboard} disabled={loadingData}>
+              <AppIcon name="history" />
+              {loadingData ? "Refreshing" : "Refresh"}
+            </button>
+          </div>
         </div>
 
         {sessionsError ? <div className="dashboard-recent-notice">{sessionsError}</div> : null}
@@ -667,7 +756,10 @@ export default function DashboardPage() {
             {recentSessions.map((session) => <RecentSessionRow key={session.id} session={session} />)}
           </ol>
         ) : (
-          <div className="dashboard-session-empty">
+          <div className="dashboard-session-empty dashboard-final-session-empty">
+            <span className="dashboard-final-empty-icon" aria-hidden="true">
+              <AppIcon name="history" />
+            </span>
             <div>
               <h3>No completed attempts yet</h3>
               <p>Your latest Exam Mode and Autonomous Mission results will appear here automatically.</p>
@@ -680,16 +772,19 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="dashboard-leaderboard-panel" aria-labelledby="leaderboard-title">
-        <div className="dashboard-leaderboard-header">
+      <section className="dashboard-final-panel dashboard-final-leaderboard" aria-labelledby="leaderboard-title">
+        <div className="dashboard-final-panel-header">
           <div>
-            <p className="dashboard-section-kicker">Global Rankings</p>
+            <p className="dashboard-section-kicker">Student Leaderboard</p>
             <h2 id="leaderboard-title">Student Leaderboard</h2>
             <p>Ranked by total XP. Streak breaks ties between students with equal XP.</p>
           </div>
-          <div className="dashboard-leaderboard-count">
-            <span aria-hidden="true" />
-            {rankedLeaderboard.length} students
+          <div className="dashboard-final-panel-actions">
+            <span>All time</span>
+            <div className="dashboard-leaderboard-count">
+              <span aria-hidden="true" />
+              {studentCountLabel}
+            </div>
           </div>
         </div>
 
