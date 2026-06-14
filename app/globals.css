@@ -8618,23 +8618,25 @@ body {
 
 .dashboard-final-hero-copy h1 {
   margin-top: 0.75rem;
+  padding-bottom: 0.08em;
   color: var(--dashboard-text);
   font-size: clamp(2.65rem, 3.65vw, 4rem);
   font-weight: 680;
   letter-spacing: -0.055em;
-  line-height: 1.08;
+  line-height: 1.14;
+  overflow: visible;
 }
 
 .dashboard-final-hero-copy h1 span {
   display: inline-block;
   padding-bottom: 0.08em;
-  background: linear-gradient(100deg, #0E7490 0%, #14B8A6 58%, #D89B2B 118%);
-  background-clip: text;
-  color: transparent;
+  color: #0D9488;
+  text-shadow: 0 6px 24px rgba(20, 184, 166, 0.12);
 }
 
 [data-theme="dark"] .dashboard-final-hero-copy h1 span {
-  background-image: linear-gradient(100deg, #5EEAD4 0%, #14B8A6 58%, #F2B84B 118%);
+  color: #5EEAD4;
+  text-shadow: 0 7px 28px rgba(20, 184, 166, 0.18);
 }
 
 .dashboard-final-hero-copy > p {
