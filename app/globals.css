@@ -8622,10 +8622,12 @@ body {
   font-size: clamp(2.65rem, 3.65vw, 4rem);
   font-weight: 680;
   letter-spacing: -0.055em;
-  line-height: 1;
+  line-height: 1.08;
 }
 
 .dashboard-final-hero-copy h1 span {
+  display: inline-block;
+  padding-bottom: 0.08em;
   background: linear-gradient(100deg, #0E7490 0%, #14B8A6 58%, #D89B2B 118%);
   background-clip: text;
   color: transparent;
@@ -9001,7 +9003,9 @@ body {
 }
 
 .dashboard-final-leaderboard .dashboard-final-panel-header h2 {
+  margin-top: 0;
   font-size: clamp(1.5rem, 2vw, 1.85rem);
+  font-weight: 760;
 }
 
 .dashboard-final-leaderboard .dashboard-leaderboard-columns,
@@ -9045,56 +9049,107 @@ body {
 }
 
 .dashboard-final-leaderboard .dashboard-rank-cell {
+  --rank-accent: #0E7490;
+  --rank-deep: #07586A;
+  --rank-number: #064E5B;
+  --rank-face: #D8F4F0;
   position: relative;
-  width: 4.5rem;
-  height: 3.7rem;
+  display: grid;
+  width: 4.75rem;
+  height: 4.75rem;
+  place-items: start center;
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: var(--dashboard-muted);
+  color: var(--rank-accent);
   isolation: isolate;
 }
 
 .dashboard-final-leaderboard .dashboard-rank-cell strong {
   position: relative;
-  z-index: 1;
-  font-size: 1.45rem;
-  font-weight: 760;
+  z-index: 2;
+  margin-top: 1rem;
+  color: var(--rank-number);
+  font-size: 1.35rem;
+  font-weight: 850;
   letter-spacing: -0.06em;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
-.dashboard-final-leaderboard .dashboard-rank-cell::before,
-.dashboard-final-leaderboard .dashboard-rank-cell::after {
-  content: "";
+.dashboard-final-leaderboard .dashboard-rank-medal {
   position: absolute;
-  top: 0.55rem;
-  width: 0.9rem;
-  height: 2.55rem;
-  border: 1.5px solid currentColor;
-  opacity: 0.52;
+  inset: -0.15rem 0 auto;
+  width: 4.75rem;
+  height: 4.75rem;
+  overflow: visible;
+  filter: drop-shadow(0 8px 12px color-mix(in srgb, var(--rank-accent) 22%, transparent));
 }
 
-.dashboard-final-leaderboard .dashboard-rank-cell::before {
-  left: 0.35rem;
-  border-right: 0;
-  border-radius: 100% 0 0 100%;
-  transform: rotate(-8deg);
+.dashboard-final-leaderboard .dashboard-rank-ribbon {
+  fill: var(--rank-deep);
+  stroke: color-mix(in srgb, var(--rank-deep) 76%, #111827);
+  stroke-width: 1.25;
 }
 
-.dashboard-final-leaderboard .dashboard-rank-cell::after {
-  right: 0.35rem;
-  border-left: 0;
-  border-radius: 0 100% 100% 0;
-  transform: rotate(8deg);
+.dashboard-final-leaderboard .dashboard-rank-medal-face {
+  fill: var(--rank-face);
+  stroke: var(--rank-accent);
+  stroke-width: 2.6;
+}
+
+.dashboard-final-leaderboard .dashboard-rank-medal-ring {
+  fill: color-mix(in srgb, var(--rank-accent) 16%, var(--rank-face));
+  stroke: color-mix(in srgb, var(--rank-accent) 78%, #FFFFFF);
+  stroke-width: 1.5;
+}
+
+.dashboard-final-leaderboard .dashboard-rank-medal-shine {
+  stroke: rgba(255, 255, 255, 0.82);
+  stroke-linecap: round;
+  stroke-width: 2.25;
 }
 
 .dashboard-final-leaderboard .dashboard-rank-cell[data-rank="1"] {
-  color: #B7791F;
-  background: radial-gradient(circle, rgba(242, 184, 75, 0.14), transparent 68%);
+  --rank-accent: #E1A52F;
+  --rank-deep: #A96810;
+  --rank-number: #714006;
+  --rank-face: #FFE5A0;
+}
+
+.dashboard-final-leaderboard .dashboard-rank-cell[data-rank="2"] {
+  --rank-accent: #94A3B8;
+  --rank-deep: #596579;
+  --rank-number: #334155;
+  --rank-face: #E2E8F0;
+}
+
+.dashboard-final-leaderboard .dashboard-rank-cell[data-rank="3"] {
+  --rank-accent: #C47A45;
+  --rank-deep: #8B4A2A;
+  --rank-number: #6F351F;
+  --rank-face: #F1C09D;
 }
 
 [data-theme="dark"] .dashboard-final-leaderboard .dashboard-rank-cell[data-rank="1"] {
-  color: #F8CD70;
+  --rank-accent: #F2B84B;
+  --rank-deep: #B7791F;
+  --rank-number: #5C3300;
+  --rank-face: #FFD978;
+}
+
+[data-theme="dark"] .dashboard-final-leaderboard .dashboard-rank-cell[data-rank="2"] {
+  --rank-accent: #CBD5E1;
+  --rank-deep: #64748B;
+  --rank-number: #263244;
+  --rank-face: #E2E8F0;
+}
+
+[data-theme="dark"] .dashboard-final-leaderboard .dashboard-rank-cell[data-rank="3"] {
+  --rank-accent: #E8A47B;
+  --rank-deep: #A85D36;
+  --rank-number: #5E2E19;
+  --rank-face: #F4BE98;
 }
 
 .dashboard-final-leaderboard .dashboard-student-cell {
@@ -9309,27 +9364,18 @@ body {
   }
 
   .dashboard-final-leaderboard .dashboard-rank-cell {
-    width: 3.6rem;
-    height: 3.5rem;
+    width: 3.9rem;
+    height: 4.2rem;
   }
 
   .dashboard-final-leaderboard .dashboard-rank-cell strong {
-    font-size: 1.2rem;
+    margin-top: 0.86rem;
+    font-size: 1.1rem;
   }
 
-  .dashboard-final-leaderboard .dashboard-rank-cell::before,
-  .dashboard-final-leaderboard .dashboard-rank-cell::after {
-    top: 0.55rem;
-    width: 0.72rem;
-    height: 2.3rem;
-  }
-
-  .dashboard-final-leaderboard .dashboard-rank-cell::before {
-    left: 0.25rem;
-  }
-
-  .dashboard-final-leaderboard .dashboard-rank-cell::after {
-    right: 0.25rem;
+  .dashboard-final-leaderboard .dashboard-rank-medal {
+    width: 4rem;
+    height: 4rem;
   }
 
   .dashboard-final-leaderboard .dashboard-student-cell {

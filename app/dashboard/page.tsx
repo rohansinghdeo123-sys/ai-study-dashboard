@@ -394,6 +394,18 @@ function LeaderboardRow({
   return (
     <li className="dashboard-leaderboard-row" data-current={isCurrent ? "true" : "false"}>
       <div className="dashboard-rank-cell" data-rank={entry.rank <= 3 ? entry.rank : undefined}>
+        <svg
+          className="dashboard-rank-medal"
+          viewBox="0 0 72 72"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path className="dashboard-rank-ribbon" d="m22 40-5 27 14-8 5 10 5-29H22Z" />
+          <path className="dashboard-rank-ribbon" d="m50 40 5 27-14-8-5 10-5-29h19Z" />
+          <circle className="dashboard-rank-medal-face" cx="36" cy="29" r="23" />
+          <circle className="dashboard-rank-medal-ring" cx="36" cy="29" r="17" />
+          <path className="dashboard-rank-medal-shine" d="M22.5 27.5A14.5 14.5 0 0 1 34 15" />
+        </svg>
         <strong>{entry.rank}</strong>
       </div>
       <div className="dashboard-student-cell">
@@ -779,7 +791,6 @@ export default function DashboardPage() {
       <section className="dashboard-final-panel dashboard-final-leaderboard" aria-labelledby="leaderboard-title">
         <div className="dashboard-final-panel-header">
           <div>
-            <p className="dashboard-section-kicker">Student Leaderboard</p>
             <h2 id="leaderboard-title">Student Leaderboard</h2>
             <p>Ranked by total XP. Streak breaks ties between students with equal XP.</p>
           </div>
