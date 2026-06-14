@@ -5,10 +5,10 @@ import { AppIcon, type AppIconName } from "@/components/ui/Polished";
 export type RevisionWorkspaceId = "summary" | "explain" | "keypoints" | "artifact";
 
 const TABS: Array<{ id: RevisionWorkspaceId; label: string; icon: AppIconName }> = [
-  { id: "summary", label: "Simple Notes", icon: "book" },
-  { id: "explain", label: "Deep Explain", icon: "study" },
-  { id: "keypoints", label: "Key Points", icon: "copy" },
-  { id: "artifact", label: "Artifact", icon: "mission" },
+  { id: "summary", label: "Summary", icon: "book" },
+  { id: "explain", label: "Deep Dive", icon: "study" },
+  { id: "keypoints", label: "Quick Recall", icon: "copy" },
+  { id: "artifact", label: "Study Tools", icon: "mission" },
 ];
 
 export default function RevisionModeTabs({

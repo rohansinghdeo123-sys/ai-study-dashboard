@@ -3,7 +3,7 @@
 import { AlertState, EmptyState } from "@/components/ui/Polished";
 import type { ReactNode } from "react";
 
-export const ARTIFACT_UNAVAILABLE_MESSAGE = "Artifact data not available for this section yet";
+export const ARTIFACT_UNAVAILABLE_MESSAGE = "Study tools are not available for this section yet";
 
 export default function ArtifactCanvas({
   topic,
@@ -25,16 +25,16 @@ export default function ArtifactCanvas({
         {children || (
           <EmptyState
             icon={loading ? "clock" : "spark"}
-            title={loading ? "Building your artifact" : error ? "Artifact unavailable" : "No artifact yet"}
+            title={loading ? "Building your study tools" : error ? "Study tools unavailable" : "No study tools yet"}
             detail={
               loading
                 ? `Preparing the focused visual study canvas for ${topic}.`
                 : error
                   ? error
-                : `Generate one for ${topic}. It will create simple cards and mistake checks from the selected study data.`
+                : `Generate them for ${topic}. You will get simple cards and mistake checks from the selected study data.`
             }
             action={
-              !loading && onRetry ? (
+              error && !loading && onRetry ? (
                 <button
                   type="button"
                   onClick={onRetry}

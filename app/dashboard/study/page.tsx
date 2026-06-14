@@ -292,21 +292,21 @@ const CHAPTERS = [
 const REVISION_TOOLS: RevisionTool[] = [
   {
     id: "summary",
-    title: "Simple Notes",
+    title: "Summary",
     detail: "A clean revision note from the selected chapter data.",
     mode: "summary",
     prompt: (topic) => `Create simple revision notes for ${topic} from the selected study material only.`,
   },
   {
     id: "explain",
-    title: "Deep Explain",
+    title: "Deep Dive",
     detail: "A deeper teacher-style explanation while staying grounded in the material.",
     mode: "explain",
     prompt: (topic) => `Deeply explain ${topic} from the selected study material only, with examples if available in the data.`,
   },
   {
     id: "keypoints",
-    title: "Key Points",
+    title: "Quick Recall",
     detail: "High-yield recall bullets for fast exam revision.",
     mode: "keypoints",
     prompt: (topic) => `Extract the most important key points for ${topic} from the selected study material only.`,
@@ -327,7 +327,7 @@ const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: App
 
 const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
   { id: "coach", label: "Chat", detail: "Ask doubts and continue your study conversation.", icon: "study" },
-  { id: "revision", label: "Revision", detail: "Open notes, explanations, key points, and artifacts.", icon: "book" },
+  { id: "revision", label: "Revision", detail: "Open summaries, explanations, recall notes, and study tools.", icon: "book" },
 ];
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
@@ -1070,7 +1070,7 @@ function ArtifactLoadingState() {
       <div className="flex items-center gap-3">
         <span className="study-mini-pulse" />
         <div>
-          <p className="text-sm font-semibold text-slate-900">Building interactive artifact</p>
+          <p className="text-sm font-semibold text-slate-900">Building interactive study tools</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">Preparing tap-to-reveal cards and mistake checks from your chapter.</p>
         </div>
       </div>
@@ -1323,10 +1323,10 @@ function ArtifactViewer({
   const artifact = getArtifactByType(response, selectedTab);
   const cardCount = getArtifactByType(response, "flip_cards")?.cards?.length || 0;
   const mistakeCount = getArtifactByType(response, "mistake_cards")?.mistakes?.length || 0;
-  const activeLabel = ARTIFACT_TABS.find((tab) => tab.id === selectedTab)?.label || "Artifact";
+  const activeLabel = ARTIFACT_TABS.find((tab) => tab.id === selectedTab)?.label || "Study tool";
 
   if (!artifact) {
-    return <ArtifactEmptyNote detail="Artifact data could not be prepared for this topic." />;
+    return <ArtifactEmptyNote detail="Study tools could not be prepared for this topic." />;
   }
 
   return (
@@ -1342,7 +1342,7 @@ function ArtifactViewer({
           </div>
         </div>
         <p className="mt-4 text-sm leading-6 text-slate-500">
-          Artifact means a small interactive study tool. Use cards to remember the idea, then check mistakes before exams.
+          Use these interactive tools to remember the idea, then check common mistakes before exams.
         </p>
         <div className="study-artifact-metrics">
           <span>
@@ -1354,13 +1354,13 @@ function ArtifactViewer({
             <small>mistake checks</small>
           </span>
         </div>
-        <div className="study-artifact-checklist" aria-label="Artifact quality signals">
+        <div className="study-artifact-checklist" aria-label="Study tool quality signals">
           <span><AppIcon name="check" /> Tap cards to reveal answers</span>
           <span><AppIcon name="check" /> Check common exam mistakes</span>
         </div>
       </aside>
 
-      <div className="study-artifact-tabs" role="tablist" aria-label="Interactive artifact views">
+      <div className="study-artifact-tabs" role="tablist" aria-label="Interactive study tool views">
         {availableTabs.map((tab) => (
           <button
             key={tab.id}
@@ -1935,6 +1935,7 @@ export default function StudyPage() {
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [conversations, setConversations] = useState<StudyConversation[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [revisionSetupOpen, setRevisionSetupOpen] = useState(true);
   const [historySearch, setHistorySearch] = useState("");
   const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState(createConversationId);
@@ -2029,6 +2030,13 @@ export default function StudyPage() {
       return !query || searchable.includes(query);
     }).sort((left, right) => Number(Boolean(right.pinned)) - Number(Boolean(left.pinned)));
   }, [conversations, historySearch, showArchivedChats]);
+
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setSidebarOpen(false);
+      setRevisionSetupOpen(false);
+    }
+  }, []);
 
   const starterPrompts = useMemo(
     () => [
@@ -3328,7 +3336,15 @@ export default function StudyPage() {
 
       <section className="study-lab-main flex min-h-0 flex-1 flex-col">
         {mode === "coach" ? (
-          <div className="study-coach-layout flex min-h-0 flex-1">
+          <div className="study-coach-layout flex min-h-0 flex-1" data-sidebar-open={sidebarOpen ? "true" : "false"}>
+            {sidebarOpen ? (
+              <button
+                type="button"
+                className="study-sidebar-backdrop"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Close chat history"
+              />
+            ) : null}
             {sidebarOpen ? (
               <CoachHistorySidebar
                 conversations={filteredConversations}
@@ -3441,24 +3457,28 @@ export default function StudyPage() {
 
         {mode === "revision" ? (
           <div className="study-mode-fullscreen flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-            <div className="study-focus-workspace flex min-h-0 flex-1 flex-col gap-4">
-              <div className="study-focus-toolbar study-revision-toolbar">
+            <div className="study-revision-layout min-h-0 flex-1">
+              <aside className="study-revision-rail" aria-label="Revision setup" data-open={revisionSetupOpen ? "true" : "false"}>
                 <button
                   type="button"
-                  onClick={clearCurrentWorkspace}
-                  disabled={!canClearCurrentWorkspace}
-                  className="study-revision-reset"
+                  className="study-revision-mobile-toggle"
+                  onClick={() => setRevisionSetupOpen((current) => !current)}
+                  aria-expanded={revisionSetupOpen}
                 >
-                  <AppIcon name="trash" />
-                  <span>Reset revision</span>
+                  <span>
+                    <small>Topic and format</small>
+                    <strong>{selectedTopic.label} / {activeRevisionTool?.title || "Study Tools"}</strong>
+                  </span>
+                  <AppIcon name={revisionSetupOpen ? "x" : "panelLeft"} />
                 </button>
-                <div className="study-revision-heading">
-                  <p className="dashboard-section-kicker">Revision Canvas</p>
-                  <h2>{selectedTopic.label}</h2>
-                  <p>Select the exact chapter and section, then choose one focused revision format.</p>
-                </div>
 
-                <div className="study-revision-controls" aria-label="Revision setup">
+                <div className="study-revision-rail-body">
+                  <div className="study-revision-rail-heading">
+                    <p className="dashboard-section-kicker">Revision workspace</p>
+                    <h2>{selectedTopic.label}</h2>
+                    <p>Choose the source and the revision format. Your generated work stays in the reading canvas.</p>
+                  </div>
+
                   <div className="study-revision-selectors">
                     <label>
                       <span>Chapter</span>
@@ -3496,20 +3516,33 @@ export default function StudyPage() {
                     </label>
                   </div>
 
-                  <RevisionModeTabs activeTab={activeRevisionPanel} onChange={setActiveRevisionPanel} />
-                </div>
-              </div>
+                  <div className="study-revision-format-picker">
+                    <p className="study-sidebar-section-label">Format</p>
+                    <RevisionModeTabs activeTab={activeRevisionPanel} onChange={setActiveRevisionPanel} />
+                  </div>
 
-              <section className={`study-content-card study-focus-panel ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-0 flex-1 flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl`}>
+                  <button
+                    type="button"
+                    onClick={clearCurrentWorkspace}
+                    disabled={!canClearCurrentWorkspace}
+                    className="study-revision-reset"
+                  >
+                    <AppIcon name="trash" />
+                    <span>Reset revision</span>
+                  </button>
+                </div>
+              </aside>
+
+              <section className={`study-content-card study-focus-panel study-revision-canvas ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-0 flex-1 flex-col`}>
                 {activeRevisionTool ? (
                   <>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{activeRevisionTool.id}</p>
-                        <h2 className="mt-2 text-2xl font-semibold text-slate-950">{activeRevisionTool.title}</h2>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{activeRevisionTool.detail}</p>
+                    <header className="study-revision-canvas-header">
+                      <div className="study-revision-canvas-title">
+                        <p>{selectedChapter.label} / {selectedTopic.label}</p>
+                        <h2>{activeRevisionTool.title}</h2>
+                        <span>{activeRevisionTool.detail}</span>
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="study-revision-actions">
                         <CopyButton value={revisionContent[activeRevisionTool.id]} />
                         <button
                           type="button"
@@ -3521,31 +3554,33 @@ export default function StudyPage() {
                           <span>{revisionLoading[activeRevisionTool.id] ? "Generating..." : `Generate ${activeRevisionTool.title}`}</span>
                         </button>
                       </div>
-                    </div>
+                    </header>
 
-                    <div className="study-scroll-pane mt-5 min-h-0 flex-1 overflow-y-auto rounded-3xl border border-slate-200 bg-white/70 p-5">
+                    <div className="study-scroll-pane study-revision-scroll min-h-0 flex-1 overflow-y-auto">
                       {revisionLoading[activeRevisionTool.id] ? (
                         <RevisionLoadingState title={activeRevisionTool.title} />
                       ) : revisionContent[activeRevisionTool.id] ? (
-                        <CoachAnswer value={revisionContent[activeRevisionTool.id]} />
+                        <article className="study-revision-document">
+                          <CoachAnswer value={revisionContent[activeRevisionTool.id]} />
+                        </article>
                       ) : (
-                        <EmptyState
-                          icon="book"
-                          title={`No ${activeRevisionTool.title.toLowerCase()} yet`}
-                          detail={`Generate it for ${selectedTopic.label}. This full-window panel keeps the notes easier to read.`}
-                        />
+                        <div className="study-revision-empty">
+                          <EmptyState
+                            icon="book"
+                            title={`No ${activeRevisionTool.title.toLowerCase()} yet`}
+                            detail={`Generate it for ${selectedTopic.label}. Your revision will appear in this focused reading canvas.`}
+                          />
+                        </div>
                       )}
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Artifact</p>
-                        <h2 className="mt-2 text-2xl font-semibold text-slate-950">Interactive Artifact</h2>
-                        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                          Artifact means an interactive study tool. Here it gives you tap-to-reveal cards and common mistake checks from your chapter.
-                        </p>
+                    <header className="study-revision-canvas-header">
+                      <div className="study-revision-canvas-title">
+                        <p>{selectedChapter.label} / {selectedTopic.label}</p>
+                        <h2>Study Tools</h2>
+                        <span>Build interactive recall cards, concept links, formula practice, and mistake checks from the selected material.</span>
                       </div>
                       <button
                         type="button"
@@ -3554,9 +3589,9 @@ export default function StudyPage() {
                         className="agentify-action agentify-action-primary inline-flex items-center justify-center gap-2 rounded-2xl bg-[#0E7490] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0B5F76] disabled:cursor-wait disabled:opacity-55"
                       >
                         <AppIcon name="spark" />
-                        <span>{artifactLoading ? "Building artifact..." : artifact ? "Artifact ready" : "Generate Artifact"}</span>
+                        <span>{artifactLoading ? "Building tools..." : artifact ? "Study tools ready" : "Generate Study Tools"}</span>
                       </button>
-                    </div>
+                    </header>
 
                     <ArtifactCanvas
                       topic={selectedTopic.label}
@@ -3578,7 +3613,7 @@ export default function StudyPage() {
                 )}
               </section>
             </div>
-            {revisionError ? <div className="mt-4 w-full px-6"><AlertState message={revisionError} /></div> : null}
+            {revisionError ? <div className="study-revision-alert"><AlertState message={revisionError} /></div> : null}
           </div>
         ) : null}
 
