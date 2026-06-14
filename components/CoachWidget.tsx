@@ -54,7 +54,7 @@ function renderChemistryText(value: string) {
 
 // ─── Main Widget ───────────────────────────────────────────────────────────
 export default function CoachWidget() {
-  const { user } = useAuth();
+  const { user, profile: accountProfile } = useAuth();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
   const [open, setOpen] = useState(false);
@@ -110,7 +110,7 @@ export default function CoachWidget() {
 
         const hour = new Date().getHours();
         const timeGreet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-        const name = activeUser.displayName || activeUser.email?.split("@")[0] || "Student";
+        const name = accountProfile?.name || "Student";
         setGreeting(`${timeGreet}, ${name}!`);
       } catch {
         if (!cancelled) {
@@ -128,7 +128,7 @@ export default function CoachWidget() {
     return () => {
       cancelled = true;
     };
-  }, [user, backendURL]);
+  }, [accountProfile?.name, user, backendURL]);
 
   // Auto‑scroll messages
   useEffect(() => {

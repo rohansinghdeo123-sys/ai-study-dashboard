@@ -23,7 +23,17 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { primeBackend } from "@/lib/apiClient";
+import {
+  apiJson,
+  ensureBackendReady,
+  invalidateApiCache,
+  primeBackend,
+} from "@/lib/apiClient";
+import {
+  type BackendUserProfile,
+  type ProfileUpdate,
+  resolveDisplayName,
+} from "@/lib/profile";
 
 type AuthRole = "admin" | "user";
 
@@ -35,22 +45,28 @@ type AuthProfile = {
   phone: string;
   photoURL: string;
   provider: string;
+  classLevel: string;
+  onboardingCompleted: boolean;
 };
 
 interface AuthContextType {
   user: User | null;
   profile: AuthProfile | null;
+  accountProfile: BackendUserProfile | null;
   userId: string;
   role: AuthRole;
   isAdmin: boolean;
   loading: boolean;
   claimsLoading: boolean;
   claims: Record<string, unknown>;
+  profileError: string;
   loginWithGoogle: () => Promise<void>;
   sendPhoneOtp: (phoneNumber: string) => Promise<void>;
   verifyPhoneOtp: (otp: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshClaims: (forceRefresh?: boolean) => Promise<void>;
+  refreshProfile: () => Promise<BackendUserProfile | null>;
+  saveProfile: (updates: ProfileUpdate) => Promise<BackendUserProfile>;
   getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
   getAuthHeaders: () => Promise<HeadersInit>;
 }
@@ -58,17 +74,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
+  accountProfile: null,
   userId: "",
   role: "user",
   isAdmin: false,
   loading: true,
   claimsLoading: true,
   claims: {},
+  profileError: "",
   loginWithGoogle: async () => {},
   sendPhoneOtp: async () => {},
   verifyPhoneOtp: async () => {},
   logout: async () => {},
   refreshClaims: async () => {},
+  refreshProfile: async () => null,
+  saveProfile: async () => {
+    throw new Error("No authenticated user.");
+  },
   getIdToken: async () => null,
   getAuthHeaders: async () => ({ "Content-Type": "application/json" }),
 });
@@ -94,17 +116,6 @@ function getRecaptchaContainer() {
 
 function getProvider(user: User | null) {
   return user?.providerData?.[0]?.providerId ?? "unknown";
-}
-
-function getDisplayName(user: User | null) {
-  if (!user) return "";
-
-  return (
-    user.displayName ||
-    user.email?.split("@")[0] ||
-    user.phoneNumber ||
-    user.uid.slice(0, 10)
-  );
 }
 
 function hasAdminClaim(claims: Record<string, unknown>) {
@@ -161,12 +172,57 @@ function shouldUseRedirectFallback(error: unknown) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [accountProfile, setAccountProfile] = useState<BackendUserProfile | null>(null);
+  const [profileError, setProfileError] = useState("");
   const [claimsLoading, setClaimsLoading] = useState(true);
   const [claims, setClaims] = useState<Record<string, unknown>>({});
 
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+
+  const loadProfile = useCallback(
+    async (currentUser: User, forceFresh = false) => {
+      setProfileLoading(true);
+      setProfileError("");
+      try {
+        await ensureBackendReady(backendURL, {
+          timeoutMs: 18000,
+          pollMs: 1200,
+        }).catch(() => null);
+        const token = await currentUser.getIdToken();
+        const loadedProfile = await apiJson<BackendUserProfile>(
+          `${backendURL}/profile/me`,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            cacheKey: `account-profile:${currentUser.uid}`,
+            cacheTtlMs: 30000,
+            forceFresh,
+            retries: 2,
+            timeoutMs: 12000,
+          },
+        );
+        setAccountProfile(loadedProfile);
+        return loadedProfile;
+      } catch (error) {
+        setAccountProfile(null);
+        setProfileError(
+          error instanceof Error
+            ? error.message
+            : "We could not load your AgentifyAI profile.",
+        );
+        return null;
+      } finally {
+        setProfileLoading(false);
+      }
+    },
+    [backendURL],
+  );
 
   const refreshClaims = useCallback(async (forceRefresh = false) => {
     if (!auth.currentUser) {
@@ -248,6 +304,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     confirmationResultRef.current = null;
     resetRecaptcha();
+    setAccountProfile(null);
+    setProfileError("");
     await signOut(auth);
   }, [resetRecaptcha]);
 
@@ -265,28 +323,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [getIdToken]);
 
+  const refreshProfile = useCallback(async () => {
+    if (!auth.currentUser) {
+      setAccountProfile(null);
+      return null;
+    }
+    invalidateApiCache(`account-profile:${auth.currentUser.uid}`);
+    return loadProfile(auth.currentUser, true);
+  }, [loadProfile]);
+
+  const saveProfile = useCallback(
+    async (updates: ProfileUpdate) => {
+      const currentUser = auth.currentUser;
+      if (!currentUser) throw new Error("Your session has expired. Please sign in again.");
+
+      setProfileError("");
+      const token = await currentUser.getIdToken();
+      const updatedProfile = await apiJson<BackendUserProfile>(
+        `${backendURL}/profile/me`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(updates),
+          forceFresh: true,
+          retries: 2,
+          timeoutMs: 12000,
+        },
+      );
+      invalidateApiCache(`account-profile:${currentUser.uid}`);
+      setAccountProfile(updatedProfile);
+      return updatedProfile;
+    },
+    [backendURL],
+  );
+
   useEffect(() => {
     getRedirectResult(auth).catch(() => undefined);
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      setLoading(false);
+      setAuthLoading(false);
 
       if (!currentUser) {
+        setAccountProfile(null);
+        setProfileError("");
+        setProfileLoading(false);
         setClaims({});
         setClaimsLoading(false);
         return;
       }
 
       primeBackend(process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000");
-      await refreshClaims();
+      await Promise.all([refreshClaims(), loadProfile(currentUser)]);
     });
 
     return () => unsubscribe();
-  }, [refreshClaims]);
+  }, [loadProfile, refreshClaims]);
 
   const isAdmin = useMemo(() => isAdminUser(user, claims), [user, claims]);
   const role: AuthRole = isAdmin ? "admin" : "user";
+  const loading = authLoading || profileLoading;
 
   const profile = useMemo<AuthProfile | null>(() => {
     if (!user) return null;
@@ -294,45 +393,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return {
       uid: user.uid,
       role,
-      name: getDisplayName(user),
+      name: resolveDisplayName(accountProfile, user),
       email: user.email ?? "",
       phone: user.phoneNumber ?? "",
       photoURL: user.photoURL ?? "",
       provider: getProvider(user),
+      classLevel: accountProfile?.class_level || "",
+      onboardingCompleted: Boolean(accountProfile?.onboarding_completed),
     };
-  }, [role, user]);
+  }, [accountProfile, role, user]);
 
   const value = useMemo<AuthContextType>(
     () => ({
       user,
       profile,
+      accountProfile,
       userId: user?.uid ?? "",
       role,
       isAdmin,
       loading,
       claimsLoading,
       claims,
+      profileError,
       loginWithGoogle,
       sendPhoneOtp,
       verifyPhoneOtp,
       logout,
       refreshClaims,
+      refreshProfile,
+      saveProfile,
       getIdToken,
       getAuthHeaders,
     }),
     [
       user,
       profile,
+      accountProfile,
       role,
       isAdmin,
       loading,
       claimsLoading,
       claims,
+      profileError,
       loginWithGoogle,
       sendPhoneOtp,
       verifyPhoneOtp,
       logout,
       refreshClaims,
+      refreshProfile,
+      saveProfile,
       getIdToken,
       getAuthHeaders,
     ],

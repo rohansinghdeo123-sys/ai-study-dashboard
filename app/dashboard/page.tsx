@@ -17,9 +17,11 @@ interface ProgressState {
 
 interface LeaderboardEntry {
   rank: number;
+  class_rank?: number | null;
   user_id: string;
   display_name?: string;
   name?: string;
+  class_level?: string;
   xp: number;
   streak: number;
 }
@@ -27,6 +29,7 @@ interface LeaderboardEntry {
 interface SessionRecord {
   id: string;
   subject: string;
+  class_level?: string;
   topic: string;
   total_questions: number;
   score: number;
@@ -74,9 +77,11 @@ function normalizeLeaderboard(value: unknown): LeaderboardEntry[] {
       if (!userId) return null;
       return {
         rank: toNumber(item.rank, index + 1),
+        class_rank: item.class_rank ? toNumber(item.class_rank) : null,
         user_id: userId,
         display_name: item.display_name ? String(item.display_name) : undefined,
         name: item.name ? String(item.name) : undefined,
+        class_level: item.class_level ? String(item.class_level) : undefined,
         xp: toNumber(item.xp ?? item.total_xp),
         streak: toNumber(item.streak),
       };
@@ -97,6 +102,7 @@ function normalizeSessions(value: unknown): SessionRecord[] {
       return {
         id: String(item.id ?? item.session_id ?? `${item.topic || "session"}-${index}`),
         subject: String(item.subject || "Study"),
+        class_level: item.class_level ? String(item.class_level) : undefined,
         topic: String(item.topic || "Learning session"),
         total_questions: Math.max(0, toNumber(item.total_questions ?? item.questions)),
         score: Math.max(0, toNumber(item.score ?? item.correct)),
@@ -118,11 +124,13 @@ function buildLeaderboard({
   source,
   currentUserId,
   currentDisplayName,
+  currentClassLevel,
   progress,
 }: {
   source: unknown;
   currentUserId: string;
   currentDisplayName: string;
+  currentClassLevel: string;
   progress: ProgressState;
 }) {
   const entries = new Map<string, LeaderboardEntry>();
@@ -137,6 +145,8 @@ function buildLeaderboard({
     user_id: currentUserId,
     display_name: currentDisplayName,
     name: current?.name,
+    class_level: currentClassLevel || current?.class_level,
+    class_rank: current?.class_rank,
     xp: Math.max(current?.xp ?? 0, progress.xp),
     streak: Math.max(current?.streak ?? 0, progress.streak),
   });
@@ -418,7 +428,11 @@ function LeaderboardRow({
             {isCurrent ? <span className="dashboard-you-label">You</span> : null}
           </span>
           <span className="dashboard-student-note">
-            {isCurrent ? "Keep building your learning momentum." : `${formatNumber(entry.xp)} experience points`}
+            {entry.class_level
+              ? `${entry.class_level}${entry.class_rank ? ` - Class rank #${entry.class_rank}` : ""}`
+              : isCurrent
+                ? "Keep building your learning momentum."
+                : `${formatNumber(entry.xp)} experience points`}
           </span>
           <span className="dashboard-student-mobile-meta">
             Level {level} - {entry.streak} day streak
@@ -457,7 +471,12 @@ function RecentSessionRow({ session }: { session: SessionRecord }) {
           <span>{getSessionLabel(session)}</span>
           <h3>{session.topic.replace(/_/g, " ")}</h3>
         </div>
-        <p>{session.subject} / {formatSessionDate(session.completed_at)}</p>
+        <p>
+          {session.subject}
+          {session.class_level ? ` / ${session.class_level}` : ""}
+          {" / "}
+          {formatSessionDate(session.completed_at)}
+        </p>
       </div>
       <div className="dashboard-session-stat">
         <strong>{sessionAccuracy}%</strong>
@@ -475,7 +494,7 @@ function RecentSessionRow({ session }: { session: SessionRecord }) {
 }
 
 export default function DashboardPage() {
-  const { user, userId, loading, getAuthHeaders } = useAuth();
+  const { profile, userId, loading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -493,7 +512,8 @@ export default function DashboardPage() {
   const [dataError, setDataError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
 
-  const displayName = user?.displayName || user?.email?.split("@")[0] || user?.phoneNumber || "Student";
+  const displayName = profile?.name || "Student";
+  const classLevel = profile?.classLevel || "";
   const firstName = displayName.split(" ")[0] || "Student";
   const showOverview = searchParams.get("workspace") === "overview";
   const accuracyValue = accuracy(progress);
@@ -508,9 +528,10 @@ export default function DashboardPage() {
         source: leaderboardSource,
         currentUserId: userId,
         currentDisplayName: displayName,
+        currentClassLevel: classLevel,
         progress,
       }),
-    [displayName, leaderboardSource, progress, userId],
+    [classLevel, displayName, leaderboardSource, progress, userId],
   );
 
   const currentRank = rankedLeaderboard.find((entry) => entry.user_id === userId);
@@ -634,7 +655,9 @@ export default function DashboardPage() {
         {dataError ? <DashboardDataAlert message={dataError} onRetry={retryDashboard} /> : null}
         <section className="flex min-h-[calc(100svh-118px)] flex-col items-center justify-center gap-8 py-8">
           <div className="max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0E7490]">Learning Hub</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0E7490]">
+              Learning Hub{classLevel ? ` / ${classLevel}` : ""}
+            </p>
             <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
               Good to see you, {firstName}
             </h1>
@@ -717,6 +740,7 @@ export default function DashboardPage() {
             <span aria-hidden="true">/</span>
             <span aria-current="page">Dashboard</span>
           </nav>
+          {classLevel ? <p className="dashboard-section-kicker">{classLevel} learning profile</p> : null}
           <h1>
             Student <span>Progress</span>
           </h1>

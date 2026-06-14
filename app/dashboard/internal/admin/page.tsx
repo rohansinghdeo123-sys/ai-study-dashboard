@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
+import { CLASS_LEVELS } from "@/lib/profile";
 import { LoadingState } from "@/components/ui/Polished";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -114,6 +115,9 @@ interface AdminEvent {
 
 interface StudentRow {
   user_id: string;
+  display_name: string;
+  class_level: string;
+  onboarding_completed: boolean;
   xp: number;
   level: number;
   streak: number;
@@ -652,6 +656,7 @@ export default function FounderAdminConsolePage() {
   const [selectedAgent, setSelectedAgent] = useState("orchestrator");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [studentClassFilter, setStudentClassFilter] = useState("all");
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const openedRef = useRef(false);
@@ -739,6 +744,13 @@ export default function FounderAdminConsolePage() {
       return true;
     });
   }, [data?.traces, query, statusFilter]);
+
+  const filteredStudents = useMemo(
+    () => (data?.students || []).filter(
+      (student) => studentClassFilter === "all" || student.class_level === studentClassFilter,
+    ),
+    [data?.students, studentClassFilter],
+  );
 
   const exportCurrentReport = () => {
     if (!data) return;
@@ -1076,11 +1088,27 @@ export default function FounderAdminConsolePage() {
 
         {data && activeTab === "students" ? (
           <ConsolePanel title="Student and Session Management" eyebrow="Safe founder actions">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-slate-400">
+                {filteredStudents.length} of {data.students.length} students
+              </p>
+              <select
+                value={studentClassFilter}
+                onChange={(event) => setStudentClassFilter(event.target.value)}
+                className="rounded-2xl border border-white/10 bg-[#0B111C] px-4 py-2.5 text-sm text-slate-200 outline-none"
+              >
+                <option value="all">All classes</option>
+                {CLASS_LEVELS.map((classLevel) => (
+                  <option key={classLevel} value={classLevel}>{classLevel}</option>
+                ))}
+              </select>
+            </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
+              <table className="w-full min-w-[1040px] text-left text-sm">
                 <thead className="text-xs uppercase tracking-[0.14em] text-slate-500">
                   <tr>
                     <th className="px-3 py-3">Student</th>
+                    <th className="px-3 py-3">Class</th>
                     <th className="px-3 py-3">XP</th>
                     <th className="px-3 py-3">Accuracy</th>
                     <th className="px-3 py-3">Questions</th>
@@ -1090,9 +1118,18 @@ export default function FounderAdminConsolePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.students.map((student) => (
+                  {filteredStudents.map((student) => (
                     <tr key={student.user_id} className="border-t border-white/10">
-                      <td className="px-3 py-4 font-semibold text-white">{student.user_id.slice(0, 18)}...</td>
+                      <td className="px-3 py-4">
+                        <p className="font-semibold text-white">{student.display_name || "Student"}</p>
+                        <p className="mt-1 text-[11px] text-slate-500">{student.user_id.slice(0, 18)}...</p>
+                      </td>
+                      <td className="px-3 py-4">
+                        <p className="text-slate-300">{student.class_level || "Not set"}</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-600">
+                          {student.onboarding_completed ? "Onboarded" : "Pending"}
+                        </p>
+                      </td>
                       <td className="px-3 py-4 text-slate-300">{student.xp} - L{student.level}</td>
                       <td className="px-3 py-4 text-emerald-200">{student.accuracy}%</td>
                       <td className="px-3 py-4 text-slate-300">{student.total_questions}</td>
@@ -1107,6 +1144,13 @@ export default function FounderAdminConsolePage() {
                       </td>
                     </tr>
                   ))}
+                  {!filteredStudents.length ? (
+                    <tr className="border-t border-white/10">
+                      <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
+                        No students match this class filter.
+                      </td>
+                    </tr>
+                  ) : null}
                 </tbody>
               </table>
             </div>

@@ -179,7 +179,15 @@ function OtpBoxes({
 
 // ─── Main Login Page Component ──────────────────────────────────────────────
 export default function LoginPage() {
-  const { user, loginWithGoogle, sendPhoneOtp, verifyPhoneOtp, loading } = useAuth();
+  const {
+    user,
+    accountProfile,
+    profileError,
+    loginWithGoogle,
+    sendPhoneOtp,
+    verifyPhoneOtp,
+    loading,
+  } = useAuth();
   const router = useRouter();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
@@ -201,16 +209,23 @@ export default function LoginPage() {
 
   useEffect(() => {
     router.prefetch("/dashboard");
+    router.prefetch("/onboarding");
     primeBackend(backendURL);
   }, [backendURL, router]);
 
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && user && accountProfile && !profileError) {
       setGranted(true);
       primeBackend(backendURL);
-      router.replace("/dashboard");
+      router.replace(accountProfile.onboarding_completed ? "/dashboard" : "/onboarding");
     }
-  }, [backendURL, user, loading, router]);
+  }, [accountProfile, backendURL, user, loading, profileError, router]);
+
+  useEffect(() => {
+    if (!loading && user && profileError) {
+      setAuthError("We could not load your AgentifyAI profile. Please try signing in again.");
+    }
+  }, [loading, profileError, user]);
 
   useEffect(() => {
     if (authError) {

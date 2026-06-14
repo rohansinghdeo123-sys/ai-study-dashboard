@@ -20,7 +20,16 @@ function getInitials(name: string) {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const { user, profile, loading, isAdmin, logout } = useAuth();
+  const {
+    user,
+    profile,
+    accountProfile,
+    profileError,
+    refreshProfile,
+    loading,
+    isAdmin,
+    logout,
+  } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const authReady = !loading;
@@ -34,7 +43,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       router.replace("/login");
       return;
     }
-  }, [authReady, router, user]);
+    if (!profileError && accountProfile && !accountProfile.onboarding_completed) {
+      router.replace("/onboarding");
+    }
+  }, [accountProfile, authReady, profileError, router, user]);
 
   useEffect(() => {
     if (!authReady || !user || !isAdmin) return;
@@ -59,6 +71,31 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }
 
   if (!user) return null;
+
+  if (profileError || !accountProfile) {
+    return (
+      <div className="flex min-h-[100svh] items-center justify-center bg-[var(--agentify-page-bg)] px-5 text-center">
+        <div className="agentify-card max-w-md rounded-[2rem] p-7">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Profile connection</p>
+          <h1 className="mt-3 text-2xl font-semibold text-[var(--agentify-primary-text)]">
+            We could not prepare your account.
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--agentify-muted-text)]">
+            Your login is safe. Retry the profile connection to continue.
+          </p>
+          <button
+            type="button"
+            onClick={() => void refreshProfile()}
+            className="agentify-action agentify-action-primary mt-6 rounded-2xl px-5 py-3 text-sm font-semibold"
+          >
+            Retry connection
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!accountProfile.onboarding_completed) return null;
 
   if (isAdminRoute) {
     return <div className="min-h-[100svh] bg-[#050812]">{children}</div>;

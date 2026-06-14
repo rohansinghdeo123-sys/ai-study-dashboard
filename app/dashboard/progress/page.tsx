@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 type Session = {
   id: string;
   subject: string;
+  class_level?: string;
   topic: string;
   duration: number;
   questions: number;
@@ -41,11 +42,13 @@ type ProgressSummary = {
 
 type LeaderboardEntry = {
   rank: number;
+  class_rank?: number | null;
   user_id: string;
   name?: string;
   display_name?: string;
   email?: string;
   phone?: string;
+  class_level?: string;
   xp: number;
   streak: number;
   total_tests: number;
@@ -111,19 +114,19 @@ function shortId(value: string) {
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
-function getUserDisplayName(user: unknown) {
-  if (!isRecord(user)) return "Student";
-  return String(user.displayName || user.phoneNumber || user.email || user.uid || "Student");
-}
-
 function getLeaderboardDisplayName(entry: LeaderboardEntry, currentUserId: string, currentDisplayName: string) {
   if (entry.user_id === currentUserId) return currentDisplayName;
-  return entry.display_name || entry.name || entry.phone || entry.email || `Learner ${shortId(entry.user_id)}`;
+  return entry.display_name || entry.name || `Learner ${shortId(entry.user_id)}`;
 }
 
 function getLeaderboardMeta(entry: LeaderboardEntry, currentUserId: string) {
-  if (entry.user_id === currentUserId) return "Your profile";
-  return entry.email || entry.phone || `ID ${shortId(entry.user_id)}`;
+  if (entry.user_id === currentUserId) {
+    return entry.class_level ? `${entry.class_level} - Your profile` : "Your profile";
+  }
+  if (entry.class_level) {
+    return `${entry.class_level}${entry.class_rank ? ` - Class rank #${entry.class_rank}` : ""}`;
+  }
+  return "Student profile";
 }
 
 function getInitials(value: string) {
@@ -350,11 +353,13 @@ function normalizeLeaderboardRows(source: unknown): LeaderboardEntry[] {
       if (!userId) return null;
       return {
         rank: toNumber(item.rank, index + 1),
+        class_rank: item.class_rank ? toNumber(item.class_rank) : null,
         user_id: userId,
         name: item.name ? String(item.name) : undefined,
         display_name: item.display_name ? String(item.display_name) : undefined,
         email: item.email ? String(item.email) : undefined,
         phone: item.phone ? String(item.phone) : undefined,
+        class_level: item.class_level ? String(item.class_level) : undefined,
         xp: toNumber(item.xp ?? item.total_xp),
         streak: toNumber(item.streak),
         total_tests: toNumber(item.total_tests),
@@ -367,6 +372,7 @@ function buildLeaderboard({
   sources,
   currentUserId,
   currentDisplayName,
+  currentClassLevel,
   userEmail,
   userPhone,
   progress,
@@ -374,6 +380,7 @@ function buildLeaderboard({
   sources: unknown[];
   currentUserId: string;
   currentDisplayName: string;
+  currentClassLevel: string;
   userEmail?: string | null;
   userPhone?: string | null;
   progress: ProgressSummary;
@@ -390,6 +397,8 @@ function buildLeaderboard({
         display_name: entry.display_name ?? existing?.display_name,
         email: entry.email ?? existing?.email,
         phone: entry.phone ?? existing?.phone,
+        class_level: entry.class_level ?? existing?.class_level,
+        class_rank: entry.class_rank ?? existing?.class_rank,
         xp: entry.xp || existing?.xp || 0,
         streak: entry.streak || existing?.streak || 0,
         total_tests: entry.total_tests || existing?.total_tests || 0,
@@ -405,6 +414,8 @@ function buildLeaderboard({
     display_name: currentDisplayName,
     email: userEmail ?? current?.email,
     phone: userPhone ?? current?.phone,
+    class_level: currentClassLevel || current?.class_level,
+    class_rank: current?.class_rank,
     xp: current?.xp ?? progress.xp,
     streak: current?.streak ?? progress.streak,
     total_tests: current?.total_tests ?? progress.total_tests,
@@ -430,7 +441,7 @@ async function safeReadJson(url: string, headers?: HeadersInit) {
 }
 
 function useDashboardData() {
-  const { user, loading: authLoading, getAuthHeaders } = useAuth();
+  const { user, profile, loading: authLoading, getAuthHeaders } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [progress, setProgress] = useState<ProgressSummary>(emptyProgress);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -467,7 +478,8 @@ function useDashboardData() {
         setLeaderboard(buildLeaderboard({
           sources: [payload.leaderboard, leaderboardPayload],
           currentUserId: user.uid,
-          currentDisplayName: getUserDisplayName(user),
+          currentDisplayName: profile?.name || "Student",
+          currentClassLevel: profile?.classLevel || "",
           userEmail: user.email,
           userPhone: user.phoneNumber,
           progress: progressSummary,
@@ -485,7 +497,7 @@ function useDashboardData() {
     }
     load();
     return () => { active = false; };
-  }, [authLoading, backendURL, getAuthHeaders, reloadToken, user]);
+  }, [authLoading, backendURL, getAuthHeaders, profile?.classLevel, profile?.name, reloadToken, user]);
 
   const retry = useCallback(() => {
     setReloadToken((current) => current + 1);
@@ -493,7 +505,8 @@ function useDashboardData() {
 
   return {
     userId: user?.uid ?? "",
-    currentDisplayName: getUserDisplayName(user),
+    currentDisplayName: profile?.name || "Student",
+    classLevel: profile?.classLevel || "",
     sessions,
     progress,
     leaderboard,
@@ -752,7 +765,7 @@ function downloadCSV(sessions: Session[]) {
 
 // Main Analytics page component
 export default function ProgressPage() {
-  const { userId, currentDisplayName, sessions, progress, leaderboard, loading, error, retry } = useDashboardData();
+  const { userId, currentDisplayName, classLevel, sessions, progress, leaderboard, loading, error, retry } = useDashboardData();
   const [range, setRange] = useState<TrendRange>("14d");
   const router = useRouter();
 
@@ -911,6 +924,11 @@ export default function ProgressPage() {
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
                   Learner: {currentDisplayName}
                 </span>
+                {classLevel ? (
+                  <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200">
+                    {classLevel}
+                  </span>
+                ) : null}
               </div>
               <h1 className="mt-6 max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
                 Learning intelligence

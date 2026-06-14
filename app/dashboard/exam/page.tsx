@@ -141,7 +141,7 @@ function clampMetric(value: number) {
 }
 
 export default function ExamModePage() {
-  const { userId, loading, getAuthHeaders } = useAuth();
+  const { profile, userId, loading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const initialTopic = searchParams.get("topic") || "alkanes";
@@ -376,7 +376,9 @@ export default function ExamModePage() {
             <span aria-hidden="true">/</span>
             <span aria-current="page">Exam Mode</span>
           </nav>
-          <p className="dashboard-section-kicker">Focused Assessment</p>
+          <p className="dashboard-section-kicker">
+            Focused Assessment{profile?.classLevel ? ` / ${profile.classLevel}` : ""}
+          </p>
           <h1>Exam Mode</h1>
           <p>Generate course-grounded MCQs and probable theory questions, submit once, then review every mistake.</p>
         </div>

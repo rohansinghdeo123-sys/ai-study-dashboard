@@ -1922,7 +1922,7 @@ function CoachHistorySidebar({
 }
 
 export default function StudyPage() {
-  const { user, userId, authLoading, loading, getAuthHeaders } = useAuth() as ReturnType<typeof useAuth> & { authLoading?: boolean };
+  const { profile, userId, authLoading, loading, getAuthHeaders } = useAuth() as ReturnType<typeof useAuth> & { authLoading?: boolean };
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const initialTopic = searchParams.get("topic") || "alkanes";
@@ -1991,7 +1991,7 @@ export default function StudyPage() {
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const selectedTopicValue = selectedTopic.value;
   const revisionSelectionKey = `${selectedChapter.value}:${selectedTopicValue}`;
-  const displayName = user?.displayName || user?.email?.split("@")[0] || "Student";
+  const displayName = profile?.name || "Student";
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
   const activeRevisionTool = activeRevisionPanel === "artifact" ? null : REVISION_TOOLS.find((tool) => tool.id === activeRevisionPanel) || REVISION_TOOLS[0];
@@ -3385,7 +3385,7 @@ export default function StudyPage() {
                     What should we learn today?
                   </h2>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt from your study material or request a simple explanation.
+                    Ready when you are, {displayName.split(" ")[0]}. Ask a doubt from your study material or request a simple explanation{profile?.classLevel ? ` for ${profile.classLevel}` : ""}.
                   </p>
 
                   <div className="mt-8 w-full">
