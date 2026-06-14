@@ -514,8 +514,6 @@ export default function DashboardPage() {
   );
 
   const currentRank = rankedLeaderboard.find((entry) => entry.user_id === userId);
-  const topLeaderboard = rankedLeaderboard.slice(0, 10);
-  const currentOutsideTop = currentRank && currentRank.rank > 10 ? currentRank : null;
   const studentCountLabel = `${rankedLeaderboard.length} ${rankedLeaderboard.length === 1 ? "student" : "students"}`;
   const recentSessions = sessions.slice(0, 3);
 
@@ -548,8 +546,8 @@ export default function DashboardPage() {
           }).catch(() => null),
           apiJson<unknown>(`${backendURL}/leaderboard`, {
             headers,
-            cacheKey: "leaderboard",
-            cacheTtlMs: 45000,
+            cacheKey: `leaderboard:${userId}`,
+            cacheTtlMs: 10000,
             forceFresh,
             retries: 1,
             timeoutMs: 7000,
@@ -589,9 +587,39 @@ export default function DashboardPage() {
     };
   }, [backendURL, getAuthHeaders, loading, reloadToken, userId]);
 
+  useEffect(() => {
+    if (loading || !userId) return;
+    let active = true;
+
+    async function refreshLeaderboard() {
+      try {
+        const leaderboardJson = await apiJson<unknown>(`${backendURL}/leaderboard`, {
+          headers: await getAuthHeaders(),
+          cacheKey: `leaderboard:${userId}`,
+          cacheTtlMs: 0,
+          forceFresh: true,
+          retries: 1,
+          timeoutMs: 7000,
+        });
+        if (active) setLeaderboardSource(leaderboardJson);
+      } catch {
+        // Keep the latest complete ranking visible during a transient refresh failure.
+      }
+    }
+
+    const timer = window.setInterval(() => {
+      void refreshLeaderboard();
+    }, 20000);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [backendURL, getAuthHeaders, loading, userId]);
+
   const retryDashboard = () => {
     invalidateApiCache(`progress:${userId}`);
-    invalidateApiCache("leaderboard");
+    invalidateApiCache(`leaderboard:${userId}`);
     invalidateApiCache(`sessions:${userId}`);
     setReloadToken((current) => current + 1);
   };
@@ -788,7 +816,11 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="dashboard-final-panel dashboard-final-leaderboard" aria-labelledby="leaderboard-title">
+      <section
+        className="dashboard-final-panel dashboard-final-leaderboard"
+        aria-labelledby="leaderboard-title"
+        data-ranking-scope="all-active-students"
+      >
         <div className="dashboard-final-panel-header">
           <div>
             <h2 id="leaderboard-title">Student Leaderboard</h2>
@@ -812,7 +844,7 @@ export default function DashboardPage() {
         </div>
 
         <ol className="dashboard-leaderboard-list">
-          {topLeaderboard.map((entry) => (
+          {rankedLeaderboard.map((entry) => (
             <LeaderboardRow
               key={entry.user_id}
               entry={entry}
@@ -821,19 +853,6 @@ export default function DashboardPage() {
             />
           ))}
         </ol>
-
-        {currentOutsideTop ? (
-          <div className="dashboard-current-position">
-            <span>Your Position</span>
-            <ol>
-              <LeaderboardRow
-                entry={currentOutsideTop}
-                currentUserId={userId}
-                currentDisplayName={displayName}
-              />
-            </ol>
-          </div>
-        ) : null}
       </section>
     </div>
   );
