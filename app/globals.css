@@ -9154,6 +9154,27 @@ body {
   --rank-face: #F4BE98;
 }
 
+/* Only the podium (ranks 1-3) gets a medal. Everyone else shows a plain,
+   centered number — no medal. data-rank is set on the cell only for the top 3. */
+.dashboard-final-leaderboard .dashboard-rank-cell:not([data-rank]) .dashboard-rank-medal {
+  display: none;
+}
+
+.dashboard-final-leaderboard .dashboard-rank-cell:not([data-rank]) {
+  place-items: center;
+}
+
+.dashboard-final-leaderboard .dashboard-rank-cell:not([data-rank]) strong {
+  margin-top: 0;
+  font-size: 1.2rem;
+  color: #475569;
+  text-shadow: none;
+}
+
+[data-theme="dark"] .dashboard-final-leaderboard .dashboard-rank-cell:not([data-rank]) strong {
+  color: #94A3B8;
+}
+
 .dashboard-final-leaderboard .dashboard-student-cell {
   gap: 0.9rem;
   padding: 0;
