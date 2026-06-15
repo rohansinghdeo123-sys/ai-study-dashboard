@@ -2971,7 +2971,9 @@ export default function StudyPage() {
         apiFetch(`${backendURL}/generate-mcqs`, {
           method: "POST",
           headers,
-          timeoutMs: 24000,
+          // Exam generation is a heavy grounded LLM call (multiple structured
+          // questions); 24s raced it like revision did. 45s leaves margin.
+          timeoutMs: 45000,
           retries: 1,
           body: JSON.stringify({
             topic: selectedTopic.label,
@@ -2994,7 +2996,7 @@ export default function StudyPage() {
         apiFetch(`${backendURL}/generate-probable-questions`, {
           method: "POST",
           headers,
-          timeoutMs: 24000,
+          timeoutMs: 45000,
           retries: 1,
           body: JSON.stringify({
             topic: selectedTopic.label,
