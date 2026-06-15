@@ -2860,7 +2860,10 @@ export default function StudyPage() {
         method: "POST",
         headers: await getAuthHeaders(),
         retries: 1,
-        timeoutMs: 24000,
+        // Revision is a grounded LLM generation that runs ~15-22s when the
+        // backend is warm; the old 24s ceiling raced it and surfaced a false
+        // "material not found". 45s leaves comfortable margin.
+        timeoutMs: 45000,
         body: JSON.stringify({
           question: tool.prompt(selectedTopic.label),
           section_id: selectedTopicValue,
