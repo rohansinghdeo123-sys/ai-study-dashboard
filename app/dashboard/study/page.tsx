@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import ChatThinkingLogo from "@/components/brand/ChatThinkingLogo";
 import ArtifactCanvas, { ARTIFACT_UNAVAILABLE_MESSAGE } from "@/components/study/ArtifactCanvas";
 import RevisionModeTabs from "@/components/study/RevisionModeTabs";
+import RichMarkdown from "@/components/RichMarkdown";
 import {
   AlertState,
   AppIcon,
@@ -998,68 +999,38 @@ function CoachAnswer({
   streaming?: boolean;
   adaptiveBlocks?: AdaptiveAnswerBlock[];
 }) {
-  const blocks = adaptiveBlocks.length
-    ? adaptiveBlocks.map((block) => ({
-        kind: block.kind || "explanation",
-        title: String(block.title || "").trim(),
-        lines: String(block.content || "").split("\n").map((line) => line.trim()).filter(Boolean),
-      }))
-    : value.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean).map((block) => {
-        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-        const firstLine = lines[0] || "";
-        const markdownHeading = firstLine.match(/^#{1,6}\s+(.*)$/);
-        const heading = markdownHeading
-          ? markdownHeading[1]
-          : firstLine.endsWith(":") && firstLine.length <= 72
-            ? firstLine.replace(/:$/, "")
-            : "";
+  // Adaptive blocks arrive pre-segmented (title + markdown body); a plain answer
+  // is one markdown document. Either way the body is rendered as full markdown.
+  if (adaptiveBlocks.length) {
+    return (
+      <div className="study-answer-flow">
+        {adaptiveBlocks.map((block, blockIndex) => {
+          const heading = String(block.title || "").trim();
+          const body = String(block.content || "").trim();
+          if (!heading && !body) return null;
+          const isLast = blockIndex === adaptiveBlocks.length - 1;
+          return (
+            <section
+              key={`${heading || "answer"}-${blockIndex}`}
+              className={`study-answer-text-block is-${block.kind || "explanation"}`}
+            >
+              {heading ? <h3 className="study-answer-heading">{heading}</h3> : null}
+              <RichMarkdown content={body} streaming={streaming && isLast} />
+            </section>
+          );
+        })}
+      </div>
+    );
+  }
 
-        return {
-          kind: "explanation",
-          title: heading,
-          lines: heading ? lines.slice(1) : lines,
-        };
-      });
-
-  if (!blocks.length) return null;
+  const answer = String(value || "").trim();
+  if (!answer) return null;
 
   return (
     <div className="study-answer-flow">
-      {blocks.map((block, blockIndex) => {
-        const heading = block.title;
-        const body = block.lines;
-
-        return (
-          <section key={`${heading || "answer"}-${blockIndex}`} className={`study-answer-text-block is-${block.kind}`}>
-            {heading ? (
-              <h3 className="study-answer-heading">{heading}</h3>
-            ) : null}
-            <div className="study-answer-body">
-              {body.map((line, lineIndex) => {
-                const bullet = line.match(/^[-*]\s+(.*)$/);
-                const isLastLine = streaming && blockIndex === blocks.length - 1 && lineIndex === body.length - 1;
-                if (bullet) {
-                  return (
-                    <div key={lineIndex} className="study-answer-list-item">
-                      <span aria-hidden="true">-</span>
-                      <p className="min-w-0">
-                        {renderInlineChemistry(bullet[1].replace(/^#{1,6}\s+/, ""))}
-                        {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
-                      </p>
-                    </div>
-                  );
-                }
-                return (
-                  <p key={lineIndex}>
-                    {renderInlineChemistry(line.replace(/^#{1,6}\s+/, ""))}
-                    {isLastLine ? <span className="study-stream-cursor" aria-hidden="true" /> : null}
-                  </p>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+      <section className="study-answer-text-block is-explanation">
+        <RichMarkdown content={answer} streaming={streaming} />
+      </section>
     </div>
   );
 }
