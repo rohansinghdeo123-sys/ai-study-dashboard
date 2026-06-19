@@ -4477,9 +4477,10 @@ body {
 }
 
 .auth-field {
-  background: rgba(255,255,255,0.72);
-  border: 1px solid rgba(15,23,42,0.12);
+  background: rgba(255,255,255,0.82);
+  border: 1px solid rgba(15,23,42,0.11);
   color: var(--agentify-primary-text);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
 }
 
 .auth-field::placeholder {
@@ -4489,7 +4490,8 @@ body {
 
 .auth-field:focus {
   border-color: #0E7490;
-  box-shadow: 0 0 0 4px rgba(20,184,166,0.14);
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.13), inset 0 1px 0 rgba(255,255,255,0.86);
 }
 
 [data-theme="dark"] .auth-field {
@@ -4512,7 +4514,7 @@ body {
   height: 3.25rem;
   border-radius: 1rem;
   border: 1px solid rgba(15,23,42,0.12);
-  background: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.82);
   color: var(--agentify-primary-text);
   text-align: center;
   font-size: 1.25rem;
@@ -4542,12 +4544,14 @@ body {
   border: 1px solid rgba(15,23,42,0.12);
   color: #0F172A;
   box-shadow: 0 10px 30px rgba(15,23,42,0.08);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  line-height: 1;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
 .auth-google:hover:not(:disabled) {
   transform: translateY(-1px);
   border-color: rgba(14,116,144,0.35);
+  background: #FDFEFE;
   box-shadow: 0 14px 36px rgba(14,116,144,0.14);
 }
 
@@ -4601,8 +4605,9 @@ body {
 
 .auth-secondary {
   border: 1px solid rgba(15,23,42,0.10);
-  background: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.58);
   color: var(--agentify-primary-text);
+  line-height: 1;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
 }
 
@@ -4679,13 +4684,15 @@ body {
 }
 
 .auth-primary {
-  background: linear-gradient(135deg, #0E7490 0%, #14B8A6 100%);
+  border: 1px solid rgba(255,255,255,0.20);
+  background: linear-gradient(135deg, #0F172A 0%, #0E7490 52%, #14B8A6 100%);
   color: #FFFFFF;
   box-shadow: 0 14px 34px rgba(14,116,144,0.26);
+  line-height: 1;
   transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
 }
 
-.auth-primary:hover { filter: brightness(1.07); transform: translateY(-1px); }
+.auth-primary:hover { filter: brightness(1.07); transform: translateY(-1px); box-shadow: 0 18px 42px rgba(14,116,144,0.30); }
 .auth-primary:active { filter: brightness(0.96); transform: translateY(0); }
 .auth-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
@@ -4882,11 +4889,11 @@ body {
   --auth-final-ink: #17233A;
   --auth-final-muted: #59657A;
   --auth-final-line: rgba(54, 65, 83, 0.13);
-  --auth-final-surface: rgba(255, 255, 255, 0.82);
-  --auth-final-soft-surface: rgba(255, 255, 255, 0.50);
+  --auth-final-surface: rgba(255, 255, 255, 0.88);
+  --auth-final-soft-surface: rgba(255, 255, 255, 0.56);
   position: relative;
   overflow-x: hidden;
-  background: #F7F4ED;
+  background: #F8F6F1;
   color: var(--auth-final-ink);
   isolation: isolate;
 }
@@ -4898,10 +4905,10 @@ body {
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(circle at 8% 8%, rgba(20, 184, 166, 0.16), transparent 28rem),
-    radial-gradient(circle at 91% 13%, rgba(242, 184, 75, 0.15), transparent 26rem),
-    radial-gradient(circle at 50% 88%, rgba(14, 116, 144, 0.08), transparent 31rem),
-    linear-gradient(180deg, #FAF8F3 0%, #F5F1E8 100%);
+    radial-gradient(circle at 8% 8%, rgba(20, 184, 166, 0.12), transparent 27rem),
+    radial-gradient(circle at 91% 13%, rgba(242, 184, 75, 0.12), transparent 25rem),
+    radial-gradient(circle at 50% 88%, rgba(14, 116, 144, 0.06), transparent 30rem),
+    linear-gradient(180deg, #FCFAF6 0%, #F4F0E8 100%);
 }
 
 .auth-final-backdrop::before {
@@ -4963,6 +4970,12 @@ body {
 
 .auth-brand-lockup {
   color: var(--auth-final-ink);
+  border-radius: 1.1rem;
+  transition: transform 180ms ease, opacity 180ms ease;
+}
+
+.auth-brand-lockup:hover {
+  transform: translateY(-1px);
 }
 
 .auth-brand-logo.chat-thinking-logo,
@@ -5030,6 +5043,7 @@ body {
 
 .auth-brand-name {
   color: var(--auth-final-ink);
+  letter-spacing: 0;
 }
 
 .auth-brand-name span {
@@ -5090,7 +5104,7 @@ body {
 
 .auth-title {
   color: var(--auth-final-ink);
-  letter-spacing: -0.035em;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -5120,6 +5134,13 @@ body {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.54);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.auth-proof-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(14, 116, 144, 0.22);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 [data-theme="dark"] .auth-proof-item {
@@ -5144,10 +5165,12 @@ body {
 
 .auth-login-panel {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  border-radius: 1.45rem !important;
   background: var(--auth-final-surface);
   box-shadow:
-    0 28px 76px rgba(34, 43, 64, 0.13),
+    0 24px 62px rgba(34, 43, 64, 0.12),
     0 2px 8px rgba(34, 43, 64, 0.04),
     inset 0 1px 0 rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(24px);
@@ -5173,6 +5196,7 @@ body {
 
 .auth-panel-heading {
   color: var(--auth-final-ink);
+  letter-spacing: 0;
 }
 
 .auth-panel-subtitle,
@@ -5196,6 +5220,7 @@ body {
 
 .auth-legal a {
   color: var(--auth-final-ink);
+  text-decoration-thickness: 1px;
 }
 
 .auth-footer-final {
@@ -5204,7 +5229,7 @@ body {
 }
 
 .auth-footer-final span {
-  margin-inline: 0.35rem;
+  margin-inline: 0.42rem;
   color: rgba(14, 116, 144, 0.64);
 }
 
@@ -10024,9 +10049,9 @@ body {
    13. PROFILE ONBOARDING
    ============================================================ */
 .onboarding-page {
-  --onboarding-bg: var(--agentify-bright-page-soft, var(--color-surface-1));
-  --onboarding-card: var(--agentify-bright-card-strong, var(--color-surface-2));
-  --onboarding-field: var(--agentify-bright-field, var(--color-surface-2));
+  --onboarding-bg: linear-gradient(180deg, #FCFAF6 0%, #F4F0E8 100%);
+  --onboarding-card: rgba(255,255,255,0.88);
+  --onboarding-field: rgba(255,255,255,0.86);
   --onboarding-border: var(--agentify-bright-border-strong, var(--color-border-default));
   --onboarding-muted: var(--agentify-bright-muted, var(--color-text-secondary));
   --onboarding-ink: var(--agentify-bright-text, var(--color-text-primary));
@@ -10055,7 +10080,7 @@ body {
 }
 
 .onboarding-grid {
-  opacity: 0.5;
+  opacity: 0.36;
   background-image: var(--agentify-bright-grid);
   background-size: 42px 42px;
   mask-image: linear-gradient(to bottom, rgba(0,0,0,0.42), transparent 68%);
@@ -10066,7 +10091,7 @@ body {
   height: 34rem;
   border-radius: 999px;
   filter: blur(14px);
-  opacity: 0.45;
+  opacity: 0.34;
 }
 
 .onboarding-glow-teal {
@@ -10092,12 +10117,13 @@ body {
   justify-self: center;
   gap: 0.7rem;
   min-height: 3.25rem;
+  color: var(--onboarding-ink);
 }
 
 .onboarding-brand-name {
   font-size: 1.22rem;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
 }
 
 .onboarding-brand-name span {
@@ -10144,7 +10170,7 @@ body {
   font-size: clamp(2rem, 4.2vw, 3.15rem);
   font-weight: 750;
   line-height: 1.08;
-  letter-spacing: -0.055em;
+  letter-spacing: 0;
   text-wrap: balance;
 }
 
@@ -10166,9 +10192,9 @@ body {
 .onboarding-form-card,
 .onboarding-loading-card {
   border: 1px solid var(--onboarding-border);
-  border-radius: 1.6rem;
+  border-radius: 1.35rem;
   background: var(--onboarding-card);
-  box-shadow: var(--agentify-bright-shadow-elevated, var(--shadow-elevated));
+  box-shadow: 0 24px 62px rgba(34,43,64,0.11), inset 0 1px 0 rgba(255,255,255,0.72);
   backdrop-filter: blur(24px);
 }
 
@@ -10187,17 +10213,18 @@ body {
   grid-template-columns: 1.35rem minmax(0, 1fr);
   align-items: start;
   gap: 0.8rem;
-  border-radius: 1rem;
+  border-radius: 0.9rem;
   padding: 0.72rem 0.65rem;
   color: var(--onboarding-ink);
   font-size: 0.94rem;
   line-height: 1.48;
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: background var(--transition-fast), transform var(--transition-fast);
 }
 
 .onboarding-review-row:hover {
   background: color-mix(in srgb, var(--color-agent-teal) 7%, transparent);
+  transform: translateY(-1px);
 }
 
 .onboarding-review-row input {
@@ -10214,7 +10241,7 @@ body {
   place-items: center;
   margin-top: 0.06rem;
   border: 1px solid color-mix(in srgb, var(--color-agent-teal) 55%, var(--onboarding-border));
-  border-radius: 0.38rem;
+  border-radius: 0.34rem;
   color: white;
   background: linear-gradient(135deg, var(--color-agent-cyan), var(--color-agent-teal));
   box-shadow: 0 5px 14px rgba(20,184,166,0.18);
@@ -10258,10 +10285,10 @@ body {
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 1rem;
+  border-radius: 0.95rem;
   padding: 0.9rem 1.4rem;
   color: #fff;
-  background: linear-gradient(115deg, var(--color-agent-navy), var(--color-agent-cyan) 55%, var(--color-agent-teal));
+  background: linear-gradient(135deg, #0F172A, var(--color-agent-cyan) 58%, var(--color-agent-teal));
   box-shadow: 0 16px 34px rgba(14,116,144,0.2), inset 0 1px 0 rgba(255,255,255,0.18);
   font-size: 0.98rem;
   font-weight: 800;
@@ -10301,11 +10328,11 @@ body {
   min-height: 4.55rem;
   appearance: none;
   border: 1px solid var(--onboarding-border);
-  border-radius: 1.25rem;
+  border-radius: 1rem;
   padding: 1rem 1.35rem;
   color: var(--onboarding-ink);
   background: var(--onboarding-field);
-  box-shadow: var(--agentify-bright-shadow, var(--shadow-card));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72), 0 12px 30px rgba(34,43,64,0.06);
   font: inherit;
   font-size: 1.05rem;
   transition: border var(--transition-fast), box-shadow var(--transition-fast);
@@ -10327,7 +10354,8 @@ body {
 .onboarding-form input:focus,
 .onboarding-form select:focus {
   border-color: var(--color-agent-teal);
-  box-shadow: 0 0 0 4px rgba(20,184,166,0.09), var(--agentify-bright-shadow, var(--shadow-card));
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.09), inset 0 1px 0 rgba(255,255,255,0.84), 0 12px 30px rgba(34,43,64,0.06);
 }
 
 .onboarding-form input.has-error {
