@@ -2288,6 +2288,9 @@ export default function StudyPage() {
         const safeAnswer = getCoachSafeAnswer(turnEvent.answer || "");
         updateLastCoachMessage(safeAnswer, turnEvent.blocks || [], turnEvent.sources, turnEvent.socratic);
         setShowPipeline(false);
+        // The answer is complete; drop the "writing..." indicator now instead of
+        // waiting for the socket to close after background persistence.
+        setLoadingAnswer(false);
         return { kind: "answer", value: safeAnswer };
       }
       return { kind: "none" };
