@@ -7693,6 +7693,96 @@ body {
   opacity: 0.48;
 }
 
+.exam-readiness-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+}
+
+.exam-readiness-card {
+  display: grid;
+  min-width: 0;
+  min-height: 6.4rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 1rem;
+  background: var(--dashboard-surface);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.34) inset, 0 16px 42px rgba(15,23,42,0.055);
+  padding: 0.9rem;
+}
+
+.exam-readiness-card[data-active="true"] {
+  border-color: rgba(14,116,144,0.24);
+  background: linear-gradient(135deg, rgba(236,253,245,0.74), rgba(255,255,255,0.76));
+}
+
+.exam-readiness-card[data-complete="true"] .exam-readiness-icon {
+  background: #0E7490;
+  color: #FFFFFF;
+}
+
+.exam-readiness-icon {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  place-items: center;
+  border-radius: 0.82rem;
+  background: rgba(14,116,144,0.10);
+  color: #0E7490;
+}
+
+.exam-readiness-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.exam-readiness-card div {
+  display: grid;
+  min-width: 0;
+  gap: 0.16rem;
+}
+
+.exam-readiness-card p {
+  color: var(--dashboard-faint);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.exam-readiness-card strong {
+  overflow: hidden;
+  color: var(--dashboard-text);
+  font-size: 0.98rem;
+  font-weight: 820;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exam-readiness-card small {
+  color: var(--dashboard-muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+[data-theme="dark"] .exam-readiness-card {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.035) inset, 0 18px 50px rgba(0,0,0,0.22);
+}
+
+[data-theme="dark"] .exam-readiness-card[data-active="true"] {
+  border-color: rgba(94,234,212,0.22);
+  background: rgba(20,184,166,0.09);
+}
+
+[data-theme="dark"] .exam-readiness-card[data-complete="true"] .exam-readiness-icon {
+  background: #14B8A6;
+  color: #04111C;
+}
+
 .exam-mode-progress {
   height: 0.32rem;
   margin: 0.8rem 0;
@@ -8322,6 +8412,14 @@ body {
   .exam-mode-setup {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .exam-readiness-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .exam-readiness-card {
+    min-height: 5.6rem;
   }
 
   .exam-review-layout {

@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState, LoadingState } from "@/components/ui/Polished";
+import { AppIcon, EmptyState, LoadingState, type AppIconName } from "@/components/ui/Polished";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
@@ -138,6 +138,76 @@ function normalizeProbableQuestion(raw: unknown, index: number, fallbackSource: 
 
 function clampMetric(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function ExamReadinessStrip({
+  hasPack,
+  answeredCount,
+  totalQuestions,
+  submitted,
+  probableCount,
+}: {
+  hasPack: boolean;
+  answeredCount: number;
+  totalQuestions: number;
+  submitted: boolean;
+  probableCount: number;
+}) {
+  const items: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    icon: AppIconName;
+    active: boolean;
+    complete: boolean;
+  }> = [
+    {
+      label: "Pack",
+      value: hasPack ? "Ready" : "Pending",
+      detail: hasPack ? `${totalQuestions} MCQs generated` : "Generate from selected material",
+      icon: "book",
+      active: hasPack,
+      complete: hasPack,
+    },
+    {
+      label: "Attempt",
+      value: totalQuestions ? `${answeredCount}/${totalQuestions}` : "0/5",
+      detail: submitted ? "Submitted once" : "Answer all questions before review",
+      icon: "check",
+      active: hasPack && !submitted,
+      complete: Boolean(totalQuestions && answeredCount === totalQuestions),
+    },
+    {
+      label: "Review",
+      value: submitted ? "Unlocked" : "Locked",
+      detail: probableCount ? `${probableCount} theory prompts ready` : "Score and explanations appear here",
+      icon: "analytics",
+      active: submitted,
+      complete: submitted,
+    },
+  ];
+
+  return (
+    <section className="exam-readiness-strip" aria-label="Exam readiness">
+      {items.map((item) => (
+        <article
+          key={item.label}
+          className="exam-readiness-card"
+          data-active={item.active ? "true" : "false"}
+          data-complete={item.complete ? "true" : "false"}
+        >
+          <span className="exam-readiness-icon" aria-hidden="true">
+            <AppIcon name={item.complete ? "check" : item.icon} />
+          </span>
+          <div>
+            <p>{item.label}</p>
+            <strong>{item.value}</strong>
+            <small>{item.detail}</small>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
 }
 
 export default function ExamModePage() {
@@ -422,6 +492,14 @@ export default function ExamModePage() {
           {generating ? "Generating pack..." : questions.length ? "Regenerate exam pack" : "Generate exam pack"}
         </button>
       </section>
+
+      <ExamReadinessStrip
+        hasPack={Boolean(questions.length)}
+        answeredCount={answeredCount}
+        totalQuestions={questions.length || 5}
+        submitted={submitted}
+        probableCount={probableQuestions.length}
+      />
 
       <div className="exam-mode-progress" aria-label={`${completion}% of questions answered`}>
         <span style={{ width: `${completion}%` }} />
