@@ -887,6 +887,22 @@ export default function ProgressPage() {
     : sessions.length
     ? "Take one timed exam set"
     : "Start first tracked session";
+  const primaryWeakTopic = weakTopics[0] ?? null;
+  const actionPlanTitle = primaryWeakTopic
+    ? `Repair ${primaryWeakTopic.topic}`
+    : sessions.length
+      ? "Convert progress into exam reps"
+      : "Launch your first study loop";
+  const actionPlanBody = primaryWeakTopic
+    ? `Accuracy is at ${primaryWeakTopic.accuracy}% across ${primaryWeakTopic.sessions} tracked ${primaryWeakTopic.sessions === 1 ? "session" : "sessions"}. Start a focused revision loop before adding new topics.`
+    : sessions.length
+      ? "Your learning data is active. Use a timed exam set now to turn practice into a sharper mastery signal."
+      : "Begin with one tracked study session so Agentify can build your first mastery map and next-action path.";
+  const actionPlanTarget = primaryWeakTopic
+    ? "Revise topic"
+    : sessions.length
+      ? "Open exam"
+      : "Start studying";
   const latestSession = useMemo(() => {
     return [...sessions].sort((a, b) => (getSessionDate(b)?.getTime() ?? 0) - (getSessionDate(a)?.getTime() ?? 0))[0] ?? null;
   }, [sessions]);
@@ -1007,6 +1023,65 @@ export default function ProgressPage() {
                     <span className="mt-1 block text-lg font-semibold text-white">{xpToNext}</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="progress-action-plan rounded-[2rem] border border-cyan-100/12 bg-[linear-gradient(135deg,rgba(20,184,166,0.10),rgba(255,170,10,0.07))] p-5 shadow-[0_24px_72px_rgba(0,0,0,0.18)]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_440px]">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <TonePill tone={primaryWeakTopic ? "amber" : "green"}>Next move</TonePill>
+                <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                  {priorityCommand}
+                </span>
+              </div>
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">{actionPlanTitle}</h2>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">{actionPlanBody}</p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (primaryWeakTopic) {
+                      handleReviseTopic(primaryWeakTopic.topic);
+                      return;
+                    }
+                    router.push(sessions.length ? "/dashboard/exam" : "/dashboard/study");
+                  }}
+                  className="agentify-action rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-[#67E8F9] transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/20"
+                >
+                  {actionPlanTarget}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push("/dashboard/mission")}
+                  className="agentify-action rounded-full border border-white/10 bg-white/[0.045] px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/[0.075]"
+                >
+                  Build mission
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Readiness</p>
+                  <span className={cn("text-sm font-semibold", toneText(readinessTone))}>{readinessScore}%</span>
+                </div>
+                <div className="mt-3">
+                  <Rail value={readinessScore} tone={readinessTone} />
+                </div>
+              </div>
+              <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Focus signal</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{avgFocus || 0}</p>
+                <p className="mt-1 text-xs text-slate-500">{avgFocus >= 75 ? "Strong session discipline" : "Short focused loops will help"}</p>
+              </div>
+              <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Momentum</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{progress.streak} day{progress.streak === 1 ? "" : "s"}</p>
+                <p className="mt-1 text-xs text-slate-500">{sessions.length ? `${sessions.length} tracked sessions` : "No tracked session yet"}</p>
               </div>
             </div>
           </div>

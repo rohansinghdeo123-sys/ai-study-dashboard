@@ -6325,11 +6325,18 @@ body {
   opacity: 0.42 !important;
 }
 
+[data-theme="light"] .dashboard-shell .progress-action-plan {
+  background: linear-gradient(135deg, rgba(236,253,245,0.82), rgba(255,251,235,0.74)) !important;
+  border-color: rgba(14,116,144,0.13) !important;
+  box-shadow: 0 22px 64px rgba(15,23,42,0.08) !important;
+}
+
 [data-theme="light"] .dashboard-shell .progress-hero-panel,
 [data-theme="light"] .dashboard-shell .progress-glass-card,
 [data-theme="light"] .dashboard-shell .progress-glass-panel,
 [data-theme="light"] .dashboard-shell .progress-chart-frame,
 [data-theme="light"] .dashboard-shell .progress-readiness-card,
+[data-theme="light"] .dashboard-shell .progress-action-card,
 [data-theme="light"] .dashboard-shell .progress-mini-card {
   background: rgba(255,255,255,0.78) !important;
   border-color: rgba(15,23,42,0.10) !important;
