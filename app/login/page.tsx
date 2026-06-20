@@ -335,7 +335,7 @@ export default function LoginPage() {
             label="AgentifyAI"
           />
           <span className="leading-none">
-            <span className="auth-brand-name block text-xl font-extrabold tracking-[-0.035em]">
+            <span className="auth-brand-name block text-xl font-extrabold tracking-normal">
               Agentify<span>AI</span>
             </span>
             <span className="auth-brand-tagline mt-1.5 block text-[11px] font-semibold tracking-[0.02em]">
@@ -430,7 +430,7 @@ export default function LoginPage() {
             ) : (
               <>
                 <div className="mb-5 text-center">
-                  <h2 className="auth-panel-heading text-lg font-extrabold tracking-[-0.025em]">
+                  <h2 className="auth-panel-heading text-lg font-extrabold tracking-normal">
                     {usePhone ? (otpSent ? "Enter your verification code" : "Continue with your phone") : "Continue your learning"}
                   </h2>
                   <p className="auth-panel-subtitle mt-1.5 text-xs leading-5">
@@ -493,6 +493,7 @@ export default function LoginPage() {
                           value={phoneNumber}
                           onChange={(event) => setPhoneNumber(event.target.value)}
                           placeholder="+91 98765 43210"
+                          aria-label="Mobile number"
                           aria-describedby={authError ? "login-auth-error" : undefined}
                           className="auth-field w-full rounded-2xl px-4 py-3.5 text-base font-medium outline-none transition"
                         />
@@ -575,7 +576,7 @@ export default function LoginPage() {
       </main>
 
       <footer className="auth-footer-final px-5 pb-5 text-center text-[10.5px] font-semibold tracking-[0.02em] sm:pb-6">
-        Personal Agent <span aria-hidden="true">·</span> Autonomous Missions <span aria-hidden="true">·</span> Study Lab
+        Personal Agent <span aria-hidden="true">-</span> Autonomous Missions <span aria-hidden="true">-</span> Study Lab
       </footer>
 
       <style jsx global>{`

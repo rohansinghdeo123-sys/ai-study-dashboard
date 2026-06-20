@@ -249,6 +249,19 @@ function MissionBuildState({ topic }: { topic: string }) {
   );
 }
 
+function getMissionReadiness(profile: MissionProfile) {
+  const minutes = Number(profile.availableMinutes) || 0;
+  const confidence = confidenceToScore(profile.prerequisiteConfidence);
+  const timeScore = minutes >= 45 ? 34 : minutes >= 25 ? 27 : 18;
+  const goalScore = profile.learningGoal === "fast_track" ? 24 : profile.learningGoal === "quick_revision" ? 26 : 30;
+  const readiness = clampMetric(timeScore + Math.round(confidence * 0.36) + goalScore);
+
+  return {
+    score: readiness,
+    label: readiness >= 78 ? "Strong launch" : readiness >= 58 ? "Ready to start" : "Use a tighter path",
+  };
+}
+
 export default function MissionPage() {
   const { profile: accountProfile, userId, loading, claimsLoading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
@@ -281,6 +294,7 @@ export default function MissionPage() {
 
   const authBusy = loading || claimsLoading;
   const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
+  const missionReadiness = useMemo(() => getMissionReadiness(profile), [profile]);
 
   const plan = mission?.study_plan || mission?.result?.data?.study_plan || [];
   const question = mission?.diagnostic_question || mission?.result?.data?.questions?.[0] || null;
@@ -458,6 +472,35 @@ export default function MissionPage() {
         <p className="mt-3 text-sm leading-6 text-slate-500">
           Select the topic, answer a few quick profile questions, then get a time-optimized roadmap with checkpoints and a final confidence signal.
         </p>
+
+        <div className="mt-5 rounded-3xl border border-[#0E7490]/16 bg-white/64 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0E7490]">Mission readiness</p>
+              <h2 className="mt-1 text-lg font-semibold text-slate-950">{missionReadiness.label}</h2>
+            </div>
+            <strong className="rounded-2xl bg-[#0E7490]/10 px-3 py-2 text-sm font-extrabold text-[#0E7490]">
+              {missionReadiness.score}%
+            </strong>
+          </div>
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+            <span
+              className="block h-full rounded-full bg-[linear-gradient(90deg,#0E7490,#14B8A6,#F2B84B)] transition-[width]"
+              style={{ width: `${missionReadiness.score}%` }}
+            />
+          </div>
+          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <span className="rounded-2xl border border-slate-200 bg-white/70 px-2 py-2 text-[11px] font-bold text-slate-600">
+              {profile.availableMinutes} min
+            </span>
+            <span className="rounded-2xl border border-slate-200 bg-white/70 px-2 py-2 text-[11px] font-bold capitalize text-slate-600">
+              {formatLabel(profile.learningGoal)}
+            </span>
+            <span className="rounded-2xl border border-slate-200 bg-white/70 px-2 py-2 text-[11px] font-bold capitalize text-slate-600">
+              {formatLabel(profile.prerequisiteConfidence)}
+            </span>
+          </div>
+        </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           <select

@@ -1733,6 +1733,67 @@ function ModeButton({
   );
 }
 
+function StudySessionStrip({
+  mode,
+  coachName,
+  socraticMode,
+  attachmentsCount,
+  conversationsCount,
+  selectedTopicLabel,
+  loadingAnswer,
+  onNewChat,
+  onOpenChat,
+}: {
+  mode: StudyMode;
+  coachName: string;
+  socraticMode: boolean;
+  attachmentsCount: number;
+  conversationsCount: number;
+  selectedTopicLabel: string;
+  loadingAnswer: boolean;
+  onNewChat: () => void;
+  onOpenChat: () => void;
+}) {
+  const isCoachMode = mode === "coach";
+  const activeMode = STUDY_MODES.find((item) => item.id === mode)?.label || "Study";
+
+  return (
+    <div className="study-session-strip" aria-label="Study session status">
+      <div className="study-session-primary">
+        <span aria-hidden="true">
+          <AppIcon name="spark" />
+        </span>
+        <div>
+          <strong>{isCoachMode ? `${coachName} is ready` : `${activeMode} workspace`}</strong>
+          <small>{selectedTopicLabel}</small>
+        </div>
+      </div>
+
+      <div className="study-session-pills" aria-label="Active study settings">
+        <span className="study-session-pill" data-active={socraticMode ? "true" : "false"}>
+          Guided {socraticMode ? "on" : "off"}
+        </span>
+        <span className="study-session-pill">
+          Files {attachmentsCount}
+        </span>
+        <span className="study-session-pill">
+          Chats {conversationsCount}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        onClick={isCoachMode ? onNewChat : onOpenChat}
+        disabled={loadingAnswer && !isCoachMode}
+        className="study-session-action"
+      >
+        <span>{isCoachMode ? "New chat" : "Open chat"}</span>
+        <AppIcon name="arrowRight" />
+      </button>
+    </div>
+  );
+}
+
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -3310,6 +3371,17 @@ export default function StudyPage() {
             ))}
           </div>
 
+          <StudySessionStrip
+            mode={mode}
+            coachName={coachName}
+            socraticMode={socraticMode}
+            attachmentsCount={pendingAttachments.length}
+            conversationsCount={conversations.length}
+            selectedTopicLabel={selectedTopic.label}
+            loadingAnswer={loadingAnswer}
+            onNewChat={startNewChat}
+            onOpenChat={() => setMode("coach")}
+          />
         </div>
       </section>
 

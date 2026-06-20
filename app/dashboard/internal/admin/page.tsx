@@ -752,6 +752,59 @@ export default function FounderAdminConsolePage() {
     [data?.students, studentClassFilter],
   );
 
+  const commandSignals = useMemo(() => {
+    if (!data) return [];
+
+    const qualityRiskTotal = [
+      data.quality.hallucination_risk,
+      data.quality.missing_sources,
+      data.quality.failed_mcq_generation,
+      data.quality.empty_retrieval,
+      data.quality.slow_responses,
+      data.quality.fallback_used,
+    ].reduce((total, value) => total + (Number(value) || 0), 0);
+    const agentsNeedingAttention = data.agents.filter((agent) => {
+      const signal = `${agent.status} ${agent.health} ${agent.evolution?.learning_signal || ""}`.toLowerCase();
+      return ["error", "failed", "critical", "degraded", "missing", "needs"].some((item) => signal.includes(item));
+    }).length;
+    const pendingContentJobs = data.content.recent_jobs.filter((job) => {
+      const status = job.status.toLowerCase();
+      return !["done", "success", "completed", "complete", "published"].some((item) => status.includes(item));
+    }).length;
+    const slowTraceCount = data.traces.filter((trace) => trace.latency_ms >= 7000).length;
+
+    return [
+      {
+        label: "Quality risk",
+        value: qualityRiskTotal,
+        detail: qualityRiskTotal ? "Review sources, retrieval, and fallback patterns." : "No risk counters currently raised.",
+        tone: qualityRiskTotal ? "red" : "green",
+        tab: "overview",
+      },
+      {
+        label: "Agent attention",
+        value: agentsNeedingAttention,
+        detail: agentsNeedingAttention ? "Open the agent fleet and inspect unhealthy signals." : `${data.agents.length} agents reporting cleanly.`,
+        tone: agentsNeedingAttention ? "gold" : "green",
+        tab: "agents",
+      },
+      {
+        label: "Trace load",
+        value: data.traces.length,
+        detail: slowTraceCount ? `${slowTraceCount} slow traces need latency review.` : "Trace timeline is ready for audit.",
+        tone: slowTraceCount ? "blue" : "teal",
+        tab: "traces",
+      },
+      {
+        label: "Content queue",
+        value: pendingContentJobs,
+        detail: pendingContentJobs ? "Some ingestion jobs are not complete yet." : `${data.content.approved_or_published} chapters approved or published.`,
+        tone: pendingContentJobs ? "gold" : "green",
+        tab: "content",
+      },
+    ] satisfies Array<{ label: string; value: number; detail: string; tone: Tone; tab: ConsoleTab }>;
+  }, [data]);
+
   const exportCurrentReport = () => {
     if (!data) return;
     exportJson(`agentify-admin-console-${Date.now()}.json`, data);
@@ -859,6 +912,32 @@ export default function FounderAdminConsolePage() {
 
         {!data ? (
           <LoadingState title="Loading command center..." detail="Collecting agents, traces, quality signals, content status, and audit logs." />
+        ) : null}
+
+        {data ? (
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {commandSignals.map((signal) => (
+              <button
+                key={signal.label}
+                type="button"
+                onClick={() => setTab(signal.tab)}
+                className={cn(
+                  "group rounded-[1.25rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(0,0,0,0.22)]",
+                  toneClasses(signal.tone),
+                  activeTab === signal.tab && "ring-1 ring-cyan-200/30",
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{signal.label}</p>
+                  <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 transition group-hover:text-white">
+                    Open
+                  </span>
+                </div>
+                <p className="mt-4 text-3xl font-semibold tracking-tight text-white">{formatCompact(signal.value)}</p>
+                <p className="mt-2 min-h-10 text-xs leading-5 text-slate-400">{signal.detail}</p>
+              </button>
+            ))}
+          </section>
         ) : null}
 
         {data && activeTab === "overview" ? (

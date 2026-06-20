@@ -1,6 +1,6 @@
 "use client";
 
-import { EmptyState, LoadingState } from "@/components/ui/Polished";
+import { AppIcon, EmptyState, LoadingState, type AppIconName } from "@/components/ui/Polished";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
@@ -140,6 +140,76 @@ function clampMetric(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function ExamReadinessStrip({
+  hasPack,
+  answeredCount,
+  totalQuestions,
+  submitted,
+  probableCount,
+}: {
+  hasPack: boolean;
+  answeredCount: number;
+  totalQuestions: number;
+  submitted: boolean;
+  probableCount: number;
+}) {
+  const items: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    icon: AppIconName;
+    active: boolean;
+    complete: boolean;
+  }> = [
+    {
+      label: "Pack",
+      value: hasPack ? "Ready" : "Pending",
+      detail: hasPack ? `${totalQuestions} MCQs generated` : "Generate from selected material",
+      icon: "book",
+      active: hasPack,
+      complete: hasPack,
+    },
+    {
+      label: "Attempt",
+      value: totalQuestions ? `${answeredCount}/${totalQuestions}` : "0/5",
+      detail: submitted ? "Submitted once" : "Answer all questions before review",
+      icon: "check",
+      active: hasPack && !submitted,
+      complete: Boolean(totalQuestions && answeredCount === totalQuestions),
+    },
+    {
+      label: "Review",
+      value: submitted ? "Unlocked" : "Locked",
+      detail: probableCount ? `${probableCount} theory prompts ready` : "Score and explanations appear here",
+      icon: "analytics",
+      active: submitted,
+      complete: submitted,
+    },
+  ];
+
+  return (
+    <section className="exam-readiness-strip" aria-label="Exam readiness">
+      {items.map((item) => (
+        <article
+          key={item.label}
+          className="exam-readiness-card"
+          data-active={item.active ? "true" : "false"}
+          data-complete={item.complete ? "true" : "false"}
+        >
+          <span className="exam-readiness-icon" aria-hidden="true">
+            <AppIcon name={item.complete ? "check" : item.icon} />
+          </span>
+          <div>
+            <p>{item.label}</p>
+            <strong>{item.value}</strong>
+            <small>{item.detail}</small>
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
 export default function ExamModePage() {
   const { profile, userId, loading, getAuthHeaders } = useAuth();
   const searchParams = useSearchParams();
@@ -170,6 +240,29 @@ export default function ExamModePage() {
   const threeMarkQuestions = probableQuestions.filter((question) => question.marks !== 5);
   const fiveMarkQuestions = probableQuestions.filter((question) => question.marks === 5);
   const accuracy = submitted && questions.length ? Math.round((score / questions.length) * 100) : 0;
+  const targetQuestionCount = questions.length || 5;
+  const studyHref = `/dashboard/study?chapter=${encodeURIComponent(selectedChapter.value)}&topic=${encodeURIComponent(selectedTopic.value)}`;
+  const packPhase = generating
+    ? "Generating"
+    : submitted
+      ? "Review ready"
+      : questions.length
+        ? "Attempt active"
+        : "Pack blueprint";
+  const packIntent = questions.length
+    ? "Finish the MCQ attempt, submit once, then use review to repair mistakes."
+    : "Build a source-locked five-question pack from the selected chapter and topic.";
+  const briefMetrics = [
+    { label: "MCQs", value: `${targetQuestionCount}`, detail: questions.length ? "Generated" : "Planned" },
+    { label: "Answered", value: `${answeredCount}/${targetQuestionCount}`, detail: submitted ? "Locked" : "In progress" },
+    { label: "Theory", value: `${probableQuestions.length || 3}+`, detail: probableQuestions.length ? "Ready" : "After generation" },
+    { label: "Score", value: submitted ? `${accuracy}%` : "--", detail: submitted ? `${score * 10} XP` : "After submit" },
+  ];
+  const launchChecklist = [
+    { label: "Course locked", detail: `${selectedChapter.label} / ${selectedTopic.label}` },
+    { label: "Grounded only", detail: "No outside knowledge or guesses allowed" },
+    { label: "Review loop", detail: "Explanations unlock after one complete submission" },
+  ];
 
   const statusLabel = useMemo(() => {
     if (generating) return "Building a grounded exam pack";
@@ -368,74 +461,113 @@ export default function ExamModePage() {
   }
 
   return (
-    <div className="dashboard-overview exam-mode-page mx-auto w-full max-w-[1180px]">
-      <header className="exam-mode-header">
-        <div>
-          <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
-            <Link href="/dashboard">Learning Hub</Link>
-            <span aria-hidden="true">/</span>
-            <span aria-current="page">Exam Mode</span>
-          </nav>
-          <p className="dashboard-section-kicker">
-            Focused Assessment{profile?.classLevel ? ` / ${profile.classLevel}` : ""}
-          </p>
-          <h1>Exam Mode</h1>
-          <p>Generate course-grounded MCQs and probable theory questions, submit once, then review every mistake.</p>
-        </div>
-        <div className="exam-mode-status">
-          <span>Status</span>
-          <strong>{statusLabel}</strong>
-          <small>{selectedChapter.label} / {selectedTopic.label}</small>
-        </div>
-      </header>
+    <div className="dashboard-overview exam-mode-page mx-auto w-full max-w-[1640px]">
+      <section className="exam-command-hero">
+        <header className="exam-mode-header">
+          <div>
+            <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
+              <Link href="/dashboard">Learning Hub</Link>
+              <span aria-hidden="true">/</span>
+              <span aria-current="page">Exam Mode</span>
+            </nav>
+            <p className="dashboard-section-kicker">
+              Focused Assessment{profile?.classLevel ? ` / ${profile.classLevel}` : ""}
+            </p>
+            <h1>Exam command center</h1>
+            <p>Generate course-grounded MCQs and probable theory questions, submit once, then review every mistake with a clean repair loop.</p>
+          </div>
+          <div className="exam-mode-status">
+            <span>Status</span>
+            <strong>{statusLabel}</strong>
+            <small>{selectedChapter.label} / {selectedTopic.label}</small>
+          </div>
+        </header>
 
-      <section className="exam-mode-setup" aria-label="Exam setup">
-        <div className="exam-mode-selectors">
-          <label>
-            <span>Chapter</span>
-            <select
-              value={selectedChapter.value}
-              onChange={(event) => {
-                const nextChapter = event.target.value;
-                setChapter(nextChapter);
-                setTopic(CHAPTERS.find((item) => item.value === nextChapter)?.topics[0]?.value || "alkanes");
-                resetAttempt();
-              }}
-            >
-              {CHAPTERS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Topic</span>
-            <select
-              value={selectedTopic.value}
-              onChange={(event) => {
-                setTopic(event.target.value);
-                resetAttempt();
-              }}
-            >
-              {selectedChapter.topics.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-            </select>
-          </label>
-        </div>
-        <button type="button" onClick={() => void generateExamPack()} disabled={generating} className="exam-mode-primary">
-          {generating ? "Generating pack..." : questions.length ? "Regenerate exam pack" : "Generate exam pack"}
-        </button>
+        <aside className="exam-hero-brief" aria-label="Exam pack brief">
+          <div className="exam-hero-brief-top">
+            <span className="exam-hero-icon" aria-hidden="true">
+              <AppIcon name={generating ? "clock" : submitted ? "analytics" : questions.length ? "check" : "book"} />
+            </span>
+            <div>
+              <p>Current phase</p>
+              <strong>{packPhase}</strong>
+            </div>
+          </div>
+          <p className="exam-hero-brief-copy">{packIntent}</p>
+          <div className="exam-brief-metrics">
+            {briefMetrics.map((metric) => (
+              <div key={metric.label}>
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+                <small>{metric.detail}</small>
+              </div>
+            ))}
+          </div>
+        </aside>
       </section>
 
-      <div className="exam-mode-progress" aria-label={`${completion}% of questions answered`}>
-        <span style={{ width: `${completion}%` }} />
-      </div>
+      <div className="exam-mode-layout">
+        <main className="exam-mode-main">
+          <section className="exam-mode-setup" aria-label="Exam setup">
+            <div className="exam-mode-builder-copy">
+              <p>Build pack</p>
+              <strong>{selectedTopic.label}</strong>
+              <span>Source locked to {selectedChapter.label}</span>
+            </div>
+            <div className="exam-mode-selectors">
+              <label>
+                <span>Chapter</span>
+                <select
+                  value={selectedChapter.value}
+                  onChange={(event) => {
+                    const nextChapter = event.target.value;
+                    setChapter(nextChapter);
+                    setTopic(CHAPTERS.find((item) => item.value === nextChapter)?.topics[0]?.value || "alkanes");
+                    resetAttempt();
+                  }}
+                >
+                  {CHAPTERS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Topic</span>
+                <select
+                  value={selectedTopic.value}
+                  onChange={(event) => {
+                    setTopic(event.target.value);
+                    resetAttempt();
+                  }}
+                >
+                  {selectedChapter.topics.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <button type="button" onClick={() => void generateExamPack()} disabled={generating || !userId} className="exam-mode-primary">
+              {generating ? "Generating pack..." : questions.length ? "Regenerate exam pack" : "Generate exam pack"}
+            </button>
+          </section>
 
-      {error ? <div className="exam-mode-alert" role="status">{error}</div> : null}
+          <ExamReadinessStrip
+            hasPack={Boolean(questions.length)}
+            answeredCount={answeredCount}
+            totalQuestions={targetQuestionCount}
+            submitted={submitted}
+            probableCount={probableQuestions.length}
+          />
 
-      <section className="exam-mode-workspace">
+          <div className="exam-mode-progress" aria-label={`${completion}% of questions answered`}>
+            <span style={{ width: `${completion}%` }} />
+          </div>
+
+          {error ? <div className="exam-mode-alert" role="status">{error}</div> : null}
+
+          <section className="exam-mode-workspace">
         <div className="exam-mode-tabs" role="tablist" aria-label="Exam sections">
           {([
-            ["mcq", "MCQ Test"],
-            ["probable", "Probable Questions"],
-            ["review", "Review"],
-          ] as Array<[ExamPanel, string]>).map(([id, label]) => (
+            ["mcq", "MCQ Test", `${targetQuestionCount}`],
+            ["probable", "Probable Questions", probableQuestions.length ? `${probableQuestions.length}` : "Soon"],
+            ["review", "Review", submitted ? `${score}/${questions.length}` : "Locked"],
+          ] as Array<[ExamPanel, string, string]>).map(([id, label, count]) => (
             <button
               key={id}
               type="button"
@@ -444,7 +576,8 @@ export default function ExamModePage() {
               onClick={() => setActivePanel(id)}
               className={activePanel === id ? "is-active" : ""}
             >
-              {label}
+              <span>{label}</span>
+              <small>{count}</small>
             </button>
           ))}
         </div>
@@ -500,11 +633,37 @@ export default function ExamModePage() {
                 </div>
               </>
             ) : (
-              <EmptyState
-                icon="check"
-                title="Your exam pack is ready to be created"
-                detail="Choose a chapter and topic. AgentifyAI will build five questions only from the connected study material."
-              />
+              <div className="exam-launch-state">
+                <div className="exam-launch-copy">
+                  <span className="exam-launch-icon" aria-hidden="true">
+                    <AppIcon name="spark" />
+                  </span>
+                  <p className="dashboard-section-kicker">Source-locked assessment</p>
+                  <h2>Build a five-question pack from {selectedTopic.label}.</h2>
+                  <p>
+                    AgentifyAI will create MCQs, probable theory prompts, explanations, and source traces from the connected study material only.
+                  </p>
+                  <div className="exam-launch-actions">
+                    <button type="button" onClick={() => void generateExamPack()} disabled={generating || !userId} className="exam-mode-primary">
+                      Generate exam pack
+                    </button>
+                    <Link href={studyHref} className="exam-mode-secondary">
+                      Revise topic first
+                    </Link>
+                  </div>
+                </div>
+                <div className="exam-launch-checklist">
+                  {launchChecklist.map((item) => (
+                    <article key={item.label}>
+                      <span aria-hidden="true"><AppIcon name="check" /></span>
+                      <div>
+                        <strong>{item.label}</strong>
+                        <p>{item.detail}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
             )
           ) : null}
 
@@ -569,7 +728,50 @@ export default function ExamModePage() {
             )
           ) : null}
         </div>
-      </section>
+          </section>
+        </main>
+
+        <aside className="exam-mode-brief-rail" aria-label="Exam guidance">
+          <section className="exam-brief-panel">
+            <p className="dashboard-section-kicker">Exam brief</p>
+            <h2>{selectedTopic.label}</h2>
+            <p>Keep the attempt tight: generate, answer all five, submit once, then fix every miss from the review tab.</p>
+            <div className="exam-brief-topic">
+              <span>Chapter</span>
+              <strong>{selectedChapter.label}</strong>
+            </div>
+            <div className="exam-brief-topic">
+              <span>Topic</span>
+              <strong>{selectedTopic.label}</strong>
+            </div>
+          </section>
+
+          <section className="exam-brief-panel">
+            <p className="dashboard-section-kicker">Grounding rules</p>
+            <div className="exam-brief-list">
+              {[
+                "Only selected study material is allowed.",
+                "Each MCQ needs four options and one answer.",
+                "Material gaps must show an explicit not-found message.",
+              ].map((item) => (
+                <div key={item}>
+                  <AppIcon name="check" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="exam-brief-panel">
+            <p className="dashboard-section-kicker">Quick actions</p>
+            <div className="exam-brief-actions">
+              <button type="button" onClick={() => setActivePanel("mcq")}>Open MCQs</button>
+              <button type="button" onClick={() => setActivePanel("probable")}>Theory prompts</button>
+              <Link href={studyHref}>Revise in Study</Link>
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   );
 }
