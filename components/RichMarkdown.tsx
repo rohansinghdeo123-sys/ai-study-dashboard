@@ -21,13 +21,19 @@ function normalizeMathDelimiters(text: string): string {
 
 const components: Components = {
   // Open links safely in a new tab.
-  a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+  a: ({ node, ...props }) => {
+    void node;
+    return <a {...props} target="_blank" rel="noopener noreferrer" />;
+  },
   // Let wide tables scroll instead of blowing out the chat column.
-  table: ({ node, ...props }) => (
-    <div className="study-markdown-table">
-      <table {...props} />
-    </div>
-  ),
+  table: ({ node, ...props }) => {
+    void node;
+    return (
+      <div className="study-markdown-table">
+        <table {...props} />
+      </div>
+    );
+  },
 };
 
 type RichMarkdownProps = {

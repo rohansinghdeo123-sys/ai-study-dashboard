@@ -297,7 +297,7 @@ export default function ExamModePage() {
         apiFetch(`${backendURL}/generate-mcqs`, {
           method: "POST",
           headers,
-          timeoutMs: 24000,
+          timeoutMs: 45000,
           retries: 1,
           body: JSON.stringify({
             topic: selectedTopic.label,
@@ -320,7 +320,7 @@ export default function ExamModePage() {
         apiFetch(`${backendURL}/generate-probable-questions`, {
           method: "POST",
           headers,
-          timeoutMs: 24000,
+          timeoutMs: 45000,
           retries: 1,
           body: JSON.stringify({
             topic: selectedTopic.label,
