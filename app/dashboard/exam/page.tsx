@@ -461,7 +461,7 @@ export default function ExamModePage() {
   }
 
   return (
-    <div className="dashboard-overview exam-mode-page mx-auto w-full max-w-[1640px]">
+    <div className="dashboard-overview exam-mode-page w-full">
       <section className="exam-command-hero">
         <header className="exam-mode-header">
           <div>

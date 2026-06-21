@@ -5,7 +5,7 @@ import { AlertState, AppIcon, LoadingState, type AppIconName } from "@/component
 import { apiJson, ensureBackendReady, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface ProgressState {
   total_tests: number;
@@ -38,42 +38,6 @@ interface SessionRecord {
   session_type: string;
   completed_at: string;
 }
-
-type QuestKind = "study" | "mission" | "exam";
-
-const DAILY_QUESTS: Array<{
-  kind: QuestKind;
-  href: string;
-  eyebrow: string;
-  title: string;
-  detail: string;
-  icon: AppIconName;
-}> = [
-  {
-    kind: "study",
-    href: "/dashboard/study",
-    eyebrow: "Ask",
-    title: "Clear one doubt",
-    detail: "Use Study Page for one stuck concept.",
-    icon: "study",
-  },
-  {
-    kind: "mission",
-    href: "/dashboard/mission",
-    eyebrow: "Improve",
-    title: "Run one mission",
-    detail: "Let AgentifyAI guide the next chapter move.",
-    icon: "mission",
-  },
-  {
-    kind: "exam",
-    href: "/dashboard/exam",
-    eyebrow: "Test",
-    title: "Attempt one exam",
-    detail: "Practice questions and review mistakes.",
-    icon: "book",
-  },
-];
 
 function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
@@ -244,31 +208,6 @@ function getSessionDestination(session: SessionRecord) {
   return `/dashboard/study?topic=${topic}`;
 }
 
-function getQuestKind(session: SessionRecord): QuestKind {
-  const type = session.session_type.toLowerCase();
-  if (type.includes("exam")) return "exam";
-  if (type.includes("mission")) return "mission";
-  return "study";
-}
-
-function happenedToday(value: string) {
-  const date = new Date(value);
-  if (!value || Number.isNaN(date.getTime())) return false;
-  const now = new Date();
-  return (
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-  );
-}
-
-function getRecommendedQuest(progress: ProgressState, accuracyValue: number): QuestKind {
-  if (!progress.total_questions) return "mission";
-  if (accuracyValue < 65) return "study";
-  if (accuracyValue < 82) return "mission";
-  return "exam";
-}
-
 function formatSessionDate(value: string) {
   const date = new Date(value);
   if (!value || Number.isNaN(date.getTime())) return "Recently";
@@ -428,70 +367,6 @@ function HubTile({
         </div>
       </div>
     </Link>
-  );
-}
-
-function DailyQuestPanel({
-  completedKinds,
-  recommendedKind,
-  focusMessage,
-}: {
-  completedKinds: Set<QuestKind>;
-  recommendedKind: QuestKind;
-  focusMessage: string;
-}) {
-  const completedCount = DAILY_QUESTS.filter((item) => completedKinds.has(item.kind)).length;
-  const progressPercent = Math.round((completedCount / DAILY_QUESTS.length) * 100);
-  const recommended = DAILY_QUESTS.find((item) => item.kind === recommendedKind) ?? DAILY_QUESTS[0];
-
-  return (
-    <section className="dashboard-daily-quest" aria-labelledby="daily-quest-title">
-      <div className="dashboard-daily-quest-copy">
-        <p>Daily Quest</p>
-        <h2 id="daily-quest-title">Lock today&apos;s momentum</h2>
-        <span>{focusMessage}</span>
-      </div>
-
-      <div className="dashboard-quest-grid" aria-label="Daily learning quest steps">
-        {DAILY_QUESTS.map((item) => {
-          const isComplete = completedKinds.has(item.kind);
-          return (
-            <Link
-              key={item.kind}
-              href={item.href}
-              className="dashboard-quest-step"
-              data-complete={isComplete ? "true" : "false"}
-              aria-label={`${item.title}: ${isComplete ? "completed today" : item.detail}`}
-            >
-              <span className="dashboard-quest-step-icon" aria-hidden="true">
-                <AppIcon name={isComplete ? "check" : item.icon} />
-              </span>
-              <span className="dashboard-quest-step-main">
-                <span>{item.eyebrow}</span>
-                <strong>{item.title}</strong>
-                <small>{isComplete ? "Completed today" : item.detail}</small>
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="dashboard-quest-score">
-        <div
-          className="dashboard-quest-ring"
-          style={{ "--quest-progress": `${progressPercent}%` } as CSSProperties}
-          aria-label={`${completedCount} of ${DAILY_QUESTS.length} daily quest steps complete`}
-          role="img"
-        >
-          <strong>{completedCount}/3</strong>
-          <span>done</span>
-        </div>
-        <Link href={recommended.href} className="dashboard-quest-cta">
-          {recommended.eyebrow}
-          <AppIcon name="arrowRight" />
-        </Link>
-      </div>
-    </section>
   );
 }
 
@@ -669,18 +544,6 @@ export default function DashboardPage() {
     if (accuracyValue < 80) return "You are close. Practice weak spots.";
     return "Strong momentum. Move to exam-style practice.";
   }, [accuracyValue, progress.total_questions]);
-  const completedQuestKinds = useMemo(() => {
-    const kinds = new Set<QuestKind>();
-    for (const session of sessions) {
-      if (happenedToday(session.completed_at)) kinds.add(getQuestKind(session));
-    }
-    return kinds;
-  }, [sessions]);
-  const recommendedQuestKind = useMemo(
-    () => getRecommendedQuest(progress, accuracyValue),
-    [accuracyValue, progress],
-  );
-
   useEffect(() => {
     if (loading || !userId) return;
     let active = true;
@@ -801,12 +664,6 @@ export default function DashboardPage() {
               Pick one section from the hub. Each card opens a focused learning space built around one clear student task.
             </p>
           </div>
-
-          <DailyQuestPanel
-            completedKinds={completedQuestKinds}
-            recommendedKind={recommendedQuestKind}
-            focusMessage={focusMessage}
-          />
 
           <div className="relative w-full max-w-[1180px] px-1 sm:px-4">
             <div
