@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch, apiJson } from "@/lib/apiClient";
+import { apiFetch, apiJson, ensureBackendReady } from "@/lib/apiClient";
 import { cn } from "@/lib/utils";
 import { AppIcon, ErrorState } from "@/components/ui/Polished";
 import Link from "next/link";
@@ -71,6 +71,15 @@ function worstState(states: HealthState[]): HealthState {
   if (states.includes("warning")) return "warning";
   if (states.every((state) => state === "unknown")) return "unknown";
   return "healthy";
+}
+
+function friendlyError(error: unknown): string {
+  const name = (error as { name?: string })?.name;
+  const message = error instanceof Error ? error.message : String(error || "");
+  if (name === "AbortError" || /abort|timed out|timeout/i.test(message)) {
+    return "The backend is waking up and took too long to respond. It retries automatically — or press Refresh.";
+  }
+  return message || "Admin console could not load.";
 }
 
 function exportJson(filename: string, payload: unknown) {
@@ -167,7 +176,9 @@ export default function FounderAdminConsolePage() {
 
   const adminGet = useCallback(async <T,>(path: string): Promise<T> => {
     const headers = await getAuthHeaders();
-    return apiJson<T>(`${API_BASE}${path}`, { headers, forceFresh: true, retries: 1, timeoutMs: 12000 });
+    // Generous timeout + retries: the admin aggregation is heavy and the host
+    // may be waking from a cold start on a free tier.
+    return apiJson<T>(`${API_BASE}${path}`, { headers, forceFresh: true, retries: 2, timeoutMs: 22000 });
   }, [getAuthHeaders]);
 
   const audit = useCallback(async (action: string, metadata: Record<string, unknown> = {}, targetType = "console", targetId = "") => {
@@ -189,18 +200,24 @@ export default function FounderAdminConsolePage() {
     if (!founderAllowed) return;
     setRefreshing(true);
     try {
-      const [payload, reportResult] = await Promise.allSettled([
-        adminGet<AdminConsolePayload>("/admin/console"),
-        adminGet<ContentReport>("/admin/content/ingestion-report"),
-      ]);
-      if (payload.status === "fulfilled") {
-        setData(payload.value);
-        setError("");
-      } else {
-        setError(payload.reason instanceof Error ? payload.reason.message : "Admin console could not load.");
+      // Wake a possibly-cold backend (free-tier hosts sleep) before the heavy
+      // admin query, so the first load does not abort on a cold start.
+      try {
+        await ensureBackendReady(API_BASE, { timeoutMs: 24000 });
+      } catch {
+        // If warmup probing fails we still attempt the query below.
       }
-      // The detailed ingestion report is best-effort; it degrades gracefully.
-      setReport(reportResult.status === "fulfilled" ? reportResult.value : null);
+      const payload = await adminGet<AdminConsolePayload>("/admin/console");
+      setData(payload);
+      setError("");
+      // The detailed ingestion report is best-effort and must never fail the page.
+      try {
+        setReport(await adminGet<ContentReport>("/admin/content/ingestion-report"));
+      } catch {
+        setReport(null);
+      }
+    } catch (caught) {
+      setError(friendlyError(caught));
     } finally {
       setRefreshing(false);
     }
@@ -301,7 +318,7 @@ export default function FounderAdminConsolePage() {
         style={{ background: "radial-gradient(circle at 10% -4%, rgba(20,184,166,0.12), transparent 34%), radial-gradient(circle at 92% 2%, rgba(242,184,75,0.12), transparent 30%)" }}
       />
 
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-3 pb-12 pt-4 sm:px-5 lg:px-6">
+      <div className="flex w-full flex-col gap-6 px-4 pb-12 pt-4 sm:px-6 lg:px-8 2xl:px-10">
         {/* 1 · Command header */}
         <header className={cn(PANEL, "sticky top-3 z-20 p-5")}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
