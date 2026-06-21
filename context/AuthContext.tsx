@@ -25,7 +25,6 @@ import {
 import { auth } from "@/lib/firebase";
 import {
   apiJson,
-  ensureBackendReady,
   invalidateApiCache,
   primeBackend,
 } from "@/lib/apiClient";
@@ -188,10 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfileLoading(true);
       setProfileError("");
       try {
-        await ensureBackendReady(backendURL, {
-          timeoutMs: 18000,
-          pollMs: 1200,
-        }).catch(() => null);
+        primeBackend(backendURL);
         const token = await currentUser.getIdToken();
         const loadedProfile = await apiJson<BackendUserProfile>(
           `${backendURL}/profile/me`,

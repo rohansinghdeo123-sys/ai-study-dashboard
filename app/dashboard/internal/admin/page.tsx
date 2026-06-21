@@ -261,6 +261,50 @@ interface AdminConsolePayload {
   };
 }
 
+interface ContentReportConcept {
+  id?: number | string;
+  concept_id?: number | string;
+  name?: string;
+  concept_name?: string;
+  title?: string;
+  difficulty_level?: string | null;
+  importance_level?: string | null;
+  typical_exam_weightage?: string | number | null;
+  key_points?: string[];
+  examples?: string[];
+  formulas?: string[];
+  source_pages?: Array<string | number>;
+  validation_issues?: string[];
+}
+
+interface ContentReportChapter {
+  id?: number | string;
+  chapter_id?: number | string;
+  chapter_name?: string;
+  name?: string;
+  class_level?: string;
+  subject?: string;
+  status?: string;
+  is_live?: boolean;
+  coverage?: number | null;
+  coverage_score?: number | null;
+  embedded_count?: number | null;
+  embeddings_count?: number | null;
+  chunks_embedded?: number | null;
+  concept_count?: number | null;
+  concepts?: ContentReportConcept[];
+  validation_issues?: string[];
+}
+
+interface ContentIngestionReport {
+  generated_at?: string;
+  totals?: Record<string, number | string | null>;
+  by_status?: Record<string, number>;
+  by_class?: Record<string, number>;
+  by_subject?: Record<string, number>;
+  chapters?: ContentReportChapter[];
+}
+
 const REQUIRED_AGENTS = [
   { id: "orchestrator", label: "Supervisor Orchestrator", role: "Routes tasks and audits multi-agent flow." },
   { id: "tutor", label: "Subject Tutor", role: "Student-friendly doubt solving and concept teaching." },
@@ -336,6 +380,41 @@ function formatPercent(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
   const numeric = Number(value);
   return `${numeric <= 1 ? Math.round(numeric * 100) : Math.round(numeric)}%`;
+}
+
+function formatReportValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "--";
+  if (typeof value === "number") {
+    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+    return Number.isInteger(value) ? Intl.NumberFormat().format(value) : value.toFixed(2);
+  }
+  return String(value).replace(/_/g, " ");
+}
+
+function reportEntries(record?: Record<string, number | string | null>) {
+  return Object.entries(record || {}).filter(([, value]) => value !== null && value !== undefined && value !== "");
+}
+
+function formatReportList(values?: Array<string | number>) {
+  if (!values?.length) return "--";
+  return values.map((value) => String(value)).join(", ");
+}
+
+function conceptTitle(concept: ContentReportConcept) {
+  return concept.concept_name || concept.name || concept.title || `Concept ${concept.concept_id || concept.id || ""}`.trim();
+}
+
+function chapterTitle(chapter: ContentReportChapter) {
+  return chapter.chapter_name || chapter.name || `Chapter ${chapter.chapter_id || chapter.id || ""}`.trim();
+}
+
+function chapterCoverage(chapter: ContentReportChapter) {
+  return chapter.coverage ?? chapter.coverage_score ?? null;
+}
+
+function chapterEmbeddedCount(chapter: ContentReportChapter) {
+  return chapter.embedded_count ?? chapter.embeddings_count ?? chapter.chunks_embedded ?? null;
 }
 
 function formatCost(value?: number | null) {
@@ -454,6 +533,181 @@ function ProgressMeter({ label, value, detail, tone = "teal" }: { label: string;
       </div>
       {detail ? <p className="text-[11px] text-slate-500">{detail}</p> : null}
     </div>
+  );
+}
+
+function ContentReportPanel({
+  report,
+  loading,
+  error,
+  full,
+  onRefresh,
+  onToggleFull,
+}: {
+  report: ContentIngestionReport | null;
+  loading: boolean;
+  error: string;
+  full: boolean;
+  onRefresh: () => void;
+  onToggleFull: () => void;
+}) {
+  const chapters = report?.chapters || [];
+  const totals = reportEntries(report?.totals);
+  const statusEntries = reportEntries(report?.by_status);
+  const classEntries = reportEntries(report?.by_class);
+  const subjectEntries = reportEntries(report?.by_subject);
+
+  return (
+    <ConsolePanel
+      title="Content Report"
+      eyebrow="Backend ingestion coverage"
+      action={
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={onToggleFull}
+            disabled={loading}
+            className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50"
+          >
+            {full ? "Collapse concepts" : "View all concepts"}
+          </button>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={loading}
+            className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-xs font-semibold text-slate-200 disabled:opacity-50"
+          >
+            {loading ? "Loading..." : "Refresh report"}
+          </button>
+        </div>
+      }
+    >
+      {error ? (
+        <div className="mb-4 rounded-2xl border border-rose-300/20 bg-rose-300/10 p-4 text-sm text-rose-100">
+          {error}
+        </div>
+      ) : null}
+
+      {!report && loading ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-400">
+          Loading content ingestion report...
+        </div>
+      ) : null}
+
+      {report ? (
+        <div className="space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Ingestion snapshot</p>
+              <p className="mt-1 text-xs text-slate-500">Generated {formatTime(report.generated_at)}</p>
+            </div>
+            <StatusPill value={full ? "full concepts" : "summary"} tone={full ? "teal" : "blue"} />
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {totals.length ? totals.slice(0, 8).map(([key, value]) => (
+              <TinyStat key={key} label={key.replace(/_/g, " ")} value={formatReportValue(value)} tone="teal" />
+            )) : (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-500 md:col-span-2 xl:col-span-4">
+                No top-level totals returned yet.
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-3">
+            {[
+              ["By status", statusEntries, "green" as Tone],
+              ["By class", classEntries, "blue" as Tone],
+              ["By subject", subjectEntries, "gold" as Tone],
+            ].map(([label, entries, tone]) => (
+              <div key={String(label)} className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-sm font-semibold text-white">{String(label)}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(entries as Array<[string, number | string | null]>).length ? (entries as Array<[string, number | string | null]>).map(([key, value]) => (
+                    <StatusPill key={key} value={`${key}: ${formatReportValue(value)}`} tone={tone as Tone} />
+                  )) : <p className="text-sm text-slate-500">No data.</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {chapters.length ? chapters.map((chapter, index) => {
+              const concepts = chapter.concepts || [];
+              const coverage = chapterCoverage(chapter);
+              return (
+                <section key={`${chapter.chapter_id || chapter.id || index}-${chapterTitle(chapter)}`} className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill value={chapter.status || "unknown"} />
+                        <StatusPill value={chapter.is_live ? "live" : "not live"} tone={chapter.is_live ? "green" : "gold"} />
+                      </div>
+                      <h3 className="mt-3 text-lg font-semibold text-white">{chapterTitle(chapter)}</h3>
+                      <p className="mt-1 text-xs text-slate-500">{chapter.class_level || "Class"} / {chapter.subject || "Subject"}</p>
+                    </div>
+                    <div className="grid min-w-[260px] grid-cols-3 gap-2">
+                      <TinyStat label="Coverage" value={formatPercent(coverage)} tone="green" />
+                      <TinyStat label="Embedded" value={formatReportValue(chapterEmbeddedCount(chapter))} tone="teal" />
+                      <TinyStat label="Concepts" value={formatReportValue(chapter.concept_count ?? concepts.length)} tone="blue" />
+                    </div>
+                  </div>
+
+                  {chapter.validation_issues?.length ? (
+                    <div className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-300/10 p-3 text-xs leading-5 text-amber-100">
+                      {chapter.validation_issues.join(" ")}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
+                    <table className="min-w-[1100px] w-full text-left text-xs">
+                      <thead className="bg-white/[0.04] text-[10px] uppercase tracking-[0.14em] text-slate-500">
+                        <tr>
+                          <th className="px-3 py-3">Concept</th>
+                          <th className="px-3 py-3">Difficulty</th>
+                          <th className="px-3 py-3">Importance</th>
+                          <th className="px-3 py-3">Exam weightage</th>
+                          <th className="px-3 py-3">Key points</th>
+                          <th className="px-3 py-3">Examples</th>
+                          <th className="px-3 py-3">Formulas</th>
+                          <th className="px-3 py-3">Pages</th>
+                          <th className="px-3 py-3">Issues</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10">
+                        {concepts.length ? concepts.map((concept, conceptIndex) => (
+                          <tr key={`${concept.concept_id || concept.id || conceptIndex}-${conceptTitle(concept)}`} className="align-top">
+                            <td className="px-3 py-3 font-semibold text-white">{conceptTitle(concept)}</td>
+                            <td className="px-3 py-3 text-slate-300">{formatReportValue(concept.difficulty_level)}</td>
+                            <td className="px-3 py-3 text-slate-300">{formatReportValue(concept.importance_level)}</td>
+                            <td className="px-3 py-3 text-slate-300">{formatReportValue(concept.typical_exam_weightage)}</td>
+                            <td className="max-w-[240px] px-3 py-3 text-slate-400">{formatReportList(concept.key_points)}</td>
+                            <td className="max-w-[220px] px-3 py-3 text-slate-400">{formatReportList(concept.examples)}</td>
+                            <td className="max-w-[180px] px-3 py-3 text-slate-400">{formatReportList(concept.formulas)}</td>
+                            <td className="px-3 py-3 text-slate-400">{formatReportList(concept.source_pages)}</td>
+                            <td className="max-w-[240px] px-3 py-3 text-slate-400">{formatReportList(concept.validation_issues)}</td>
+                          </tr>
+                        )) : (
+                          <tr>
+                            <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
+                              No concepts returned for this chapter{full ? "." : ". Use View all concepts for the full payload."}
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              );
+            }) : (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-500">
+                No chapter report returned yet.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </ConsolePanel>
   );
 }
 
@@ -657,6 +911,10 @@ export default function FounderAdminConsolePage() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [studentClassFilter, setStudentClassFilter] = useState("all");
+  const [contentReport, setContentReport] = useState<ContentIngestionReport | null>(null);
+  const [contentReportFull, setContentReportFull] = useState(false);
+  const [contentReportLoading, setContentReportLoading] = useState(false);
+  const [contentReportError, setContentReportError] = useState("");
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const openedRef = useRef(false);
@@ -710,12 +968,41 @@ export default function FounderAdminConsolePage() {
     }
   }, [adminFetch, founderAllowed]);
 
+  const loadContentReport = useCallback(async (full = contentReportFull) => {
+    if (!founderAllowed) return;
+    setContentReportLoading(true);
+    setContentReportError("");
+    try {
+      const headers = await getAuthHeaders();
+      const payload = await apiJson<ContentIngestionReport>(
+        `${API_BASE}/admin/content/ingestion-report${full ? "?full=true" : ""}`,
+        {
+          headers,
+          forceFresh: true,
+          retries: 1,
+          timeoutMs: full ? 22000 : 14000,
+        },
+      );
+      setContentReport(payload);
+      setContentReportFull(full);
+    } catch (caught) {
+      setContentReportError(caught instanceof Error ? caught.message : "Content report could not load.");
+    } finally {
+      setContentReportLoading(false);
+    }
+  }, [contentReportFull, founderAllowed, getAuthHeaders]);
+
   useEffect(() => {
     if (!founderAllowed) return;
     void loadConsole();
     const interval = window.setInterval(loadConsole, REFRESH_MS);
     return () => window.clearInterval(interval);
   }, [founderAllowed, loadConsole]);
+
+  useEffect(() => {
+    if (!founderAllowed || activeTab !== "content" || contentReport || contentReportLoading) return;
+    void loadContentReport(false);
+  }, [activeTab, contentReport, contentReportLoading, founderAllowed, loadContentReport]);
 
   useEffect(() => {
     if (!founderAllowed || openedRef.current) return;
@@ -1237,34 +1524,45 @@ export default function FounderAdminConsolePage() {
         ) : null}
 
         {data && activeTab === "content" ? (
-          <ConsolePanel title="Content and RAG Index" eyebrow="Study material brain" action={<button type="button" onClick={reindexContent} className="rounded-full border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-xs font-semibold text-amber-100">Re-index material</button>}>
-            <div className="grid gap-3 md:grid-cols-3">
-              <MetricCard label="Total chapters" metric={{ value: data.content.chapters_total, source: "content_chapters" }} tone="teal" />
-              <MetricCard label="Approved/published" metric={{ value: data.content.approved_or_published, source: "content_chapters" }} tone="green" />
-              <MetricCard label="Average coverage" metric={{ value: data.content.coverage_score_avg === null ? null : Math.round(data.content.coverage_score_avg * 100), source: "content_chapters", unit: "%" }} tone="gold" />
-            </div>
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold text-white">Chapter status</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {Object.entries(data.content.status_counts).length ? Object.entries(data.content.status_counts).map(([statusName, count]) => (
-                    <StatusPill key={statusName} value={`${statusName}: ${count}`} />
-                  )) : <p className="text-sm text-slate-500">No content indexed yet.</p>}
+          <>
+            <ConsolePanel title="Content and RAG Index" eyebrow="Study material brain" action={<button type="button" onClick={reindexContent} className="rounded-full border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-xs font-semibold text-amber-100">Re-index material</button>}>
+              <div className="grid gap-3 md:grid-cols-3">
+                <MetricCard label="Total chapters" metric={{ value: data.content.chapters_total, source: "content_chapters" }} tone="teal" />
+                <MetricCard label="Approved/published" metric={{ value: data.content.approved_or_published, source: "content_chapters" }} tone="green" />
+                <MetricCard label="Average coverage" metric={{ value: data.content.coverage_score_avg === null ? null : Math.round(data.content.coverage_score_avg * 100), source: "content_chapters", unit: "%" }} tone="gold" />
+              </div>
+              <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-sm font-semibold text-white">Chapter status</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {Object.entries(data.content.status_counts).length ? Object.entries(data.content.status_counts).map(([statusName, count]) => (
+                      <StatusPill key={statusName} value={`${statusName}: ${count}`} />
+                    )) : <p className="text-sm text-slate-500">No content indexed yet.</p>}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-sm font-semibold text-white">Recent ingestion jobs</p>
+                  <div className="mt-3 space-y-2">
+                    {data.content.recent_jobs.length ? data.content.recent_jobs.map((job) => (
+                      <div key={job.job_id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+                        <span className="truncate text-xs text-slate-300">{job.job_type}</span>
+                        <StatusPill value={job.status} />
+                      </div>
+                    )) : <p className="text-sm text-slate-500">No ingestion jobs yet.</p>}
+                  </div>
                 </div>
               </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold text-white">Recent ingestion jobs</p>
-                <div className="mt-3 space-y-2">
-                  {data.content.recent_jobs.length ? data.content.recent_jobs.map((job) => (
-                    <div key={job.job_id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                      <span className="truncate text-xs text-slate-300">{job.job_type}</span>
-                      <StatusPill value={job.status} />
-                    </div>
-                  )) : <p className="text-sm text-slate-500">No ingestion jobs yet.</p>}
-                </div>
-              </div>
-            </div>
-          </ConsolePanel>
+            </ConsolePanel>
+
+            <ContentReportPanel
+              report={contentReport}
+              loading={contentReportLoading}
+              error={contentReportError}
+              full={contentReportFull}
+              onRefresh={() => void loadContentReport(contentReportFull)}
+              onToggleFull={() => void loadContentReport(!contentReportFull)}
+            />
+          </>
         ) : null}
 
         {data && activeTab === "system" ? (

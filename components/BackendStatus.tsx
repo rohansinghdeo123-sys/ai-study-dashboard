@@ -1,6 +1,6 @@
 "use client";
 
-import { ensureBackendReady, isBackendRecentlyReady, primeBackend } from "@/lib/apiClient";
+import { isBackendRecentlyReady, warmBackend } from "@/lib/apiClient";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type BackendState = "checking" | "ready";
@@ -21,9 +21,8 @@ export default function BackendStatus() {
         return;
       }
       if (active()) setState("checking");
-      const health = await ensureBackendReady(backendURL, {
-        timeoutMs: forceFresh ? 26000 : 14000,
-        pollMs: 1300,
+      const health = await warmBackend(backendURL, {
+        timeoutMs: forceFresh ? 6000 : 3500,
         forceFresh,
       });
       if (active() && health) setState("ready");
@@ -36,14 +35,13 @@ export default function BackendStatus() {
     let active = true;
     const isActive = () => active;
 
-    primeBackend(backendURL);
     const kickoff = window.setTimeout(
       () => void checkBackend(isActive, !isBackendRecentlyReady(backendURL)),
       0,
     );
     const interval = window.setInterval(
       () => void checkBackend(isActive, stateRef.current !== "ready"),
-      stateRef.current === "ready" ? 30000 : 9000,
+      stateRef.current === "ready" ? 45000 : 18000,
     );
     return () => {
       active = false;
