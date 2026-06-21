@@ -7859,42 +7859,60 @@ body {
 }
 
 .exam-mode-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
   border-bottom: 1px solid var(--dashboard-border);
   background: var(--dashboard-surface-soft);
-  padding: 0.5rem;
+  padding: 0.65rem;
 }
 
 .exam-mode-tabs button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
-  border: 1px solid transparent;
-  border-radius: 0.65rem;
-  padding: 0.65rem 0.9rem;
-  color: var(--dashboard-muted);
-  font-size: 0.72rem;
-  font-weight: 720;
+  min-height: 3.2rem;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 0.8rem;
+  background: var(--dashboard-surface-strong);
+  padding: 0.78rem 1rem;
+  color: var(--dashboard-text);
+  font-size: 0.88rem;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-align: center;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.045);
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.exam-mode-tabs button:hover {
+  border-color: rgba(14, 116, 144, 0.34);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 26px rgba(14, 116, 144, 0.10);
 }
 
 .exam-mode-tabs button small {
   border-radius: 999px;
-  background: var(--dashboard-surface-strong);
-  padding: 0.16rem 0.42rem;
-  color: var(--dashboard-faint);
-  font-size: 0.58rem;
+  background: rgba(14, 116, 144, 0.10);
+  padding: 0.2rem 0.48rem;
+  color: #0E7490;
+  font-size: 0.6rem;
   font-weight: 850;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .exam-mode-tabs button.is-active {
-  border-color: var(--dashboard-border);
-  background: var(--dashboard-surface-strong);
-  color: var(--dashboard-text);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  border-color: rgba(14, 116, 144, 0.42);
+  background: linear-gradient(135deg, #0E7490, #14B8A6);
+  color: #FFFFFF;
+  box-shadow: 0 12px 30px rgba(14, 116, 144, 0.22);
+}
+
+.exam-mode-tabs button.is-active small {
+  background: rgba(255, 255, 255, 0.18);
+  color: #FFFFFF;
 }
 
 .exam-mode-content {
@@ -7905,6 +7923,10 @@ body {
 .exam-panel-stack {
   display: grid;
   gap: 1rem;
+}
+
+.exam-panel-stack + .exam-panel-stack {
+  margin-top: 1rem;
 }
 
 .exam-workspace-header {
@@ -9360,11 +9382,12 @@ body {
   }
 
   .exam-mode-tabs {
+    display: flex;
     overflow-x: auto;
   }
 
   .exam-mode-tabs button {
-    flex: 0 0 auto;
+    flex: 0 0 12rem;
   }
 
   .exam-launch-actions {

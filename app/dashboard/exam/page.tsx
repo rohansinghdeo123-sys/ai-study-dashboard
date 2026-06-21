@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 
-type ExamPanel = "mcq" | "papers" | "pattern" | "probable" | "written" | "review";
+type ExamPanel = "mcq" | "papers" | "probable" | "practice";
 type ParseStatus = "pending" | "analyzed" | "analyzed_empty" | "needs_ocr" | "failed";
 type Priority = "high" | "medium" | "low";
 type EvaluationStatus = "awaiting_answer" | "evaluating" | "evaluated";
@@ -838,11 +838,11 @@ export default function ExamModePage() {
   const openPanel = (panel: ExamPanel) => {
     setActivePanel(panel);
     setError("");
-    if (panel === "papers" || panel === "pattern" || panel === "probable") {
+    if (panel === "papers" || panel === "probable") {
       void loadPapers();
       void loadPatternSummary();
     }
-    if (panel === "review" || panel === "written") {
+    if (panel === "practice") {
       void loadReviewData();
     }
   };
@@ -1060,7 +1060,7 @@ export default function ExamModePage() {
       setPatternAnalysis(data);
       setNotice("Pattern intelligence is ready.");
       void loadPatternSummary();
-      openPanel("pattern");
+      openPanel("papers");
     } catch (patternError) {
       setError(patternError instanceof Error ? patternError.message : "Upload analyzed papers before running pattern intelligence.");
     } finally {
@@ -1219,7 +1219,7 @@ export default function ExamModePage() {
         timeoutMs: 18000,
       });
       setWrittenFeedback(feedback);
-      openPanel("written");
+      openPanel("practice");
     } catch (feedbackError) {
       setError(feedbackError instanceof Error ? feedbackError.message : "Feedback is not available for this attempt yet.");
     }
@@ -1245,7 +1245,7 @@ export default function ExamModePage() {
     const focusScore = clampMetric(scorePercent - Math.min(20, retryCount * 3));
 
     setSubmitted(true);
-    openPanel("review");
+    openPanel("practice");
     setSaving(true);
     setError("");
 
@@ -1311,11 +1311,9 @@ export default function ExamModePage() {
 
   const tabs: Array<[ExamPanel, string, string]> = [
     ["mcq", "MCQ Test", `${targetQuestionCount}`],
-    ["papers", "Upload Papers", papers.length ? `${papers.length}` : "New"],
-    ["pattern", "Pattern Intelligence", patternAnalysis ? "Ready" : "Analyze"],
+    ["papers", "Papers & Patterns", patternAnalysis ? "Ready" : papers.length ? `${papers.length}` : "New"],
     ["probable", "Probable Questions", patternQuestionSet ? `${patternQuestionSet.probable_questions.length}` : legacyProbableQuestions.length ? `${legacyProbableQuestions.length}` : "Build"],
-    ["written", "Written Practice", writtenFeedback ? writtenScore : "Start"],
-    ["review", "Review", submitted ? `${score}/${questions.length}` : weaknesses.length ? `${weaknesses.length}` : "Open"],
+    ["practice", "Practice & Review", submitted ? `${score}/${questions.length}` : writtenFeedback ? writtenScore : "Start"],
   ];
 
   return (
@@ -1650,7 +1648,7 @@ export default function ExamModePage() {
                 </div>
               ) : null}
 
-              {activePanel === "pattern" ? (
+              {activePanel === "papers" ? (
                 <div className="exam-panel-stack">
                   <div className="exam-workspace-header">
                     <div>
@@ -1817,7 +1815,7 @@ export default function ExamModePage() {
                 </div>
               ) : null}
 
-              {activePanel === "written" ? (
+              {activePanel === "practice" ? (
                 <div className="exam-panel-stack">
                   <div className="exam-workspace-header">
                     <div>
@@ -1921,7 +1919,7 @@ export default function ExamModePage() {
                 </div>
               ) : null}
 
-              {activePanel === "review" ? (
+              {activePanel === "practice" ? (
                 <div className="exam-panel-stack">
                   <div className="exam-workspace-header">
                     <div>
