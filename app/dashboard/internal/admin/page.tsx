@@ -1,359 +1,76 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
-import { CLASS_LEVELS } from "@/lib/profile";
-import { LoadingState } from "@/components/ui/Polished";
+import { apiFetch, apiJson } from "@/lib/apiClient";
+import { cn } from "@/lib/utils";
+import { AppIcon, ErrorState } from "@/components/ui/Polished";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { AdminSection } from "@/components/admin/AdminSection";
+import { AdminStatusCard } from "@/components/admin/AdminStatusCard";
+import { ActivityTimeline } from "@/components/admin/ActivityTimeline";
+import { DataIngestionReport } from "@/components/admin/DataIngestionReport";
+import { HealthBadge, HealthDot } from "@/components/admin/HealthBadge";
+import { MetricCard } from "@/components/admin/MetricCard";
+import { PipelineReadinessCard } from "@/components/admin/PipelineReadinessCard";
+import {
+  BRAND_GRADIENT,
+  MUTED,
+  PANEL,
+  SOFT_PANEL,
+  TEXT,
+  classifyHealth,
+  formatCompact,
+  formatPercent,
+  formatTime,
+  humanize,
+  relativeTime,
+} from "@/components/admin/format";
+import type { AdminConsolePayload, ConsoleTab, ContentReport, HealthState } from "@/components/admin/types";
+
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
-const REFRESH_MS = 12000;
-
-type ConsoleTab = "overview" | "dataflow" | "agents" | "models" | "traces" | "students" | "content" | "system" | "audit";
-type Tone = "teal" | "gold" | "green" | "red" | "blue" | "neutral";
-
-interface ConsoleMetric {
-  value: number | string | null;
-  source: string;
-  unit?: string;
-  note?: string;
-}
-
-interface AgentStatus {
-  agent_id: string;
-  display_name: string;
-  role?: string;
-  status: string;
-  health: string;
-  current_task: string;
-  last_activity: string;
-  total_requests: number;
-  total_errors: number;
-  total_success: number;
-  avg_latency_ms: number;
-  last_quality_score: number;
-  success_rate: number;
-  data_intake?: AgentDataIntake;
-  evolution?: AgentEvolution;
-}
-
-interface AgentSourceUsage {
-  source: string;
-  chunks: number;
-  rows: number;
-}
-
-interface AgentDataIntake {
-  trace_rows: number;
-  event_rows: number;
-  new_trace_rows_24h: number;
-  previous_trace_rows_24h: number;
-  new_event_rows_24h: number;
-  previous_event_rows_24h: number;
-  model_calls: number;
-  tool_calls: number;
-  turns: number;
-  sessions: number;
-  input_tokens: number;
-  output_tokens: number;
-  estimated_cost_usd: number;
-  memory_rows: number;
-  sources: AgentSourceUsage[];
-}
-
-interface AgentEvolution {
-  version: string;
-  runs_total: number;
-  runs_24h: number;
-  runs_previous_24h: number;
-  events_24h: number;
-  quality_score_current: number | null;
-  quality_score_previous: number | null;
-  quality_delta: number | null;
-  latency_current_ms: number | null;
-  latency_previous_ms: number | null;
-  latency_delta_ms: number | null;
-  success_rate: number;
-  learning_signal: string;
-  trained_on_samples: number;
-  new_data_rows: number;
-  historical_data_rows: number;
-}
-
-interface AdminTrace {
-  id: number;
-  created_at: string;
-  turn_id: string;
-  session_id: string;
-  user_id: string;
-  trace_type: string;
-  name: string;
-  provider: string;
-  model: string;
-  status: string;
-  latency_ms: number;
-  estimated_input_tokens: number;
-  estimated_output_tokens: number;
-  estimated_cost_usd: number;
-  metadata: Record<string, unknown>;
-}
-
-interface AdminEvent {
-  id?: number;
-  version?: number;
-  timestamp: string;
-  agent_id: string;
-  event_type: string;
-  severity: string;
-  session_id: string;
-  summary?: string;
-  latency_ms?: number;
-  estimated_cost_usd?: number;
-  data?: Record<string, unknown>;
-}
-
-interface StudentRow {
-  user_id: string;
-  display_name: string;
-  class_level: string;
-  onboarding_completed: boolean;
-  xp: number;
-  level: number;
-  streak: number;
-  total_tests: number;
-  total_questions: number;
-  total_correct: number;
-  accuracy: number;
-  last_active_date: string | null;
-  focus_score: number;
-  consistency_index: number;
-  learning_efficiency: number;
-}
-
-interface ContentJob {
-  job_id: string;
-  job_type: string;
-  status: string;
-  source_path: string;
-  created_at: string;
-  summary: Record<string, unknown>;
-}
-
-interface AuditRow {
-  id: number;
-  created_at: string;
-  actor_uid: string;
-  actor_email: string;
-  action: string;
-  target_type: string;
-  target_id: string;
-  status: string;
-  metadata: Record<string, unknown>;
-}
-
-interface AdminConsolePayload {
-  generated_at: string;
-  environment: string;
-  header: {
-    system_status: string;
-    backend_ready: boolean;
-    database_status: string;
-    auth_status: string;
-    llm_status: string;
-    rag_status: string;
-    last_sync_time: string;
-  };
-  overview: Record<string, ConsoleMetric>;
-  agents: AgentStatus[];
-  traces: AdminTrace[];
-  events: AdminEvent[];
-  students: StudentRow[];
-  audit: AuditRow[];
-  content: {
-    chapters_total: number;
-    approved_or_published: number;
-    coverage_score_avg: number | null;
-    status_counts: Record<string, number>;
-    recent_jobs: ContentJob[];
-  };
-  data_intake?: {
-    generated_at: string;
-    totals: {
-      study_materials: number;
-      study_material_bytes: number;
-      study_material_label: string;
-      content_chapters: number;
-      approved_chapters: number;
-      content_chunks: number;
-      topics: number;
-      trace_rows: number;
-      event_rows: number;
-      model_calls: number;
-      tool_calls: number;
-      turns: number;
-      input_tokens: number;
-      output_tokens: number;
-      estimated_cost_usd: number;
-      model_versions: number;
-      training_samples: number;
-    };
-    freshness: {
-      traces_24h: number;
-      traces_7d: number;
-      events_24h: number;
-      events_7d: number;
-      historical_traces: number;
-      historical_events: number;
-      latest_trace_at: string | null;
-      latest_event_at: string | null;
-      last_indexed_time: string | null;
-    };
-    pipeline: Record<string, number | string | null | undefined>;
-    source_coverage: Array<{ source: string; chunks: number }>;
-    recent_jobs: ContentJob[];
-  };
-  data_registry?: Record<string, unknown>;
-  model_registry?: {
-    current: {
-      llm_provider?: string;
-      llm_model?: string;
-      fast_model?: string;
-      review_model?: string;
-      embedding_model?: string | null;
-      rag_index_version?: string;
-      prompt_version?: string;
-      agent_workflow_version?: string;
-      deployment_version?: string;
-      quality_score?: number | null;
-      latency_ms?: number | null;
-      failure_rate?: number | null;
-      grounded_answer_rate?: number | null;
-      samples?: number | null;
-    };
-    versions: Array<{
-      version: string;
-      provider: string;
-      model: string;
-      samples: number;
-      avg_latency_ms: number;
-      estimated_cost_usd: number;
-      status: string;
-      quality_score: number | null;
-    }>;
-    unsupported_actions?: string[];
-  };
-  quality: {
-    avg_quality_score: number | null;
-    low_quality_answers: number;
-    hallucination_risk: number;
-    missing_sources: number;
-    failed_mcq_generation: number;
-    empty_retrieval: number;
-    slow_responses: number;
-    fallback_used: number;
-    badges: Record<string, number>;
-  };
-  system: {
-    event_bus: Record<string, unknown>;
-    observability: Record<string, unknown>;
-    services: Array<{ name: string; status: string }>;
-  };
-}
-
-const REQUIRED_AGENTS = [
-  { id: "orchestrator", label: "Supervisor Orchestrator", role: "Routes tasks and audits multi-agent flow." },
-  { id: "tutor", label: "Subject Tutor", role: "Student-friendly doubt solving and concept teaching." },
-  { id: "revision", label: "Revision Specialist", role: "Notes, summaries, recall, and revision outputs." },
-  { id: "exam", label: "Exam Generator", role: "MCQs, probable questions, scoring, and review." },
-  { id: "planner", label: "Study Planner", role: "Learning paths, weak-topic decisions, next best action." },
-  { id: "coach", label: "Personal AI Coach", role: "Memory, motivation, continuity, and student progress." },
-];
+const REFRESH_MS = 15000;
 
 const TABS: Array<{ id: ConsoleTab; label: string }> = [
   { id: "overview", label: "Overview" },
-  { id: "dataflow", label: "Data Flow" },
-  { id: "agents", label: "Agents" },
-  { id: "models", label: "Models" },
-  { id: "traces", label: "Traces" },
-  { id: "students", label: "Students" },
-  { id: "content", label: "Content" },
-  { id: "system", label: "System" },
-  { id: "audit", label: "Audit" },
+  { id: "operations", label: "Operations" },
+  { id: "activity", label: "Activity" },
 ];
 
-const OVERVIEW_CARDS: Array<{ key: string; label: string; tone: Tone }> = [
-  { key: "total_users", label: "Total users", tone: "teal" },
-  { key: "active_students_today", label: "Active students today", tone: "green" },
-  { key: "active_sessions", label: "Active sessions", tone: "blue" },
-  { key: "questions_asked", label: "Questions asked", tone: "teal" },
-  { key: "revision_generations", label: "Revision generations", tone: "gold" },
-  { key: "exam_generations", label: "Exam generations", tone: "gold" },
-  { key: "mcqs_attempted", label: "MCQs attempted", tone: "blue" },
-  { key: "average_accuracy", label: "Average accuracy", tone: "green" },
-  { key: "api_llm_usage", label: "API/LLM usage", tone: "teal" },
-  { key: "errors_failures", label: "Errors/failures", tone: "red" },
-  { key: "avg_latency", label: "Avg latency", tone: "blue" },
-  { key: "grounded_answer_rate", label: "Grounded answer rate", tone: "green" },
+const USAGE_METRICS: Array<{ key: string; label: string }> = [
+  { key: "total_users", label: "Total users" },
+  { key: "active_students_today", label: "Active today" },
+  { key: "active_sessions", label: "Active sessions" },
+  { key: "questions_asked", label: "Questions asked" },
+  { key: "mcqs_attempted", label: "MCQs attempted" },
+  { key: "exam_generations", label: "Exam generations" },
+  { key: "average_accuracy", label: "Average accuracy" },
+  { key: "api_llm_usage", label: "API / LLM usage" },
 ];
 
-function cn(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
-}
+const QUALITY_SIGNALS: Array<{ key: keyof AdminConsolePayload["quality"]; label: string }> = [
+  { key: "hallucination_risk", label: "Hallucination risk" },
+  { key: "missing_sources", label: "Missing sources" },
+  { key: "failed_mcq_generation", label: "Failed MCQ generation" },
+  { key: "empty_retrieval", label: "Empty retrieval" },
+  { key: "slow_responses", label: "Slow responses" },
+  { key: "fallback_used", label: "Fallback used" },
+];
 
 function parseEnvList(value?: string) {
-  return (value || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
+  return (value || "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
 }
 
 function founderEmails() {
   return parseEnvList(process.env.NEXT_PUBLIC_FOUNDER_ADMIN_EMAILS || process.env.NEXT_PUBLIC_ADMIN_EMAILS);
 }
 
-function formatMetric(metric?: ConsoleMetric) {
-  if (!metric || metric.value === null || metric.value === undefined || metric.value === "") return "Not tracked";
-  if (typeof metric.value === "number") {
-    if (metric.unit?.includes("usd")) return `$${metric.value.toFixed(4)}`;
-    if (metric.unit?.includes("%")) return `${metric.value}%`;
-    if (metric.unit?.includes("ms")) return metric.value >= 1000 ? `${(metric.value / 1000).toFixed(1)}s` : `${Math.round(metric.value)}ms`;
-    if (metric.value >= 1_000_000) return `${(metric.value / 1_000_000).toFixed(1)}M`;
-    if (metric.value >= 1_000) return `${(metric.value / 1_000).toFixed(1)}K`;
-  }
-  return String(metric.value);
-}
-
-function formatCompact(value?: number | null) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
-  const numeric = Number(value);
-  if (Math.abs(numeric) >= 1_000_000) return `${(numeric / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(numeric) >= 1_000) return `${(numeric / 1_000).toFixed(1)}K`;
-  return Intl.NumberFormat().format(Math.round(numeric));
-}
-
-function formatPercent(value?: number | null) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
-  const numeric = Number(value);
-  return `${numeric <= 1 ? Math.round(numeric * 100) : Math.round(numeric)}%`;
-}
-
-function formatCost(value?: number | null) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return "$0";
-  return `$${Number(value).toFixed(Number(value) >= 1 ? 2 : 5)}`;
-}
-
-function clampPercent(value?: number | null) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) return 0;
-  const normalized = Number(value) <= 1 ? Number(value) * 100 : Number(value);
-  return Math.max(0, Math.min(100, normalized));
-}
-
-function formatTime(value?: string) {
-  if (!value) return "Unknown";
-  const time = new Date(value);
-  if (!Number.isFinite(time.getTime())) return "Unknown";
-  return time.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+function worstState(states: HealthState[]): HealthState {
+  if (states.includes("error")) return "error";
+  if (states.includes("warning")) return "warning";
+  if (states.every((state) => state === "unknown")) return "unknown";
+  return "healthy";
 }
 
 function exportJson(filename: string, payload: unknown) {
@@ -366,284 +83,70 @@ function exportJson(filename: string, payload: unknown) {
   URL.revokeObjectURL(url);
 }
 
-function toneClasses(tone: Tone) {
-  const map = {
-    teal: "border-cyan-300/18 bg-cyan-300/[0.08] text-cyan-100",
-    gold: "border-amber-300/20 bg-amber-300/10 text-amber-100",
-    green: "border-emerald-300/18 bg-emerald-300/[0.08] text-emerald-100",
-    red: "border-rose-300/18 bg-rose-300/[0.09] text-rose-100",
-    blue: "border-sky-300/18 bg-sky-300/[0.08] text-sky-100",
-    neutral: "border-white/10 bg-white/[0.045] text-slate-200",
-  };
-  return map[tone];
-}
-
-function statusTone(status: string): Tone {
-  const normalized = status.toLowerCase();
-  if (["ready", "online", "healthy", "success", "configured", "running"].some((item) => normalized.includes(item))) return "green";
-  if (["degraded", "waiting", "warning", "needs"].some((item) => normalized.includes(item))) return "gold";
-  if (["error", "failed", "critical", "missing", "not_configured"].some((item) => normalized.includes(item))) return "red";
-  return "neutral";
-}
-
-function StatusPill({ value, tone }: { value: string; tone?: Tone }) {
-  return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]", toneClasses(tone || statusTone(value)))}>
-      <span className="h-1.5 w-1.5 rounded-full bg-current shadow-[0_0_12px_currentColor]" />
-      {value.replace(/_/g, " ")}
-    </span>
-  );
-}
-
-function ConsolePanel({ title, eyebrow, children, action }: { title: string; eyebrow?: string; children: React.ReactNode; action?: React.ReactNode }) {
-  return (
-    <section className="rounded-[1.35rem] border border-white/10 bg-[#0B111C]/78 shadow-[0_24px_80px_rgba(0,0,0,0.24)] backdrop-blur-2xl">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-5 py-4">
-        <div>
-          {eyebrow ? <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-200/70">{eyebrow}</p> : null}
-          <h2 className="mt-1 text-base font-semibold text-white">{title}</h2>
-        </div>
-        {action}
-      </div>
-      <div className="p-5">{children}</div>
-    </section>
-  );
-}
-
-function MetricCard({ label, metric, tone }: { label: string; metric?: ConsoleMetric; tone: Tone }) {
-  const notTracked = !metric || metric.value === null || metric.value === undefined;
-  return (
-    <article className={cn("min-h-[118px] rounded-[1.15rem] border p-4", toneClasses(notTracked ? "neutral" : tone))}>
-      <div className="flex items-start justify-between gap-3">
-        <p className="max-w-[10rem] text-xs font-semibold text-slate-400">{label}</p>
-        <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-slate-500">
-          {metric?.source || "db"}
-        </span>
-      </div>
-      <p className={cn("mt-4 text-2xl font-semibold tracking-tight", notTracked ? "text-slate-500" : "text-white")}>{formatMetric(metric)}</p>
-      <p className="mt-2 line-clamp-2 text-[11px] leading-4 text-slate-500">{metric?.note || metric?.unit || "Live backend metric"}</p>
-    </article>
-  );
-}
-
-function TinyStat({ label, value, tone = "neutral" }: { label: string; value: string | number; tone?: Tone }) {
-  return (
-    <div className={cn("rounded-xl border px-3 py-2", toneClasses(tone))}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <p className="mt-1 truncate text-sm font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
-function ProgressMeter({ label, value, detail, tone = "teal" }: { label: string; value?: number | null; detail?: string; tone?: Tone }) {
-  const percent = clampPercent(value);
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3 text-xs">
-        <span className="font-semibold text-slate-300">{label}</span>
-        <span className="text-slate-500">{formatPercent(value)}</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-white/[0.07]">
-        <div
-          className={cn(
-            "h-full rounded-full",
-            tone === "green" ? "bg-emerald-300" : tone === "gold" ? "bg-amber-300" : tone === "red" ? "bg-rose-300" : tone === "blue" ? "bg-sky-300" : "bg-cyan-300",
-          )}
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      {detail ? <p className="text-[11px] text-slate-500">{detail}</p> : null}
-    </div>
-  );
-}
-
-function DataIntakePanel({ data }: { data: AdminConsolePayload }) {
-  const intake = data.data_intake;
-  if (!intake) {
-    return (
-      <ConsolePanel title="Agent Data Intake" eyebrow="Observed runtime data">
-        <p className="text-sm text-slate-500">Data-intake telemetry is not available from the backend yet.</p>
-      </ConsolePanel>
-    );
-  }
-
-  return (
-    <ConsolePanel title="Agent Data Intake" eyebrow="New data vs historical data">
-      <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="rounded-[1.2rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-white">AI Training / Data Feed</p>
-              <p className="mt-1 text-xs text-slate-500">Last trace {formatTime(intake.freshness.latest_trace_at || undefined)}</p>
-            </div>
-            <StatusPill value={String(intake.pipeline.rag_index_version || "data-index")} tone="teal" />
-          </div>
-          <div className="mt-5 space-y-4">
-            <ProgressMeter label="Extraction" value={Number(intake.pipeline.extraction_complete ?? 0)} detail={`${formatCompact(intake.totals.study_materials)} files / ${intake.totals.study_material_label}`} />
-            <ProgressMeter label="Chunking" value={Number(intake.pipeline.chunking_complete ?? 0)} detail={`${formatCompact(intake.totals.content_chunks)} chunks from ${formatCompact(intake.totals.content_chapters)} chapters`} tone="green" />
-            <ProgressMeter label="Retrieval success" value={Number(intake.pipeline.retrieval_success ?? 0)} detail={`Latest index ${formatTime(intake.freshness.last_indexed_time || undefined)}`} tone="blue" />
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <TinyStat label="Input tokens" value={formatCompact(intake.totals.input_tokens)} tone="blue" />
-            <TinyStat label="Output tokens" value={formatCompact(intake.totals.output_tokens)} tone="green" />
-            <TinyStat label="Model calls" value={formatCompact(intake.totals.model_calls)} tone="teal" />
-            <TinyStat label="Tool calls" value={formatCompact(intake.totals.tool_calls)} tone="gold" />
-            <TinyStat label="Trace rows" value={formatCompact(intake.totals.trace_rows)} tone="neutral" />
-            <TinyStat label="Total cost" value={formatCost(intake.totals.estimated_cost_usd)} tone="gold" />
-          </div>
-        </div>
-
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
-            <p className="text-sm font-semibold text-white">Freshness</p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <TinyStat label="Traces 24h" value={formatCompact(intake.freshness.traces_24h)} tone="teal" />
-              <TinyStat label="Events 24h" value={formatCompact(intake.freshness.events_24h)} tone="green" />
-              <TinyStat label="Traces 7d" value={formatCompact(intake.freshness.traces_7d)} tone="blue" />
-              <TinyStat label="Historical" value={formatCompact(intake.freshness.historical_traces + intake.freshness.historical_events)} tone="neutral" />
-            </div>
-          </div>
-          <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
-            <p className="text-sm font-semibold text-white">Source Coverage</p>
-            <div className="mt-4 space-y-3">
-              {intake.source_coverage.length ? intake.source_coverage.slice(0, 6).map((source) => {
-                const maxChunks = Math.max(...intake.source_coverage.map((item) => item.chunks), 1);
-                return (
-                  <div key={source.source}>
-                    <div className="flex items-center justify-between gap-3 text-xs">
-                      <span className="truncate text-slate-300">{source.source}</span>
-                      <span className="text-slate-500">{formatCompact(source.chunks)}</span>
-                    </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
-                      <div className="h-full rounded-full bg-cyan-300" style={{ width: `${Math.max(4, (source.chunks / maxChunks) * 100)}%` }} />
-                    </div>
-                  </div>
-                );
-              }) : <p className="text-sm text-slate-500">No source chunks indexed yet.</p>}
-            </div>
-          </div>
-        </div>
-      </div>
-    </ConsolePanel>
-  );
-}
-
-function AgentEvolutionCard({ agent, selected, onSelect }: { agent?: AgentStatus; selected?: boolean; onSelect?: () => void }) {
-  const evolution = agent?.evolution;
-  const intake = agent?.data_intake;
+function ActionButton({ children, onClick, tone = "ghost" }: { children: React.ReactNode; onClick?: () => void; tone?: "ghost" | "gold" }) {
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={onClick}
       className={cn(
-        "rounded-[1.15rem] border p-4 text-left transition hover:-translate-y-0.5",
-        selected ? "border-cyan-300/40 bg-cyan-300/[0.10]" : "border-white/10 bg-white/[0.035] hover:bg-white/[0.06]",
+        "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition hover:-translate-y-0.5",
+        tone === "gold"
+          ? "border-[#F2B84B]/35 bg-[#F2B84B]/12 text-[#B7791F]"
+          : "border-[color:var(--agentify-border)] bg-[color:var(--agentify-hover-bg)] text-[color:var(--agentify-primary-text)]",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{agent?.display_name || "Agent"}</p>
-          <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{agent?.role || agent?.current_task || "No role reported."}</p>
-        </div>
-        <StatusPill value={evolution?.learning_signal || agent?.health || "observing"} tone={evolution?.learning_signal === "regressing" ? "red" : evolution?.learning_signal === "improving" ? "green" : "blue"} />
-      </div>
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold text-cyan-100">{evolution?.version || "observed-v1"}</span>
-          <span className="text-[11px] text-slate-500">{formatCompact(evolution?.trained_on_samples || 0)} samples</span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <TinyStat label="New rows" value={formatCompact(evolution?.new_data_rows || 0)} tone="teal" />
-          <TinyStat label="Old rows" value={formatCompact(evolution?.historical_data_rows || 0)} tone="neutral" />
-          <TinyStat label="Quality" value={formatPercent(evolution?.quality_score_current ?? agent?.last_quality_score)} tone="green" />
-          <TinyStat label="Latency" value={evolution?.latency_current_ms ? `${Math.round(evolution.latency_current_ms)}ms` : "--"} tone="blue" />
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-        <div><p className="text-[10px] text-slate-500">Runs</p><p className="text-sm font-semibold text-white">{formatCompact(evolution?.runs_total || agent?.total_requests || 0)}</p></div>
-        <div><p className="text-[10px] text-slate-500">24h</p><p className="text-sm font-semibold text-cyan-100">{formatCompact(evolution?.runs_24h || 0)}</p></div>
-        <div><p className="text-[10px] text-slate-500">Tokens</p><p className="text-sm font-semibold text-white">{formatCompact((intake?.input_tokens || 0) + (intake?.output_tokens || 0))}</p></div>
-        <div><p className="text-[10px] text-slate-500">Cost</p><p className="text-sm font-semibold text-amber-100">{formatCost(intake?.estimated_cost_usd || 0)}</p></div>
-      </div>
+      {children}
     </button>
   );
 }
 
-function ModelRegistryPanel({ data }: { data: AdminConsolePayload }) {
-  const registry = data.model_registry;
-  const current = registry?.current;
-  const versions = registry?.versions || [];
-  const maxSamples = Math.max(...versions.map((item) => item.samples || 0), 1);
+function SkeletonBlock({ className }: { className?: string }) {
+  return <div className={cn(PANEL, "animate-pulse", className)} />;
+}
+
+function AdminSkeleton() {
   return (
-    <ConsolePanel title="Model Registry" eyebrow="Live versions and observed quality">
-      <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <div className="rounded-[1.2rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-white">Current Live Model</p>
-              <p className="mt-1 text-xs text-slate-500">{current?.llm_provider || "provider"} / {current?.llm_model || "model"}</p>
-            </div>
-            <StatusPill value="live" tone="teal" />
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-2">
-            <TinyStat label="Quality" value={formatPercent(current?.quality_score)} tone="green" />
-            <TinyStat label="Grounded" value={formatPercent(current?.grounded_answer_rate)} tone="teal" />
-            <TinyStat label="Latency" value={current?.latency_ms ? `${Math.round(current.latency_ms)}ms` : "--"} tone="blue" />
-            <TinyStat label="Failure" value={formatPercent(current?.failure_rate)} tone="red" />
-            <TinyStat label="Samples" value={formatCompact(current?.samples)} tone="neutral" />
-            <TinyStat label="Index" value={current?.rag_index_version || "data-index"} tone="gold" />
-          </div>
-          <div className="mt-4 space-y-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-400">
-            <p>Prompt: <span className="text-slate-200">{current?.prompt_version || "not set"}</span></p>
-            <p>Workflow: <span className="text-slate-200">{current?.agent_workflow_version || "not set"}</span></p>
-            <p>Deploy: <span className="text-slate-200">{current?.deployment_version || "local"}</span></p>
-          </div>
-        </div>
-        <div className="rounded-[1.2rem] border border-white/10 bg-white/[0.035] p-4">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-white">Observed Versions</p>
-            <span className="text-xs text-slate-500">{versions.length} versions</span>
-          </div>
-          <div className="mt-4 space-y-3">
-            {versions.length ? versions.map((version) => (
-              <div key={version.version} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-white">{version.version}</p>
-                    <p className="mt-1 truncate text-[11px] text-slate-500">{version.provider} / {version.model || "model"}</p>
-                  </div>
-                  <StatusPill value={version.status} tone={version.status === "live" ? "green" : "neutral"} />
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
-                  <div className="h-full rounded-full bg-cyan-300" style={{ width: `${Math.max(4, (version.samples / maxSamples) * 100)}%` }} />
-                </div>
-                <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] text-slate-500">
-                  <span>{formatCompact(version.samples)} samples</span>
-                  <span>{formatPercent(version.quality_score)}</span>
-                  <span>{Math.round(version.avg_latency_ms || 0)}ms</span>
-                  <span>{formatCost(version.estimated_cost_usd)}</span>
-                </div>
-              </div>
-            )) : <p className="text-sm text-slate-500">No model trace versions recorded yet.</p>}
-          </div>
-        </div>
+    <div className="space-y-6" aria-hidden="true">
+      <SkeletonBlock className="h-32" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, index) => <SkeletonBlock key={index} className="h-28" />)}
       </div>
-    </ConsolePanel>
+      <div className="grid gap-3 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => <SkeletonBlock key={index} className="h-44" />)}
+      </div>
+    </div>
   );
 }
 
 function UnauthorizedState({ email }: { email: string }) {
   return (
-    <div className="flex min-h-[calc(100svh-8rem)] items-center justify-center">
-      <div className="max-w-xl rounded-[2rem] border border-rose-300/20 bg-[#0B111C]/88 p-8 text-center shadow-[0_30px_100px_rgba(0,0,0,0.30)]">
-        <StatusPill value="Founder access only" tone="red" />
-        <h1 className="mt-5 text-3xl font-semibold text-white">Admin Console is restricted.</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-400">
-          Signed in as {email || "unknown account"}. This console only opens for approved founder emails configured in environment.
+    <div className="flex min-h-[calc(100svh-8rem)] items-center justify-center p-4">
+      <div className={cn(PANEL, "max-w-xl p-8 text-center")}>
+        <HealthBadge state="error" label="Founder access only" />
+        <h1 className={cn("mt-5 text-3xl font-semibold", TEXT)}>Admin Console is restricted</h1>
+        <p className={cn("mt-3 text-sm leading-6", MUTED)}>
+          Signed in as {email || "an unknown account"}. This console only opens for approved founder emails configured in environment.
         </p>
-        <Link href="/dashboard" className="mt-6 inline-flex rounded-full border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.10]">
+        <Link
+          href="/dashboard"
+          className="mt-6 inline-flex rounded-full border border-[color:var(--agentify-border)] bg-[color:var(--agentify-hover-bg)] px-5 py-3 text-sm font-semibold text-[color:var(--agentify-primary-text)] transition hover:-translate-y-0.5"
+        >
           Return to dashboard
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function VerifyingState() {
+  return (
+    <div className="flex min-h-[60svh] items-center justify-center p-4">
+      <div className={cn(PANEL, "flex items-center gap-3 px-6 py-5")}>
+        <HealthDot state="warning" pulse />
+        <div>
+          <p className={cn("text-sm font-semibold", TEXT)}>Verifying founder session…</p>
+          <p className={cn("text-xs", MUTED)}>Checking admin claims and the founder email allow-list.</p>
+        </div>
       </div>
     </div>
   );
@@ -652,11 +155,8 @@ function UnauthorizedState({ email }: { email: string }) {
 export default function FounderAdminConsolePage() {
   const { user, profile, isAdmin, loading, claimsLoading, getAuthHeaders } = useAuth();
   const [data, setData] = useState<AdminConsolePayload | null>(null);
+  const [report, setReport] = useState<ContentReport | null>(null);
   const [activeTab, setActiveTab] = useState<ConsoleTab>("overview");
-  const [selectedAgent, setSelectedAgent] = useState("orchestrator");
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [studentClassFilter, setStudentClassFilter] = useState("all");
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const openedRef = useRef(false);
@@ -665,15 +165,9 @@ export default function FounderAdminConsolePage() {
   const email = (profile?.email || user?.email || "").toLowerCase();
   const founderAllowed = Boolean(isAdmin && email && allowedEmails.includes(email));
 
-  const adminFetch = useCallback(async (path: string, init?: RequestInit) => {
+  const adminGet = useCallback(async <T,>(path: string): Promise<T> => {
     const headers = await getAuthHeaders();
-    return apiJson<AdminConsolePayload>(`${API_BASE}${path}`, {
-      ...init,
-      headers: { ...headers, ...(init?.headers || {}) },
-      forceFresh: true,
-      retries: 1,
-      timeoutMs: 10000,
-    });
+    return apiJson<T>(`${API_BASE}${path}`, { headers, forceFresh: true, retries: 1, timeoutMs: 12000 });
   }, [getAuthHeaders]);
 
   const audit = useCallback(async (action: string, metadata: Record<string, unknown> = {}, targetType = "console", targetId = "") => {
@@ -684,15 +178,10 @@ export default function FounderAdminConsolePage() {
         method: "POST",
         headers,
         timeoutMs: 6000,
-        body: JSON.stringify({
-          action,
-          target_type: targetType,
-          target_id: targetId,
-          metadata: { route: "/dashboard/internal/admin", ...metadata },
-        }),
+        body: JSON.stringify({ action, target_type: targetType, target_id: targetId, metadata: { route: "/dashboard/internal/admin", ...metadata } }),
       });
     } catch {
-      // Audit failure should not block read-only visibility.
+      // Audit failures must not block read-only visibility.
     }
   }, [founderAllowed, getAuthHeaders]);
 
@@ -700,15 +189,22 @@ export default function FounderAdminConsolePage() {
     if (!founderAllowed) return;
     setRefreshing(true);
     try {
-      const payload = await adminFetch("/admin/console");
-      setData(payload);
-      setError("");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Admin console could not load.");
+      const [payload, reportResult] = await Promise.allSettled([
+        adminGet<AdminConsolePayload>("/admin/console"),
+        adminGet<ContentReport>("/admin/content/ingestion-report"),
+      ]);
+      if (payload.status === "fulfilled") {
+        setData(payload.value);
+        setError("");
+      } else {
+        setError(payload.reason instanceof Error ? payload.reason.message : "Admin console could not load.");
+      }
+      // The detailed ingestion report is best-effort; it degrades gracefully.
+      setReport(reportResult.status === "fulfilled" ? reportResult.value : null);
     } finally {
       setRefreshing(false);
     }
-  }, [adminFetch, founderAllowed]);
+  }, [adminGet, founderAllowed]);
 
   useEffect(() => {
     if (!founderAllowed) return;
@@ -728,96 +224,55 @@ export default function FounderAdminConsolePage() {
     void audit("switch_admin_console_tab", { tab }, "tab", tab);
   };
 
-  const agentsById = useMemo(() => new Map((data?.agents || []).map((agent) => [agent.agent_id, agent])), [data?.agents]);
-  const selectedAgentRecord = agentsById.get(selectedAgent);
-  const selectedAgentEvents = (data?.events || []).filter((event) => event.agent_id === selectedAgent).slice(0, 20);
-  const selectedAgentTraces = (data?.traces || []).filter((trace) => trace.name.includes(selectedAgent) || trace.metadata?.gateway_agent === selectedAgent).slice(0, 16);
-
-  const filteredTraces = useMemo(() => {
-    const normalized = query.toLowerCase().trim();
-    return (data?.traces || []).filter((trace) => {
-      const haystack = `${trace.user_id} ${trace.session_id} ${trace.turn_id} ${trace.name} ${trace.status} ${trace.model}`.toLowerCase();
-      if (normalized && !haystack.includes(normalized)) return false;
-      if (statusFilter === "error" && trace.status === "success") return false;
-      if (statusFilter === "slow" && trace.latency_ms < 7000) return false;
-      if (statusFilter !== "all" && statusFilter !== "error" && statusFilter !== "slow" && trace.status !== statusFilter) return false;
-      return true;
-    });
-  }, [data?.traces, query, statusFilter]);
-
-  const filteredStudents = useMemo(
-    () => (data?.students || []).filter(
-      (student) => studentClassFilter === "all" || student.class_level === studentClassFilter,
-    ),
-    [data?.students, studentClassFilter],
-  );
-
-  const commandSignals = useMemo(() => {
-    if (!data) return [];
-
-    const qualityRiskTotal = [
-      data.quality.hallucination_risk,
-      data.quality.missing_sources,
-      data.quality.failed_mcq_generation,
-      data.quality.empty_retrieval,
-      data.quality.slow_responses,
-      data.quality.fallback_used,
-    ].reduce((total, value) => total + (Number(value) || 0), 0);
-    const agentsNeedingAttention = data.agents.filter((agent) => {
-      const signal = `${agent.status} ${agent.health} ${agent.evolution?.learning_signal || ""}`.toLowerCase();
-      return ["error", "failed", "critical", "degraded", "missing", "needs"].some((item) => signal.includes(item));
-    }).length;
-    const pendingContentJobs = data.content.recent_jobs.filter((job) => {
-      const status = job.status.toLowerCase();
-      return !["done", "success", "completed", "complete", "published"].some((item) => status.includes(item));
-    }).length;
-    const slowTraceCount = data.traces.filter((trace) => trace.latency_ms >= 7000).length;
-
+  const healthCards = useMemo(() => {
+    const header = data?.header;
+    const content = data?.content;
+    const contentState: HealthState = !content
+      ? "unknown"
+      : Number(content.status_counts?.failed || 0) > 0
+        ? "warning"
+        : content.approved_or_published > 0
+          ? "healthy"
+          : content.chapters_total > 0
+            ? "warning"
+            : "unknown";
     return [
-      {
-        label: "Quality risk",
-        value: qualityRiskTotal,
-        detail: qualityRiskTotal ? "Review sources, retrieval, and fallback patterns." : "No risk counters currently raised.",
-        tone: qualityRiskTotal ? "red" : "green",
-        tab: "overview",
-      },
-      {
-        label: "Agent attention",
-        value: agentsNeedingAttention,
-        detail: agentsNeedingAttention ? "Open the agent fleet and inspect unhealthy signals." : `${data.agents.length} agents reporting cleanly.`,
-        tone: agentsNeedingAttention ? "gold" : "green",
-        tab: "agents",
-      },
-      {
-        label: "Trace load",
-        value: data.traces.length,
-        detail: slowTraceCount ? `${slowTraceCount} slow traces need latency review.` : "Trace timeline is ready for audit.",
-        tone: slowTraceCount ? "blue" : "teal",
-        tab: "traces",
-      },
-      {
-        label: "Content queue",
-        value: pendingContentJobs,
-        detail: pendingContentJobs ? "Some ingestion jobs are not complete yet." : `${data.content.approved_or_published} chapters approved or published.`,
-        tone: pendingContentJobs ? "gold" : "green",
-        tab: "content",
-      },
-    ] satisfies Array<{ label: string; value: number; detail: string; tone: Tone; tab: ConsoleTab }>;
+      { icon: "dashboard" as const, label: "Backend", state: classifyHealth(header?.backend_ready), valueLabel: header?.backend_ready ? "ready" : "degraded", detail: "API server & request handling" },
+      { icon: "panelLeft" as const, label: "Database", state: classifyHealth(header?.database_status), valueLabel: header?.database_status, detail: "Primary datastore connection" },
+      { icon: "check" as const, label: "Auth", state: classifyHealth(header?.auth_status), valueLabel: header?.auth_status, detail: "Firebase token verification" },
+      { icon: "spark" as const, label: "LLM / Model", state: classifyHealth(header?.llm_status), valueLabel: header?.llm_status, detail: "Provider routing & generation" },
+      { icon: "book" as const, label: "RAG / Knowledge", state: classifyHealth(header?.rag_status), valueLabel: header?.rag_status, detail: "Retrieval & grounding index" },
+      { icon: "study" as const, label: "Content pipeline", state: contentState, valueLabel: contentState === "healthy" ? "live" : contentState, detail: "Ingestion, approval & publishing" },
+    ];
+  }, [data]);
+
+  const overallState = useMemo(() => worstState(healthCards.map((card) => card.state)), [healthCards]);
+
+  const alerts = useMemo(() => {
+    if (!data) return [];
+    const out: Array<{ label: string; detail: string; state: HealthState }> = [];
+    const qualityRisk = QUALITY_SIGNALS.reduce((total, signal) => total + Number(data.quality[signal.key] || 0), 0);
+    const failedMcq = Number(data.quality.failed_mcq_generation || 0);
+    const failedJobs = Number(data.content.status_counts?.failed || 0);
+    const unhealthyAgents = data.agents.filter((agent) => classifyHealth(`${agent.status} ${agent.health}`) === "error").length;
+    const slowTraces = data.traces.filter((trace) => trace.latency_ms >= 7000).length;
+
+    if (failedJobs > 0) out.push({ label: `${failedJobs} failed ingestion job${failedJobs === 1 ? "" : "s"}`, detail: "Review the content pipeline.", state: "error" });
+    if (failedMcq > 0) out.push({ label: `${failedMcq} failed MCQ generation${failedMcq === 1 ? "" : "s"}`, detail: "Check grounding and retrieval.", state: "warning" });
+    if (unhealthyAgents > 0) out.push({ label: `${unhealthyAgents} agent${unhealthyAgents === 1 ? "" : "s"} need attention`, detail: "Inspect the agent fleet.", state: "warning" });
+    if (slowTraces > 0) out.push({ label: `${slowTraces} slow trace${slowTraces === 1 ? "" : "s"}`, detail: "Latency above 7s threshold.", state: "warning" });
+    if (qualityRisk > 0 && !out.length) out.push({ label: `${qualityRisk} quality signal${qualityRisk === 1 ? "" : "s"} raised`, detail: "Review the quality surface.", state: "warning" });
+    return out;
   }, [data]);
 
   const exportCurrentReport = () => {
     if (!data) return;
-    exportJson(`agentify-admin-console-${Date.now()}.json`, data);
-    void audit("export_admin_console_report", { tab: activeTab }, "report", "console");
-  };
-
-  const exportTraces = () => {
-    exportJson(`agentify-traces-${Date.now()}.json`, filteredTraces);
-    void audit("export_traces", { count: filteredTraces.length }, "trace", "filtered");
+    exportJson(`agentify-admin-console-${Date.now()}.json`, { console: data, content_report: report });
+    void audit("export_admin_console_report", {}, "report", "console");
   };
 
   const reindexContent = async () => {
-    if (!window.confirm("Re-index NCERT material from backend/data/raw/ncert? This can take time and should only be run after PDFs are ready.")) return;
+    if (!window.confirm("Re-index study material from backend/data/raw/ncert? Run this only after PDFs are placed.")) return;
     await audit("confirm_reindex_material", {}, "content", "raw_ncert");
     try {
       const headers = await getAuthHeaders();
@@ -827,479 +282,274 @@ export default function FounderAdminConsolePage() {
         timeoutMs: 30000,
         body: JSON.stringify({ replace_existing_extraction: true }),
       });
-      await audit("reindex_material_started", {}, "content", "raw_ncert");
       void loadConsole();
     } catch {
       await audit("reindex_material_failed", {}, "content", "raw_ncert");
     }
   };
 
-  if (loading || claimsLoading) {
-    return <LoadingState title="Verifying founder session..." detail="Checking admin claims and founder email allow-list." />;
-  }
-
-  if (!founderAllowed) {
-    return <UnauthorizedState email={email} />;
-  }
+  if (loading || claimsLoading) return <VerifyingState />;
+  if (!founderAllowed) return <UnauthorizedState email={email} />;
 
   const header = data?.header;
-  const quality = data?.quality;
 
   return (
-    <div className="min-h-[100svh] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[#05080D]" />
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_18%_0%,rgba(20,184,166,0.18),transparent_34%),radial-gradient(circle_at_88%_8%,rgba(242,184,75,0.14),transparent_28%),linear-gradient(180deg,#05080D_0%,#09111D_48%,#05080D_100%)]" />
-      <div className="flex w-full flex-col gap-4 px-3 pb-6 pt-3 sm:px-5 2xl:px-6">
-        <header className="sticky top-0 z-20 rounded-[1.1rem] border border-white/10 bg-[#07111C]/94 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-2xl">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="relative min-h-[100svh]">
+      <div className="pointer-events-none fixed inset-0 -z-20 bg-[var(--agentify-page-bg)]" />
+      <div
+        className="pointer-events-none fixed inset-0 -z-10"
+        style={{ background: "radial-gradient(circle at 10% -4%, rgba(20,184,166,0.12), transparent 34%), radial-gradient(circle at 92% 2%, rgba(242,184,75,0.12), transparent 30%)" }}
+      />
+
+      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-3 pb-12 pt-4 sm:px-5 lg:px-6">
+        {/* 1 · Command header */}
+        <header className={cn(PANEL, "sticky top-3 z-20 p-5")}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusPill value="Founder only" tone="gold" />
-                <StatusPill value={header?.system_status || "syncing"} />
-                <span className="text-xs text-slate-500">Last sync {formatTime(header?.last_sync_time || data?.generated_at)}</span>
+                <HealthBadge state="warning" label="Founder only" />
+                <span className={cn("text-xs", MUTED)}>Last synced {formatTime(header?.last_sync_time || data?.generated_at)}</span>
+                {refreshing ? <span className={cn("text-xs", MUTED)}>· syncing…</span> : null}
               </div>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">AgentifyAI Admin Console</h1>
-              <p className="mt-2 max-w-5xl text-sm leading-6 text-slate-400">
-                Founder-grade control plane for live agent traces, data intake, model versions, quality drift, content readiness, system health, and audit history.
+              <h1 className={cn("mt-3 text-2xl font-semibold tracking-tight sm:text-3xl", TEXT)}>AgentifyAI Admin Console</h1>
+              <p className={cn("mt-1 max-w-3xl text-sm leading-6", MUTED)}>
+                Founder command center for system health, content readiness, agent operations, quality signals, and audit history.
               </p>
             </div>
-            <div className="grid gap-2 sm:grid-cols-3 xl:w-[520px]">
-              {[
-                ["Backend", header?.backend_ready ? "ready" : "degraded"],
-                ["Database", header?.database_status || "unknown"],
-                ["Auth", header?.auth_status || "unknown"],
-                ["LLM", header?.llm_status || "unknown"],
-                ["RAG", header?.rag_status || "unknown"],
-                ["Env", data?.environment || "development"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                  <p className="mt-1 truncate text-xs font-semibold text-slate-100">{value}</p>
-                </div>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex h-9 items-center gap-2 rounded-full px-3.5 text-xs font-bold text-white shadow-sm" style={{ background: BRAND_GRADIENT }}>
+                <HealthDot state={overallState} pulse={overallState === "healthy"} />
+                {data ? humanize(header?.system_status || overallState) : "Syncing"}
+              </span>
+              <ActionButton onClick={() => { void audit("manual_console_refresh"); void loadConsole(); }}>
+                <AppIcon name="history" /> {refreshing ? "Refreshing…" : "Refresh"}
+              </ActionButton>
+              <ActionButton tone="gold" onClick={exportCurrentReport}>
+                <AppIcon name="download" /> Export
+              </ActionButton>
             </div>
           </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-3">
-            <nav className="flex max-w-full gap-1 overflow-x-auto rounded-full border border-white/10 bg-black/20 p-1">
+        </header>
+
+        {error ? <ErrorState title="Admin console error" detail={error} action={<ActionButton onClick={() => void loadConsole()}>Retry</ActionButton>} /> : null}
+
+        {!data && !error ? <AdminSkeleton /> : null}
+
+        {data ? (
+          <>
+            {/* 3 · Readiness hero */}
+            <section className={cn(PANEL, "overflow-hidden p-5 sm:p-6")}>
+              <div className="grid gap-5 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[color:var(--agentify-accent)]">System readiness</p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <HealthDot state={overallState} pulse={overallState === "healthy"} />
+                    <h2 className={cn("text-2xl font-semibold tracking-tight sm:text-3xl", TEXT)}>
+                      {overallState === "healthy" ? "All systems operational" : overallState === "warning" ? "Operational with warnings" : overallState === "error" ? "Action required" : "Awaiting signals"}
+                    </h2>
+                  </div>
+                  <p className={cn("mt-2 max-w-xl text-sm leading-6", MUTED)}>
+                    {alerts.length
+                      ? `${alerts.length} signal${alerts.length === 1 ? "" : "s"} need a founder's eyes. Critical items are highlighted on the right.`
+                      : "No critical alerts. Backend, data pipeline, and agents are reporting cleanly."}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-3 text-xs">
+                    <span className={cn(SOFT_PANEL, "px-3 py-1.5", MUTED)}>Env · {data.environment || "development"}</span>
+                    <span className={cn(SOFT_PANEL, "px-3 py-1.5", MUTED)}>Last sync · {relativeTime(header?.last_sync_time || data.generated_at)}</span>
+                    <span className={cn(SOFT_PANEL, "px-3 py-1.5", MUTED)}>Chapters live · {data.content.approved_or_published}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {alerts.length ? (
+                    alerts.slice(0, 4).map((alert) => (
+                      <div key={alert.label} className={cn(SOFT_PANEL, "flex items-start gap-3 p-3")}>
+                        <span className="mt-0.5"><HealthDot state={alert.state} /></span>
+                        <div className="min-w-0">
+                          <p className={cn("text-sm font-semibold", TEXT)}>{alert.label}</p>
+                          <p className={cn("text-xs", MUTED)}>{alert.detail}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={cn(SOFT_PANEL, "flex items-center gap-3 p-4")}>
+                      <HealthDot state="healthy" pulse />
+                      <p className={cn("text-sm font-semibold", TEXT)}>No critical action needed.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            {/* 2 · System health */}
+            <AdminSection eyebrow="Live status" title="System health" description="Core services and their current state.">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                {healthCards.map((card) => (
+                  <AdminStatusCard key={card.label} icon={card.icon} label={card.label} state={card.state} valueLabel={card.valueLabel || undefined} detail={card.detail} />
+                ))}
+              </div>
+            </AdminSection>
+
+            {/* Tab switcher */}
+            <nav className={cn("flex w-full max-w-md gap-1 rounded-full border border-[color:var(--agentify-border)] bg-[color:var(--agentify-hover-bg)] p-1")}>
               {TABS.map((tab) => (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => setTab(tab.id)}
                   className={cn(
-                    "rounded-full px-3.5 py-2 text-xs font-semibold transition",
-                    activeTab === tab.id ? "bg-cyan-300/[0.14] text-cyan-100 shadow-[0_0_24px_rgba(20,184,166,0.12)]" : "text-slate-500 hover:bg-white/[0.06] hover:text-slate-200",
+                    "flex-1 rounded-full px-4 py-2 text-sm font-semibold transition",
+                    activeTab === tab.id ? "text-white shadow-sm" : cn(MUTED, "hover:text-[color:var(--agentify-primary-text)]"),
                   )}
+                  style={activeTab === tab.id ? { background: BRAND_GRADIENT } : undefined}
                 >
                   {tab.label}
                 </button>
               ))}
             </nav>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => { void audit("manual_console_refresh"); void loadConsole(); }} className="rounded-full border border-white/10 bg-white/[0.055] px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.09]">
-                {refreshing ? "Refreshing..." : "Refresh"}
-              </button>
-              <button type="button" onClick={exportCurrentReport} className="rounded-full border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-300/15">
-                Export report
-              </button>
-            </div>
-          </div>
-        </header>
 
-        {error ? (
-          <div className="rounded-2xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">{error}</div>
-        ) : null}
-
-        {!data ? (
-          <LoadingState title="Loading command center..." detail="Collecting agents, traces, quality signals, content status, and audit logs." />
-        ) : null}
-
-        {data ? (
-          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {commandSignals.map((signal) => (
-              <button
-                key={signal.label}
-                type="button"
-                onClick={() => setTab(signal.tab)}
-                className={cn(
-                  "group rounded-[1.25rem] border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-[0_20px_60px_rgba(0,0,0,0.22)]",
-                  toneClasses(signal.tone),
-                  activeTab === signal.tab && "ring-1 ring-cyan-200/30",
-                )}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{signal.label}</p>
-                  <span className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 transition group-hover:text-white">
-                    Open
-                  </span>
-                </div>
-                <p className="mt-4 text-3xl font-semibold tracking-tight text-white">{formatCompact(signal.value)}</p>
-                <p className="mt-2 min-h-10 text-xs leading-5 text-slate-400">{signal.detail}</p>
-              </button>
-            ))}
-          </section>
-        ) : null}
-
-        {data && activeTab === "overview" ? (
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {OVERVIEW_CARDS.map((card) => (
-                <MetricCard key={card.key} label={card.label} metric={data.overview[card.key]} tone={card.tone} />
-              ))}
-            </div>
-            <DataIntakePanel data={data} />
-            <ConsolePanel title="Agent Evolution" eyebrow="New data, old data, tokens, quality drift">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-                {data.agents.slice(0, 6).map((agent) => (
-                  <AgentEvolutionCard
-                    key={agent.agent_id}
-                    agent={agent}
-                    selected={selectedAgent === agent.agent_id}
-                    onSelect={() => { setSelectedAgent(agent.agent_id); setTab("agents"); }}
-                  />
-                ))}
-              </div>
-            </ConsolePanel>
-            <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-              <ConsolePanel title="Quality Control" eyebrow="Risk surface">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    ["Hallucination risk", quality?.hallucination_risk ?? 0, "red"],
-                    ["Missing sources", quality?.missing_sources ?? 0, "gold"],
-                    ["Failed MCQ generation", quality?.failed_mcq_generation ?? 0, "red"],
-                    ["Empty retrieval", quality?.empty_retrieval ?? 0, "gold"],
-                    ["Slow responses", quality?.slow_responses ?? 0, "blue"],
-                    ["Fallback used", quality?.fallback_used ?? 0, "neutral"],
-                  ].map(([label, value, tone]) => (
-                    <div key={label} className={cn("rounded-2xl border p-4", toneClasses(tone as Tone))}>
-                      <p className="text-xs text-slate-400">{label}</p>
-                      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {Object.entries(quality?.badges || {}).map(([label, value]) => (
-                    <StatusPill key={label} value={`${label}: ${value}`} tone={label.includes("failed") ? "red" : label.includes("needs") ? "gold" : "green"} />
-                  ))}
-                </div>
-              </ConsolePanel>
-              <ConsolePanel title="Current System Pulse" eyebrow="Vercel-style health">
-                <div className="space-y-2">
-                  {data.system.services.map((service) => (
-                    <div key={service.name} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
-                      <span className="text-sm text-slate-300">{service.name}</span>
-                      <StatusPill value={service.status} />
-                    </div>
-                  ))}
-                </div>
-              </ConsolePanel>
-            </div>
-          </div>
-        ) : null}
-
-        {data && activeTab === "dataflow" ? (
-          <div className="space-y-5">
-            <DataIntakePanel data={data} />
-            <ConsolePanel title="Per-Agent Data Consumption" eyebrow="Rows, sessions, tokens, memory, and source usage">
-              <div className="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
-                {data.agents.map((agent) => {
-                  const intake = agent.data_intake;
-                  return (
-                    <article key={agent.agent_id} className="rounded-[1.15rem] border border-white/10 bg-white/[0.035] p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-white">{agent.display_name}</p>
-                          <p className="mt-1 text-xs text-slate-500">{agent.agent_id}</p>
-                        </div>
-                        <StatusPill value={agent.evolution?.learning_signal || agent.health || "observing"} />
-                      </div>
-                      <div className="mt-4 grid grid-cols-3 gap-2">
-                        <TinyStat label="Trace rows" value={formatCompact(intake?.trace_rows || 0)} tone="teal" />
-                        <TinyStat label="Events" value={formatCompact(intake?.event_rows || 0)} tone="green" />
-                        <TinyStat label="Sessions" value={formatCompact(intake?.sessions || 0)} tone="blue" />
-                        <TinyStat label="Input" value={formatCompact(intake?.input_tokens || 0)} tone="neutral" />
-                        <TinyStat label="Output" value={formatCompact(intake?.output_tokens || 0)} tone="neutral" />
-                        <TinyStat label="Memory" value={formatCompact(intake?.memory_rows || 0)} tone="gold" />
-                      </div>
-                      <div className="mt-4 space-y-2">
-                        {(intake?.sources || []).slice(0, 3).map((source) => (
-                          <div key={`${agent.agent_id}-${source.source}`} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs">
-                            <span className="truncate text-slate-300">{source.source}</span>
-                            <span className="text-slate-500">{formatCompact(source.chunks || source.rows)} chunks</span>
-                          </div>
-                        ))}
-                        {!(intake?.sources || []).length ? <p className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-500">No retrieval source usage recorded yet.</p> : null}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </ConsolePanel>
-          </div>
-        ) : null}
-
-        {data && activeTab === "models" ? (
-          <div className="space-y-5">
-            <ModelRegistryPanel data={data} />
-            <ConsolePanel title="Agent Learning Signals" eyebrow="Quality and latency drift by agent">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {data.agents.map((agent) => (
-                  <AgentEvolutionCard
-                    key={agent.agent_id}
-                    agent={agent}
-                    selected={selectedAgent === agent.agent_id}
-                    onSelect={() => { setSelectedAgent(agent.agent_id); setTab("agents"); }}
-                  />
-                ))}
-              </div>
-            </ConsolePanel>
-          </div>
-        ) : null}
-
-        {data && activeTab === "agents" ? (
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_430px]">
-            <ConsolePanel title="AgentOps Fleet" eyebrow="LangSmith + AgentOps style">
-              <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
-                {data.agents.map((agent) => (
-                  <AgentEvolutionCard
-                    key={agent.agent_id}
-                    agent={agent}
-                    selected={selectedAgent === agent.agent_id}
-                    onSelect={() => { setSelectedAgent(agent.agent_id); void audit("open_agent_detail", { agent_id: agent.agent_id }, "agent", agent.agent_id); }}
-                  />
-                ))}
-              </div>
-            </ConsolePanel>
-
-            <ConsolePanel title={selectedAgentRecord?.display_name || REQUIRED_AGENTS.find((item) => item.id === selectedAgent)?.label || "Agent detail"} eyebrow="Detail panel">
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Current task</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-200">{selectedAgentRecord?.current_task || "No current task reported."}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <StatusPill value={selectedAgentRecord?.health || "unknown"} />
-                    <StatusPill value={`quality ${selectedAgentRecord?.last_quality_score ?? 0}`} tone="gold" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <TinyStat label="Version" value={selectedAgentRecord?.evolution?.version || "observed-v1"} tone="teal" />
-                  <TinyStat label="Signal" value={selectedAgentRecord?.evolution?.learning_signal || "stable"} tone="green" />
-                  <TinyStat label="New data" value={formatCompact(selectedAgentRecord?.evolution?.new_data_rows || 0)} tone="blue" />
-                  <TinyStat label="Historical" value={formatCompact(selectedAgentRecord?.evolution?.historical_data_rows || 0)} tone="neutral" />
-                  <TinyStat label="Model calls" value={formatCompact(selectedAgentRecord?.data_intake?.model_calls || 0)} tone="teal" />
-                  <TinyStat label="Tool calls" value={formatCompact(selectedAgentRecord?.data_intake?.tool_calls || 0)} tone="gold" />
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Recent traces</p>
-                  <div className="space-y-2">
-                    {selectedAgentTraces.length ? selectedAgentTraces.map((trace) => (
-                      <div key={trace.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="truncate text-xs font-semibold text-slate-200">{trace.name}</span>
-                          <span className="text-[11px] text-slate-500">{trace.latency_ms}ms</span>
-                        </div>
-                        <p className="mt-1 truncate text-[11px] text-slate-500">{trace.model || trace.provider || trace.trace_type}</p>
-                      </div>
-                    )) : <p className="text-sm text-slate-500">No trace rows mapped to this agent yet.</p>}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Recent events</p>
-                  <div className="space-y-2">
-                    {selectedAgentEvents.length ? selectedAgentEvents.map((event) => (
-                      <div key={`${event.version}-${event.timestamp}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-xs font-semibold text-slate-200">{event.event_type}</span>
-                          <StatusPill value={event.severity} />
-                        </div>
-                        <p className="mt-1 line-clamp-2 text-[11px] text-slate-500">{event.summary || JSON.stringify(event.data || {})}</p>
-                      </div>
-                    )) : <p className="text-sm text-slate-500">No recent events for this agent.</p>}
-                  </div>
-                </div>
-              </div>
-            </ConsolePanel>
-          </div>
-        ) : null}
-
-        {data && activeTab === "traces" ? (
-          <ConsolePanel
-            title="Trace Timeline and Logs"
-            eyebrow="Langfuse / Phoenix style"
-            action={<button type="button" onClick={exportTraces} className="rounded-full border border-white/10 bg-white/[0.055] px-4 py-2 text-xs font-semibold text-slate-200">Export traces</button>}
-          >
-            <div className="mb-4 grid gap-2 md:grid-cols-[1fr_180px]">
-              <label className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <span className="sr-only">Search traces</span>
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search user, session, model, status..." className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-600" />
-              </label>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="rounded-2xl border border-white/10 bg-[#0B111C] px-4 py-3 text-sm text-slate-200 outline-none">
-                <option value="all">All statuses</option>
-                <option value="success">Success</option>
-                <option value="needs_review">Needs review</option>
-                <option value="error">Error only</option>
-                <option value="slow">Latency high</option>
-              </select>
-            </div>
-            <div className="space-y-3">
-              {filteredTraces.length ? filteredTraces.slice(0, 80).map((trace) => (
-                <article key={trace.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{trace.name} <span className="text-slate-500">/ {trace.trace_type}</span></p>
-                      <p className="mt-1 truncate text-xs text-slate-500">{trace.turn_id || trace.session_id || "No turn id"} - {trace.model || trace.provider || "local tool"}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <StatusPill value={trace.status || "unknown"} />
-                      <StatusPill value={`${trace.latency_ms}ms`} tone={trace.latency_ms >= 7000 ? "red" : "blue"} />
-                    </div>
-                  </div>
-                  <div className="mt-4 grid gap-2 text-[11px] text-slate-400 md:grid-cols-7">
-                    {["user query", "intent", "retrieval", "source check", "model call", "validation", "final answer"].map((step, index) => (
-                      <div key={step} className={cn("rounded-xl border px-2 py-2", index <= 4 ? "border-cyan-300/15 bg-cyan-300/[0.08]" : "border-white/10 bg-black/20")}>{step}</div>
+            {/* OVERVIEW */}
+            {activeTab === "overview" ? (
+              <div className="space-y-8">
+                <AdminSection eyebrow="Usage" title="Students & usage snapshot" description="Live platform usage. Metrics the backend has not instrumented are shown honestly as not tracked.">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {USAGE_METRICS.map((item) => (
+                      <MetricCard key={item.key} label={item.label} metric={data.overview[item.key]} />
                     ))}
                   </div>
-                </article>
-              )) : <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-500">No traces match the current filters.</p>}
-            </div>
-          </ConsolePanel>
-        ) : null}
+                </AdminSection>
 
-        {data && activeTab === "students" ? (
-          <ConsolePanel title="Student and Session Management" eyebrow="Safe founder actions">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-400">
-                {filteredStudents.length} of {data.students.length} students
-              </p>
-              <select
-                value={studentClassFilter}
-                onChange={(event) => setStudentClassFilter(event.target.value)}
-                className="rounded-2xl border border-white/10 bg-[#0B111C] px-4 py-2.5 text-sm text-slate-200 outline-none"
-              >
-                <option value="all">All classes</option>
-                {CLASS_LEVELS.map((classLevel) => (
-                  <option key={classLevel} value={classLevel}>{classLevel}</option>
-                ))}
-              </select>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[1040px] text-left text-sm">
-                <thead className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                  <tr>
-                    <th className="px-3 py-3">Student</th>
-                    <th className="px-3 py-3">Class</th>
-                    <th className="px-3 py-3">XP</th>
-                    <th className="px-3 py-3">Accuracy</th>
-                    <th className="px-3 py-3">Questions</th>
-                    <th className="px-3 py-3">Focus</th>
-                    <th className="px-3 py-3">Last active</th>
-                    <th className="px-3 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((student) => (
-                    <tr key={student.user_id} className="border-t border-white/10">
-                      <td className="px-3 py-4">
-                        <p className="font-semibold text-white">{student.display_name || "Student"}</p>
-                        <p className="mt-1 text-[11px] text-slate-500">{student.user_id.slice(0, 18)}...</p>
-                      </td>
-                      <td className="px-3 py-4">
-                        <p className="text-slate-300">{student.class_level || "Not set"}</p>
-                        <p className="mt-1 text-[10px] uppercase tracking-wider text-slate-600">
-                          {student.onboarding_completed ? "Onboarded" : "Pending"}
-                        </p>
-                      </td>
-                      <td className="px-3 py-4 text-slate-300">{student.xp} - L{student.level}</td>
-                      <td className="px-3 py-4 text-emerald-200">{student.accuracy}%</td>
-                      <td className="px-3 py-4 text-slate-300">{student.total_questions}</td>
-                      <td className="px-3 py-4 text-slate-300">{student.focus_score}</td>
-                      <td className="px-3 py-4 text-slate-500">{student.last_active_date || "unknown"}</td>
-                      <td className="px-3 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => { exportJson(`student-${student.user_id}.json`, student); void audit("export_student_report", { user_id: student.user_id }, "user", student.user_id); }} className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-200">Export</button>
-                          <button type="button" onClick={() => { invalidateApiCache(student.user_id); void audit("clear_temporary_cache", { user_id: student.user_id }, "user", student.user_id); }} className="rounded-full border border-cyan-300/20 px-3 py-1.5 text-xs text-cyan-100">Clear cache</button>
-                          <button type="button" disabled title="Backend disable-user endpoint not implemented yet" className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-600">Disable user</button>
+                <AdminSection eyebrow="Quality & safety" title="Quality signals" description="Grounding, retrieval, and generation risk counters from live traces.">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {QUALITY_SIGNALS.map((signal) => {
+                      const value = Number(data.quality[signal.key] || 0);
+                      const state: HealthState = value === 0 ? "healthy" : signal.key === "slow_responses" || signal.key === "fallback_used" ? "warning" : "error";
+                      return (
+                        <div key={signal.key} className={cn(PANEL, "flex items-center justify-between gap-3 p-4")}>
+                          <div className="min-w-0">
+                            <p className={cn("text-xs font-semibold", MUTED)}>{signal.label}</p>
+                            <p className={cn("mt-1 text-2xl font-semibold", TEXT)}>{value}</p>
+                          </div>
+                          <HealthDot state={state} />
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {!filteredStudents.length ? (
-                    <tr className="border-t border-white/10">
-                      <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
-                        No students match this class filter.
-                      </td>
-                    </tr>
+                      );
+                    })}
+                  </div>
+                  {data.quality.avg_quality_score !== null ? (
+                    <p className={cn("mt-1 text-xs", MUTED)}>Average answer quality score · {formatPercent(data.quality.avg_quality_score)}</p>
                   ) : null}
-                </tbody>
-              </table>
-            </div>
-          </ConsolePanel>
-        ) : null}
+                </AdminSection>
 
-        {data && activeTab === "content" ? (
-          <ConsolePanel title="Content and RAG Index" eyebrow="Study material brain" action={<button type="button" onClick={reindexContent} className="rounded-full border border-amber-300/25 bg-amber-300/10 px-4 py-2 text-xs font-semibold text-amber-100">Re-index material</button>}>
-            <div className="grid gap-3 md:grid-cols-3">
-              <MetricCard label="Total chapters" metric={{ value: data.content.chapters_total, source: "content_chapters" }} tone="teal" />
-              <MetricCard label="Approved/published" metric={{ value: data.content.approved_or_published, source: "content_chapters" }} tone="green" />
-              <MetricCard label="Average coverage" metric={{ value: data.content.coverage_score_avg === null ? null : Math.round(data.content.coverage_score_avg * 100), source: "content_chapters", unit: "%" }} tone="gold" />
-            </div>
-            <div className="mt-5 grid gap-5 lg:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold text-white">Chapter status</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {Object.entries(data.content.status_counts).length ? Object.entries(data.content.status_counts).map(([statusName, count]) => (
-                    <StatusPill key={statusName} value={`${statusName}: ${count}`} />
-                  )) : <p className="text-sm text-slate-500">No content indexed yet.</p>}
-                </div>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold text-white">Recent ingestion jobs</p>
-                <div className="mt-3 space-y-2">
-                  {data.content.recent_jobs.length ? data.content.recent_jobs.map((job) => (
-                    <div key={job.job_id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-                      <span className="truncate text-xs text-slate-300">{job.job_type}</span>
-                      <StatusPill value={job.status} />
+                <AdminSection eyebrow="Cohort" title="Recently active students" description="Top active students by accuracy. Read-only snapshot.">
+                  {data.students.length ? (
+                    <div className="grid gap-2 lg:grid-cols-2">
+                      {data.students.slice(0, 8).map((student) => (
+                        <div key={student.user_id} className={cn(SOFT_PANEL, "flex items-center justify-between gap-3 p-3")}>
+                          <div className="min-w-0">
+                            <p className={cn("truncate text-sm font-semibold", TEXT)}>{student.display_name || "Student"}</p>
+                            <p className={cn("truncate text-[11px]", MUTED)}>{student.class_level || "No class"} · L{student.level} · {formatCompact(student.xp)} XP</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-[#0F8F82]">{student.accuracy}%</p>
+                            <p className={cn("text-[11px]", MUTED)}>{student.last_active_date || "—"}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  )) : <p className="text-sm text-slate-500">No ingestion jobs yet.</p>}
-                </div>
+                  ) : (
+                    <div className={cn(PANEL, "p-5 text-sm", MUTED)}>No student activity recorded yet.</div>
+                  )}
+                </AdminSection>
               </div>
-            </div>
-          </ConsolePanel>
-        ) : null}
+            ) : null}
 
-        {data && activeTab === "system" ? (
-          <ConsolePanel title="System Health" eyebrow="Backend, auth, RAG, cost">
-            <div className="grid gap-3 lg:grid-cols-2">
-              {data.system.services.map((service) => (
-                <div key={service.name} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-white">{service.name}</p>
-                    <StatusPill value={service.status} />
+            {/* OPERATIONS */}
+            {activeTab === "operations" ? (
+              <div className="space-y-8">
+                <AdminSection
+                  eyebrow="Knowledge"
+                  title="Data & content pipeline"
+                  description="What study data is ingested — subjects, chapters, topics — and the RAG memory powering retrieval."
+                  action={<ActionButton tone="gold" onClick={reindexContent}><AppIcon name="plus" /> Re-index</ActionButton>}
+                >
+                  <div className="grid gap-3 xl:grid-cols-[0.85fr_1.15fr] xl:items-start">
+                    <PipelineReadinessCard content={data.content} report={report} />
+                    <DataIngestionReport report={report} />
                   </div>
-                </div>
-              ))}
-            </div>
-            <pre className="mt-5 max-h-[360px] overflow-auto rounded-2xl border border-white/10 bg-black/30 p-4 text-xs leading-5 text-slate-400">
-              {JSON.stringify({ event_bus: data.system.event_bus, observability: data.system.observability }, null, 2)}
-            </pre>
-          </ConsolePanel>
-        ) : null}
+                </AdminSection>
 
-        {data && activeTab === "audit" ? (
-          <ConsolePanel title="Admin Audit Trail" eyebrow="Founder actions">
-            <div className="space-y-2">
-              {data.audit.length ? data.audit.map((row) => (
-                <div key={row.id} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 md:grid-cols-[180px_1fr_140px] md:items-center">
-                  <div className="text-xs text-slate-500">{formatTime(row.created_at)}</div>
-                  <div>
-                    <p className="text-sm font-semibold text-white">{row.action}</p>
-                    <p className="mt-1 text-xs text-slate-500">{row.actor_email || row.actor_uid} - {row.target_type} {row.target_id}</p>
+                <AdminSection eyebrow="AgentOps" title="Agent operations" description="Live agent fleet: status, recent activity, throughput, and errors.">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {data.agents.length ? data.agents.map((agent) => {
+                      const state = classifyHealth(`${agent.status} ${agent.health}`);
+                      return (
+                        <article key={agent.agent_id} className={cn(PANEL, "p-4")}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className={cn("truncate text-sm font-semibold", TEXT)}>{agent.display_name}</p>
+                              <p className={cn("mt-0.5 line-clamp-2 text-[11px] leading-4", MUTED)}>{agent.role || agent.current_task || "No role reported."}</p>
+                            </div>
+                            <HealthBadge state={state} label={agent.health || "observing"} />
+                          </div>
+                          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                            <div><p className={cn("text-[10px]", MUTED)}>Requests</p><p className={cn("text-sm font-semibold", TEXT)}>{formatCompact(agent.total_requests)}</p></div>
+                            <div><p className={cn("text-[10px]", MUTED)}>Errors</p><p className={cn("text-sm font-semibold", agent.total_errors ? "text-[#D94A57]" : TEXT)}>{formatCompact(agent.total_errors)}</p></div>
+                            <div><p className={cn("text-[10px]", MUTED)}>Success</p><p className="text-sm font-semibold text-[#0F8F82]">{formatPercent(agent.success_rate)}</p></div>
+                          </div>
+                          <p className={cn("mt-3 text-[11px]", MUTED)}>Last active {relativeTime(agent.last_activity)} · {Math.round(agent.avg_latency_ms || 0)}ms avg</p>
+                        </article>
+                      );
+                    }) : <div className={cn(PANEL, "p-5 text-sm", MUTED)}>No agents are reporting yet.</div>}
                   </div>
-                  <StatusPill value={row.status || "recorded"} />
-                </div>
-              )) : <p className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 text-sm text-slate-500">No audit events recorded yet.</p>}
-            </div>
-          </ConsolePanel>
+                </AdminSection>
+
+                {data.model_registry?.current ? (
+                  <AdminSection eyebrow="Models" title="Live model" description="Current provider, model, and observed quality.">
+                    <div className={cn(PANEL, "p-5")}>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className={cn("text-sm font-semibold", TEXT)}>{data.model_registry.current.llm_provider || "provider"} / {data.model_registry.current.llm_model || "model"}</p>
+                          <p className={cn("mt-0.5 text-xs", MUTED)}>RAG index {data.model_registry.current.rag_index_version || "—"} · embeddings {data.model_registry.current.embedding_model || "off"}</p>
+                        </div>
+                        <HealthBadge state="healthy" label="live" pulse />
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        <div className={cn(SOFT_PANEL, "px-3 py-2.5")}><p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", MUTED)}>Quality</p><p className={cn("mt-1 text-lg font-semibold", TEXT)}>{formatPercent(data.model_registry.current.quality_score)}</p></div>
+                        <div className={cn(SOFT_PANEL, "px-3 py-2.5")}><p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", MUTED)}>Grounded</p><p className={cn("mt-1 text-lg font-semibold", TEXT)}>{formatPercent(data.model_registry.current.grounded_answer_rate)}</p></div>
+                        <div className={cn(SOFT_PANEL, "px-3 py-2.5")}><p className={cn("text-[10px] font-bold uppercase tracking-[0.14em]", MUTED)}>Latency</p><p className={cn("mt-1 text-lg font-semibold", TEXT)}>{data.model_registry.current.latency_ms ? `${Math.round(data.model_registry.current.latency_ms)}ms` : "--"}</p></div>
+                      </div>
+                    </div>
+                  </AdminSection>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* ACTIVITY */}
+            {activeTab === "activity" ? (
+              <div className="grid gap-8 xl:grid-cols-[1fr_0.9fr] xl:items-start">
+                <AdminSection eyebrow="Audit" title="Activity timeline" description="Founder actions, content ingestion, and config changes.">
+                  <div className={cn(PANEL, "p-5")}>
+                    <ActivityTimeline rows={data.audit} />
+                  </div>
+                </AdminSection>
+                <AdminSection eyebrow="Traces" title="Recent model traces" description="Latest model and tool calls with latency and status.">
+                  <div className="space-y-2">
+                    {data.traces.length ? data.traces.slice(0, 14).map((trace) => (
+                      <div key={trace.id} className={cn(SOFT_PANEL, "flex items-center justify-between gap-3 p-3")}>
+                        <div className="min-w-0">
+                          <p className={cn("truncate text-sm font-semibold", TEXT)}>{trace.name}</p>
+                          <p className={cn("truncate text-[11px]", MUTED)}>{trace.model || trace.provider || trace.trace_type} · {relativeTime(trace.created_at)}</p>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <HealthBadge state={classifyHealth(trace.status)} label={trace.status} />
+                          <span className={cn("text-[11px]", trace.latency_ms >= 7000 ? "text-[#D94A57]" : MUTED)}>{trace.latency_ms}ms</span>
+                        </div>
+                      </div>
+                    )) : <div className={cn(PANEL, "p-5 text-sm", MUTED)}>No traces recorded yet.</div>}
+                  </div>
+                </AdminSection>
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
     </div>
