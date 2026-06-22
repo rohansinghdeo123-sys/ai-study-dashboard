@@ -176,6 +176,7 @@ export default function FounderAdminConsolePage() {
   const [activeTab, setActiveTab] = useState<ConsoleTab>("overview");
   const [error, setError] = useState("");
   const [waking, setWaking] = useState(false);
+  const [detail, setDetail] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const openedRef = useRef(false);
 
@@ -227,6 +228,10 @@ export default function FounderAdminConsolePage() {
         setReport(null);
       }
     } catch (caught) {
+      // Record the precise reason so it is visible on screen for diagnosis.
+      const name = (caught as { name?: string })?.name || "Error";
+      const status = (caught as { status?: number })?.status;
+      setDetail(`${name}${status ? ` ${status}` : ""}: ${friendlyError(caught)}`);
       // Transient cold-start failures keep the calm "waking up" state and let the
       // interval retry; only genuine errors surface the red error card.
       if (isTransientError(caught)) {
@@ -371,11 +376,15 @@ export default function FounderAdminConsolePage() {
         {!data && !error ? (
           <div className="space-y-4">
             {waking ? (
-              <div className={cn(PANEL, "flex items-center gap-3 p-4")}>
-                <HealthDot state="warning" pulse />
-                <div>
-                  <p className={cn("text-sm font-semibold", TEXT)}>Backend is waking up…</p>
-                  <p className={cn("text-xs", MUTED)}>Free-tier hosting sleeps when idle and can take up to a minute to start. Retrying automatically.</p>
+              <div className={cn(PANEL, "flex items-start gap-3 p-4")}>
+                <span className="mt-0.5"><HealthDot state="warning" pulse /></span>
+                <div className="min-w-0">
+                  <p className={cn("text-sm font-semibold", TEXT)}>Connecting to the backend…</p>
+                  <p className={cn("text-xs", MUTED)}>Retrying automatically. If this persists, the detail below shows what failed.</p>
+                  <p className={cn("mt-1 truncate text-[11px]", MUTED)}>
+                    Calling <span className="font-mono">{API_BASE}/admin/console</span>
+                    {detail ? <> · <span className="text-[#D94A57]">{detail}</span></> : null}
+                  </p>
                 </div>
               </div>
             ) : null}
