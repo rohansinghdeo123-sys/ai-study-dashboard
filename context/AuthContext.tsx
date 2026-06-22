@@ -24,7 +24,9 @@ import {
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import {
+  ApiRequestError,
   apiJson,
+  ensureBackendReady,
   invalidateApiCache,
   primeBackend,
 } from "@/lib/apiClient";
@@ -169,6 +171,39 @@ function shouldUseRedirectFallback(error: unknown) {
   ].some((fallbackCode) => code.includes(fallbackCode));
 }
 
+function isTemporaryBackendError(error: unknown) {
+  if (error instanceof ApiRequestError) {
+    return (
+      error.status === 0 ||
+      error.status === 408 ||
+      error.status === 425 ||
+      error.status === 429 ||
+      error.status >= 500
+    );
+  }
+
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase();
+    return (
+      error.name === "AbortError" ||
+      message.includes("failed to fetch") ||
+      message.includes("networkerror") ||
+      message.includes("network request failed") ||
+      message.includes("load failed")
+    );
+  }
+
+  return false;
+}
+
+function profileErrorMessage(error: unknown) {
+  if (isTemporaryBackendError(error)) {
+    return "The backend is still starting. Please retry in a moment.";
+  }
+
+  return error instanceof Error ? error.message : "We could not load your AgentifyAI profile.";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -189,29 +224,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         primeBackend(backendURL);
         const token = await currentUser.getIdToken();
-        const loadedProfile = await apiJson<BackendUserProfile>(
-          `${backendURL}/profile/me`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+        const loadAccountProfile = (timeoutMs: number, fresh: boolean) =>
+          apiJson<BackendUserProfile>(
+            `${backendURL}/profile/me`,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              cacheKey: `account-profile:${currentUser.uid}`,
+              cacheTtlMs: 30000,
+              forceFresh: fresh,
+              retries: 2,
+              timeoutMs,
             },
-            cacheKey: `account-profile:${currentUser.uid}`,
-            cacheTtlMs: 30000,
-            forceFresh,
-            retries: 2,
-            timeoutMs: 12000,
-          },
-        );
+          );
+        let loadedProfile: BackendUserProfile;
+        try {
+          loadedProfile = await loadAccountProfile(12000, forceFresh);
+        } catch (error) {
+          if (!isTemporaryBackendError(error)) throw error;
+
+          const ready = await ensureBackendReady(backendURL, {
+            forceFresh: true,
+            pollMs: 1500,
+            timeoutMs: 45000,
+          });
+
+          if (!ready) throw error;
+          loadedProfile = await loadAccountProfile(18000, true);
+        }
         setAccountProfile(loadedProfile);
         return loadedProfile;
       } catch (error) {
         setAccountProfile(null);
-        setProfileError(
-          error instanceof Error
-            ? error.message
-            : "We could not load your AgentifyAI profile.",
-        );
+        setProfileError(profileErrorMessage(error));
         return null;
       } finally {
         setProfileLoading(false);

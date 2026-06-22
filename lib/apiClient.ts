@@ -254,11 +254,9 @@ export async function ensureBackendReady(
 
 export function primeBackend(backendURL: string) {
   if (isBackendRecentlyReady(backendURL) || backendWarmups.has(backendURL)) return;
-  const warmup = warmBackend(backendURL, { forceFresh: true, timeoutMs: 4500 }).catch(() => null);
-  backendWarmups.set(backendURL, warmup);
-  void warmup.finally(() => {
-    if (backendWarmups.get(backendURL) === warmup) {
-      backendWarmups.delete(backendURL);
-    }
-  });
+  void ensureBackendReady(backendURL, {
+    forceFresh: true,
+    pollMs: 1500,
+    timeoutMs: 45000,
+  }).catch(() => null);
 }
