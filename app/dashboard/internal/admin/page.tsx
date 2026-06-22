@@ -73,12 +73,20 @@ function worstState(states: HealthState[]): HealthState {
   return "healthy";
 }
 
+// A cold free-tier host returns CORS-less 502s / connection resets while it
+// boots, which the browser reports as "Failed to fetch". Treat those (and
+// timeouts/aborts) as a transient "waking up" state rather than a hard error.
+function isTransientError(error: unknown): boolean {
+  const name = (error as { name?: string })?.name || "";
+  const message = (error instanceof Error ? error.message : String(error || "")).toLowerCase();
+  return (
+    name === "AbortError" ||
+    /abort|timed out|timeout|failed to fetch|load failed|network ?error|fetch failed|502|503|504/.test(message)
+  );
+}
+
 function friendlyError(error: unknown): string {
-  const name = (error as { name?: string })?.name;
   const message = error instanceof Error ? error.message : String(error || "");
-  if (name === "AbortError" || /abort|timed out|timeout/i.test(message)) {
-    return "The backend is waking up and took too long to respond. It retries automatically — or press Refresh.";
-  }
   return message || "Admin console could not load.";
 }
 
@@ -167,6 +175,7 @@ export default function FounderAdminConsolePage() {
   const [report, setReport] = useState<ContentReport | null>(null);
   const [activeTab, setActiveTab] = useState<ConsoleTab>("overview");
   const [error, setError] = useState("");
+  const [waking, setWaking] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const openedRef = useRef(false);
 
@@ -200,16 +209,17 @@ export default function FounderAdminConsolePage() {
     if (!founderAllowed) return;
     setRefreshing(true);
     try {
-      // Wake a possibly-cold backend (free-tier hosts sleep) before the heavy
-      // admin query, so the first load does not abort on a cold start.
+      // Wake a possibly-cold backend (free-tier hosts sleep ~50s on cold start)
+      // before the heavy admin query, so the first load does not fail on boot.
       try {
-        await ensureBackendReady(API_BASE, { timeoutMs: 24000 });
+        await ensureBackendReady(API_BASE, { timeoutMs: 55000 });
       } catch {
         // If warmup probing fails we still attempt the query below.
       }
       const payload = await adminGet<AdminConsolePayload>("/admin/console");
       setData(payload);
       setError("");
+      setWaking(false);
       // The detailed ingestion report is best-effort and must never fail the page.
       try {
         setReport(await adminGet<ContentReport>("/admin/content/ingestion-report"));
@@ -217,7 +227,15 @@ export default function FounderAdminConsolePage() {
         setReport(null);
       }
     } catch (caught) {
-      setError(friendlyError(caught));
+      // Transient cold-start failures keep the calm "waking up" state and let the
+      // interval retry; only genuine errors surface the red error card.
+      if (isTransientError(caught)) {
+        setWaking(true);
+        setError("");
+      } else {
+        setWaking(false);
+        setError(friendlyError(caught));
+      }
     } finally {
       setRefreshing(false);
     }
@@ -348,9 +366,22 @@ export default function FounderAdminConsolePage() {
           </div>
         </header>
 
-        {error ? <ErrorState title="Admin console error" detail={error} action={<ActionButton onClick={() => void loadConsole()}>Retry</ActionButton>} /> : null}
+        {error && !data ? <ErrorState title="Admin console error" detail={error} action={<ActionButton onClick={() => void loadConsole()}>Retry</ActionButton>} /> : null}
 
-        {!data && !error ? <AdminSkeleton /> : null}
+        {!data && !error ? (
+          <div className="space-y-4">
+            {waking ? (
+              <div className={cn(PANEL, "flex items-center gap-3 p-4")}>
+                <HealthDot state="warning" pulse />
+                <div>
+                  <p className={cn("text-sm font-semibold", TEXT)}>Backend is waking up…</p>
+                  <p className={cn("text-xs", MUTED)}>Free-tier hosting sleeps when idle and can take up to a minute to start. Retrying automatically.</p>
+                </div>
+              </div>
+            ) : null}
+            <AdminSkeleton />
+          </div>
+        ) : null}
 
         {data ? (
           <>
