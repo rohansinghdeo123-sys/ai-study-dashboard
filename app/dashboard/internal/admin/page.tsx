@@ -30,7 +30,11 @@ import {
 import type { AdminConsolePayload, ConsoleMetric, ConsoleTab, ContentReport, HealthState } from "@/components/admin/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
-const REFRESH_MS = 15000;
+// The admin console aggregates a lot and the DB compute may be cold, so the
+// first load can take ~30s. Poll slowly and never overlap in-flight loads.
+const REFRESH_MS = 30000;
+const CONSOLE_TIMEOUT_MS = 70000;
+const REPORT_TIMEOUT_MS = 45000;
 const NUM = "font-mono tabular-nums";
 
 const TABS: Array<{ id: ConsoleTab; label: string }> = [
@@ -175,14 +179,16 @@ export default function FounderAdminConsolePage() {
   const [detail, setDetail] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const openedRef = useRef(false);
+  const loadingRef = useRef(false);
 
   const allowedEmails = useMemo(() => founderEmails(), []);
   const email = (profile?.email || user?.email || "").toLowerCase();
   const founderAllowed = Boolean(isAdmin && email && allowedEmails.includes(email));
 
-  const adminGet = useCallback(async <T,>(path: string): Promise<T> => {
+  const adminGet = useCallback(async <T,>(path: string, timeoutMs: number): Promise<T> => {
     const headers = await getAuthHeaders();
-    return apiJson<T>(`${API_BASE}${path}`, { headers, forceFresh: true, retries: 2, timeoutMs: 22000 });
+    // No retries: one long attempt. Retrying a slow query just multiplies load.
+    return apiJson<T>(`${API_BASE}${path}`, { headers, forceFresh: true, retries: 0, timeoutMs });
   }, [getAuthHeaders]);
 
   const audit = useCallback(async (action: string, metadata: Record<string, unknown> = {}, targetType = "console", targetId = "") => {
@@ -194,15 +200,18 @@ export default function FounderAdminConsolePage() {
   }, [founderAllowed, getAuthHeaders]);
 
   const loadConsole = useCallback(async () => {
-    if (!founderAllowed) return;
+    // Never overlap loads: a slow /admin/console (cold DB) must not pile up
+    // behind the 30s interval, which is what caused the canceled-request loop.
+    if (!founderAllowed || loadingRef.current) return;
+    loadingRef.current = true;
     setRefreshing(true);
     try {
       try { await ensureBackendReady(API_BASE, { timeoutMs: 55000 }); } catch { /* still attempt */ }
-      const payload = await adminGet<AdminConsolePayload>("/admin/console");
+      const payload = await adminGet<AdminConsolePayload>("/admin/console", CONSOLE_TIMEOUT_MS);
       setData(payload);
       setError("");
       setWaking(false);
-      try { setReport(await adminGet<ContentReport>("/admin/content/ingestion-report")); } catch { setReport(null); }
+      try { setReport(await adminGet<ContentReport>("/admin/content/ingestion-report", REPORT_TIMEOUT_MS)); } catch { setReport(null); }
     } catch (caught) {
       const name = (caught as { name?: string })?.name || "Error";
       const status = (caught as { status?: number })?.status;
@@ -210,6 +219,7 @@ export default function FounderAdminConsolePage() {
       if (isTransientError(caught)) { setWaking(true); setError(""); }
       else { setWaking(false); setError(caught instanceof Error ? caught.message : "Admin console could not load."); }
     } finally {
+      loadingRef.current = false;
       setRefreshing(false);
     }
   }, [adminGet, founderAllowed]);
