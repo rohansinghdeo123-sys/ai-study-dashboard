@@ -87,6 +87,15 @@ export function formatPercent(value?: number | null): string {
   return `${numeric <= 1 ? Math.round(numeric * 100) : Math.round(numeric)}%`;
 }
 
+export function formatBytes(value?: number | null): string {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "--";
+  const bytes = Number(value);
+  if (bytes < 1024) return `${Math.round(bytes)} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export function formatCost(value?: number | null): string {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "$0";
   const numeric = Number(value);

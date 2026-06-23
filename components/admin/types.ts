@@ -134,6 +134,8 @@ export interface ReportConcept {
   source_pages: number[];
   has_definition: boolean;
   validation_issues: number;
+  chars: number;
+  tokens: number;
 }
 
 export interface ReportChapter {
@@ -164,6 +166,16 @@ export interface ReportChapter {
   updated_at: string;
   source_hash: string;
   published_source_hash: string;
+  // data / memory sizing
+  chunk_chars: number;
+  page_chars: number;
+  concept_chars: number;
+  chunk_tokens: number;
+  embedding_dims: number;
+  embedding_bytes: number;
+  memory_bytes: number;
+  concepts_with_issues: number;
+  error_rate: number;
   concepts: ReportConcept[];
   concepts_truncated: boolean;
 }
@@ -181,6 +193,16 @@ export interface ContentReport {
     concepts: number;
     chunks: number;
     embedded_chunks: number;
+    chunk_chars: number;
+    page_chars: number;
+    concept_chars: number;
+    tokens: number;
+    embedding_bytes: number;
+    memory_bytes: number;
+    embedding_dims: number;
+    validation_issues: number;
+    concepts_with_issues: number;
+    error_rate: number;
   };
   by_status: Record<string, number>;
   by_class: Record<string, number>;

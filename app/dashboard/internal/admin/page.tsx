@@ -10,6 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AdminSection } from "@/components/admin/AdminSection";
 import { AdminStatusCard } from "@/components/admin/AdminStatusCard";
 import { ActivityTimeline } from "@/components/admin/ActivityTimeline";
+import { AgentPipeline } from "@/components/admin/AgentPipeline";
 import { DataIngestionReport } from "@/components/admin/DataIngestionReport";
 import { HealthBadge, HealthDot } from "@/components/admin/HealthBadge";
 import { MetricCard } from "@/components/admin/MetricCard";
@@ -534,29 +535,12 @@ export default function FounderAdminConsolePage() {
                   </div>
                 </AdminSection>
 
-                <AdminSection eyebrow="AgentOps" title="Agent operations" description="Live agent fleet: status, recent activity, throughput, and errors.">
-                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {data.agents.length ? data.agents.map((agent) => {
-                      const state = classifyHealth(`${agent.status} ${agent.health}`);
-                      return (
-                        <article key={agent.agent_id} className={cn(PANEL, "p-4")}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className={cn("truncate text-sm font-semibold", TEXT)}>{agent.display_name}</p>
-                              <p className={cn("mt-0.5 line-clamp-2 text-[11px] leading-4", MUTED)}>{agent.role || agent.current_task || "No role reported."}</p>
-                            </div>
-                            <HealthBadge state={state} label={agent.health || "observing"} />
-                          </div>
-                          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                            <div><p className={cn("text-[10px]", MUTED)}>Requests</p><p className={cn("text-sm font-semibold", TEXT)}>{formatCompact(agent.total_requests)}</p></div>
-                            <div><p className={cn("text-[10px]", MUTED)}>Errors</p><p className={cn("text-sm font-semibold", agent.total_errors ? "text-[#D94A57]" : TEXT)}>{formatCompact(agent.total_errors)}</p></div>
-                            <div><p className={cn("text-[10px]", MUTED)}>Success</p><p className="text-sm font-semibold text-[#0F8F82]">{formatPercent(agent.success_rate)}</p></div>
-                          </div>
-                          <p className={cn("mt-3 text-[11px]", MUTED)}>Last active {relativeTime(agent.last_activity)} · {Math.round(agent.avg_latency_ms || 0)}ms avg</p>
-                        </article>
-                      );
-                    }) : <div className={cn(PANEL, "p-5 text-sm", MUTED)}>No agents are reporting yet.</div>}
-                  </div>
+                <AdminSection eyebrow="AgentOps" title="Agent pipelines" description="Each agent shown as its real processing flow — what it does, how it runs, and live throughput.">
+                  {data.agents.length ? (
+                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                      {data.agents.map((agent) => <AgentPipeline key={agent.agent_id} agent={agent} />)}
+                    </div>
+                  ) : <div className={cn(PANEL, "p-5 text-sm", MUTED)}>No agents are reporting yet.</div>}
                 </AdminSection>
 
                 {data.model_registry?.current ? (
