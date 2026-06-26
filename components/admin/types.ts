@@ -160,6 +160,7 @@ export interface ReportChapter {
   ready_for_approval: boolean | null;
   blocking_issue_count: number | null;
   missing_source_pages: number[];
+  issues: Array<{ severity: string; message: string; concept_id: string }>;
   approved_by: string | null;
   approved_at: string;
   published_at: string;

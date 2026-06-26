@@ -7,16 +7,101 @@ import { HealthBadge } from "./HealthBadge";
 import {
   MUTED,
   PANEL,
+  SOFT_PANEL,
   TEXT,
   classifyHealth,
   formatBytes,
   formatCompact,
   formatPercent,
+  formatTime,
 } from "./format";
 import type { ContentReport, ReportChapter } from "./types";
 
 const DIFFICULTY_LABEL = ["", "Very easy", "Easy", "Medium", "Hard", "Very hard"];
 const NUM = "font-mono tabular-nums";
+
+// Pipeline stages a chapter passes through; the reached stage lights up.
+const STAGES = ["Ingested", "Concepts", "Embedded", "Published"] as const;
+function stageReached(chapter: ReportChapter): number {
+  if (chapter.status === "published" || chapter.status === "approved") return 4;
+  if (chapter.embedded_chunks > 0) return 3;
+  if (chapter.concept_count > 0) return 2;
+  if (chapter.chunk_count > 0) return 1;
+  return 0;
+}
+
+function Field({ label, value, tone }: { label: string; value: React.ReactNode; tone?: string }) {
+  return (
+    <div className="rounded-lg border border-[color:var(--agentify-border)] bg-[color:var(--agentify-hover-bg)] px-2.5 py-1.5">
+      <p className={cn("text-[9px] font-bold uppercase tracking-[0.12em]", MUTED)}>{label}</p>
+      <p className={cn("mt-0.5 text-xs font-semibold", NUM, tone || TEXT)}>{value}</p>
+    </div>
+  );
+}
+
+function ChapterDetail({ chapter }: { chapter: ReportChapter }) {
+  const reached = stageReached(chapter);
+  return (
+    <div className="space-y-3">
+      {/* Pipeline stages */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {STAGES.map((stage, i) => {
+          const done = i < reached;
+          const held = chapter.status === "needs_review" && i === reached;
+          return (
+            <span key={stage} className="flex items-center">
+              <span
+                className="rounded-md border px-2 py-0.5 text-[10px] font-semibold"
+                style={done
+                  ? { borderColor: "#14B8A655", background: "#14B8A614", color: "#0F8F82" }
+                  : held
+                    ? { borderColor: "#F2B84B55", background: "#F2B84B14", color: "#B7791F" }
+                    : { borderColor: "var(--agentify-border)", color: "var(--agentify-muted-text)" }}
+              >
+                {stage}
+              </span>
+              {i < STAGES.length - 1 ? <span className="mx-0.5 text-[10px]" style={{ color: done ? "#14B8A6" : "var(--agentify-muted-text)" }}>›</span> : null}
+            </span>
+          );
+        })}
+        {chapter.status === "needs_review" ? (
+          <span className="ml-1 rounded-full border border-[#F2B84B]/35 bg-[#F2B84B]/12 px-2 py-0.5 text-[10px] font-bold text-[#B7791F]">held for review</span>
+        ) : null}
+      </div>
+
+      {/* Quality + data + provenance fields */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+        <Field label="Coverage" value={formatPercent(chapter.coverage_score)} tone={covTone(chapter.coverage_score)} />
+        <Field label="Extraction" value={formatPercent(chapter.extraction_quality)} />
+        <Field label="Error rate" value={formatPercent(chapter.error_rate)} tone={errTone(chapter.error_rate)} />
+        <Field label="Pages" value={`${chapter.extracted_page_count}/${chapter.page_count}`} />
+        <Field label="Chunks" value={`${chapter.embedded_chunks}/${chapter.chunk_count}`} />
+        <Field label="Memory" value={formatBytes(chapter.memory_bytes)} />
+        <Field label="Tokens" value={formatCompact(chapter.chunk_tokens)} />
+        <Field label="Vectors" value={chapter.embedding_dims ? `${chapter.embedding_dims}d` : "—"} />
+        <Field label="Ready" value={chapter.ready_for_approval ? "yes" : "no"} tone={chapter.ready_for_approval ? "text-[#0F8F82]" : "text-[#B7791F]"} />
+        <Field label="Version" value={chapter.version || "—"} />
+        <Field label="Published" value={chapter.published_at ? formatTime(chapter.published_at) : "—"} />
+        <Field label="Updated" value={chapter.updated_at ? formatTime(chapter.updated_at) : "—"} />
+      </div>
+
+      {/* Why it needs review */}
+      {chapter.missing_source_pages.length || (chapter.issues && chapter.issues.length) ? (
+        <div className={cn(SOFT_PANEL, "p-2.5")}>
+          <p className={cn("text-[10px] font-bold uppercase tracking-[0.12em]", "text-[#B7791F]")}>Review notes</p>
+          {chapter.missing_source_pages.length ? (
+            <p className={cn("mt-1 text-[11px]", MUTED)}>Uncovered pages: <span className={NUM}>{chapter.missing_source_pages.join(", ")}</span></p>
+          ) : null}
+          {(chapter.issues || []).slice(0, 6).map((issue, i) => (
+            <p key={i} className={cn("mt-1 text-[11px]", issue.severity === "error" ? "text-[#D94A57]" : MUTED)}>
+              • {issue.message}{issue.concept_id ? <span className="opacity-70"> ({issue.concept_id})</span> : null}
+            </p>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function errTone(rate: number): string {
   if (rate <= 0) return "text-[#0F8F82]";
@@ -115,7 +200,12 @@ function ChapterRow({ chapter, maxMemory }: { chapter: ReportChapter; maxMemory:
       </tr>
       {open ? (
         <tr className="border-t border-[color:var(--agentify-border)] bg-[color:var(--agentify-hover-bg)]">
-          <td colSpan={10} className="px-3 py-2"><SubtopicTable chapter={chapter} /></td>
+          <td colSpan={10} className="px-3 py-3">
+            <div className="space-y-3">
+              <ChapterDetail chapter={chapter} />
+              <SubtopicTable chapter={chapter} />
+            </div>
+          </td>
         </tr>
       ) : null}
     </>
@@ -156,6 +246,7 @@ export function DataIngestionReport({ report }: { report: ContentReport | null }
   }
 
   const t = report.totals;
+  const needsReview = chapters.filter((c) => c.status !== "published" && c.status !== "approved").length;
   const maxMemory = Math.max(...chapters.map((c) => c.memory_bytes), 1);
   const maxSubject = Math.max(...subjectMemory.map(([, v]) => v), 1);
   const embPct = t.chunks ? (t.embedded_chunks / t.chunks) * 100 : 0;
@@ -169,7 +260,16 @@ export function DataIngestionReport({ report }: { report: ContentReport | null }
             {report.database_dialect} · {report.embeddings_enabled ? `vectors ${t.embedding_dims}d (${report.embeddings_model})` : "no embeddings (lexical only)"}
           </p>
         </div>
-        <HealthBadge state={report.embeddings_enabled ? "healthy" : "warning"} label={report.embeddings_enabled ? "Semantic" : "Lexical"} />
+        <div className="flex items-center gap-2">
+          {needsReview > 0 ? (
+            <span className="rounded-full border border-[#F2B84B]/35 bg-[#F2B84B]/12 px-2.5 py-1 text-[11px] font-bold text-[#B7791F]">
+              {needsReview} need review
+            </span>
+          ) : (
+            <span className="rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-2.5 py-1 text-[11px] font-bold text-[#0F8F82]">all published</span>
+          )}
+          <HealthBadge state={report.embeddings_enabled ? "healthy" : "warning"} label={report.embeddings_enabled ? "Semantic" : "Lexical"} />
+        </div>
       </div>
 
       {/* KPI strip */}
