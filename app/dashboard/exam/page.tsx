@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { apiFetch, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 
 type ExamPanel = "mcq" | "papers" | "probable" | "practice";
 type ParseStatus = "pending" | "analyzed" | "analyzed_empty" | "needs_ocr" | "failed";
@@ -382,6 +382,12 @@ function normalizeLegacyProbableQuestion(raw: unknown, index: number, fallbackSo
   };
 }
 
+function formatElapsed(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 function clampMetric(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -607,6 +613,10 @@ export default function ExamModePage() {
   const [submitted, setSubmitted] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [questionCount, setQuestionCount] = useState(5);
+  const [difficulty, setDifficulty] = useState("medium");
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const [papers, setPapers] = useState<PaperOut[]>([]);
   const [selectedPaperId, setSelectedPaperId] = useState<number | null>(null);
@@ -664,7 +674,7 @@ export default function ExamModePage() {
   const threeMarkQuestions = legacyProbableQuestions.filter((question) => question.marks !== 5);
   const fiveMarkQuestions = legacyProbableQuestions.filter((question) => question.marks === 5);
   const accuracy = submitted && questions.length ? Math.round((score / questions.length) * 100) : 0;
-  const targetQuestionCount = questions.length || 5;
+  const targetQuestionCount = questions.length || questionCount;
   const studyHref = `/dashboard/study?chapter=${encodeURIComponent(selectedChapter.value)}&topic=${encodeURIComponent(selectedTopic.value)}`;
   const writtenScore = writtenFeedback ? `${formatMarks(writtenFeedback.marks_awarded)}/${formatMarks(writtenFeedback.marks_total)}` : EMPTY_VALUE;
 
@@ -719,11 +729,28 @@ export default function ExamModePage() {
     setAnswers({});
     setRetryCount(0);
     setSubmitted(false);
+    setCurrentIndex(0);
+    setElapsedSeconds(0);
     setError("");
     answerSelectionsRef.current = {};
     startedAtRef.current = null;
     generationLatencyRef.current = 0;
   };
+
+  // Elapsed-time chip for the attempt; freezes at submit and never pressures
+  // with a countdown — school students get a clock, not a stopwatch race.
+  useEffect(() => {
+    if (!questions.length || submitted) return;
+    const tick = () => {
+      const startedMs = startedAtRef.current ? new Date(startedAtRef.current).getTime() : NaN;
+      if (Number.isFinite(startedMs)) {
+        setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedMs) / 1000)));
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [questions.length, submitted]);
 
   const resetCourseContext = () => {
     resetAttempt();
@@ -900,8 +927,8 @@ export default function ExamModePage() {
             topic: selectedTopic.label,
             section_id: selectedTopic.value,
             session_id: `exam-${sessionSeed}`,
-            difficulty: "medium",
-            count: 5,
+            difficulty,
+            count: questionCount,
             subject: SUBJECT,
             chapter: selectedChapter.label,
             strict_grounding: true,
@@ -929,14 +956,23 @@ export default function ExamModePage() {
             .filter((question: ExamQuestion | null): question is ExamQuestion => Boolean(question))
         : [];
 
-      if (nextQuestions.length < 5) {
-        setError(String(mcqData?.error || "A complete five-question pack could not be created from this material. Try another topic or regenerate."));
+      // A ten-question request may find only 7 well-supported questions in
+      // the material; a smaller real pack beats a failed generation. Below
+      // five questions the attempt is not a meaningful test, so we stop.
+      const minimumViablePack = Math.min(5, questionCount);
+      if (nextQuestions.length < minimumViablePack) {
+        setError(String(mcqData?.error || "A complete question pack could not be created from this material. Try another topic or regenerate."));
         return;
       }
 
-      setQuestions(nextQuestions.slice(0, 5));
+      setQuestions(nextQuestions.slice(0, questionCount));
       setLegacyProbableQuestions(nextProbable);
-      setNotice("MCQ pack created from the selected study material.");
+      setNotice(
+        nextQuestions.length < questionCount
+          ? `This material supported ${Math.min(nextQuestions.length, questionCount)} strong questions — pack ready.`
+          : "MCQ pack created from the selected study material.",
+      );
+      setCurrentIndex(0);
       startedAtRef.current = new Date().toISOString();
       generationLatencyRef.current = Date.now() - requestStartedAt;
       if (nextProbable.length < 3) {
@@ -1231,6 +1267,26 @@ export default function ExamModePage() {
     if (previous && previous !== option) setRetryCount((current) => current + 1);
     answerSelectionsRef.current = { ...answerSelectionsRef.current, [questionId]: option };
     setAnswers((current) => ({ ...current, [questionId]: option }));
+    // Auto-advance after a short beat so the selection registers visually,
+    // but only when the student is still on the question they just answered.
+    window.setTimeout(() => {
+      setCurrentIndex((current) => {
+        const visible = questions[current];
+        if (!visible || visible.id !== questionId) return current;
+        return Math.min(current + 1, questions.length - 1);
+      });
+    }, 240);
+  };
+
+  const handleSubmitClick = () => {
+    if (submitted || saving || !questions.length) return;
+    const firstUnanswered = questions.findIndex((question) => !answers[question.id]);
+    if (firstUnanswered >= 0) {
+      setCurrentIndex(firstUnanswered);
+      setNotice(`Question ${firstUnanswered + 1} is still unanswered — finish it to submit.`);
+      return;
+    }
+    void submitExam();
   };
 
   const submitExam = async () => {
@@ -1244,8 +1300,10 @@ export default function ExamModePage() {
     const scorePercent = Math.round((score / questions.length) * 100);
     const focusScore = clampMetric(scorePercent - Math.min(20, retryCount * 3));
 
+    // The result view renders in place — no tab jump; the student lands on
+    // their score and solutions exactly where they pressed Submit.
     setSubmitted(true);
-    openPanel("practice");
+    setNotice("");
     setSaving(true);
     setError("");
 
@@ -1399,6 +1457,33 @@ export default function ExamModePage() {
                   {selectedChapter.topics.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
+              <label>
+                <span>Questions</span>
+                <select
+                  value={String(questionCount)}
+                  onChange={(event) => {
+                    setQuestionCount(Number(event.target.value) === 10 ? 10 : 5);
+                    resetAttempt();
+                  }}
+                >
+                  <option value="5">5 — quick check</option>
+                  <option value="10">10 — full drill</option>
+                </select>
+              </label>
+              <label>
+                <span>Difficulty</span>
+                <select
+                  value={difficulty}
+                  onChange={(event) => {
+                    setDifficulty(event.target.value);
+                    resetAttempt();
+                  }}
+                >
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </label>
             </div>
             <div className="exam-setup-actions">
               <button type="button" onClick={() => void generateExamPack()} disabled={generating || !userId} className="exam-mode-primary">
@@ -1448,53 +1533,148 @@ export default function ExamModePage() {
             <div className="exam-mode-content">
               {activePanel === "mcq" ? (
                 generating ? (
-                  <LoadingState title="Creating five grounded questions..." detail="Checking options, explanations, and textbook sources." />
-                ) : questions.length ? (
-                  <>
-                    <div className="exam-question-list">
+                  <LoadingState title="Creating your grounded questions..." detail="Checking options, explanations, and textbook sources." />
+                ) : questions.length && submitted ? (
+                  <div className="exam-result-view">
+                    <section className="exam-result-hero" data-grade={accuracy >= 80 ? "great" : accuracy >= 50 ? "good" : "focus"}>
+                      <div className="exam-result-score">
+                        <strong>{score}/{questions.length}</strong>
+                        <span>{accuracy}% accuracy</span>
+                      </div>
+                      <div className="exam-result-meta">
+                        <h2>
+                          {accuracy >= 80
+                            ? "Strong attempt — exam-ready pace."
+                            : accuracy >= 50
+                              ? "Solid base — the review below closes the gaps."
+                              : "Good effort — every solution below is a mark you can win back."}
+                        </h2>
+                        <p>
+                          +{score * 10} XP earned · {formatElapsed(elapsedSeconds)} taken · {selectedTopic.label}
+                          {saving ? " · Saving result…" : ""}
+                        </p>
+                        <div className="exam-result-actions">
+                          <button type="button" className="exam-mode-primary" onClick={() => { resetAttempt(); setNotice(""); }}>
+                            New pack
+                          </button>
+                          <Link href={studyHref} className="exam-mode-secondary">
+                            Revise this topic
+                          </Link>
+                          <button type="button" className="exam-mode-secondary" onClick={() => openPanel("practice")}>
+                            Written practice
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                    <div className="exam-review-list">
                       {questions.map((question, index) => {
-                        const selected = answers[question.id];
+                        const selected = answers[question.id] || "";
+                        const correct = selected === question.correct;
+                        const selectedText = selected
+                          ? (question.options[selected.charCodeAt(0) - 65] || selected).replace(/^[A-D][.)]\s*/i, "")
+                          : "Not answered";
+                        const correctText = (question.options[question.correct.charCodeAt(0) - 65] || question.correct).replace(/^[A-D][.)]\s*/i, "");
                         return (
-                          <article key={question.id} className="exam-question-card">
-                            <div className="exam-question-number">{index + 1}</div>
-                            <div className="min-w-0">
-                              <h2>{question.question}</h2>
-                              {question.source ? <p className="exam-question-source">Source: {question.source}</p> : null}
-                              <div className="exam-options">
-                                {question.options.map((option, optionIndex) => {
-                                  const optionKey = String.fromCharCode(65 + optionIndex);
-                                  const isSelected = selected === optionKey;
-                                  return (
-                                    <button
-                                      key={`${question.id}-${optionKey}`}
-                                      type="button"
-                                      disabled={submitted}
-                                      data-selected={isSelected ? "true" : "false"}
-                                      onClick={() => recordAnswer(question.id, optionKey)}
-                                    >
-                                      <strong>{optionKey}</strong>
-                                      <span>{option.replace(/^[A-D][.)]\s*/i, "")}</span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
+                          <article key={`review-${question.id}`} data-correct={correct ? "true" : "false"}>
+                            <span>{correct ? `Question ${index + 1} · Correct` : `Question ${index + 1} · Review this`}</span>
+                            <h2>{question.question}</h2>
+                            <p>
+                              Your answer: <strong>{selected ? `${selected}. ${selectedText}` : selectedText}</strong>
+                              {correct ? "" : <> · Correct answer: <strong>{question.correct}. {correctText}</strong></>}
+                            </p>
+                            <p>{question.explanation}</p>
+                            {question.source ? <small className="exam-question-source">Source: {question.source}</small> : null}
                           </article>
                         );
                       })}
                     </div>
-                    <div className="exam-submit-row">
-                      <p>{answeredCount} of {questions.length} answered</p>
+                  </div>
+                ) : questions.length ? (
+                  <div className="exam-focus-flow">
+                    <div className="exam-focus-top">
+                      <div className="exam-focus-palette" role="tablist" aria-label="Question navigator">
+                        {questions.map((question, index) => (
+                          <button
+                            key={`dot-${question.id}`}
+                            type="button"
+                            role="tab"
+                            aria-selected={index === currentIndex}
+                            aria-label={`Question ${index + 1}${answers[question.id] ? ", answered" : ", not answered"}`}
+                            data-answered={answers[question.id] ? "true" : "false"}
+                            data-current={index === currentIndex ? "true" : "false"}
+                            onClick={() => setCurrentIndex(index)}
+                          >
+                            {index + 1}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="exam-focus-meta">
+                        <span className="exam-focus-timer" aria-label="Time elapsed">
+                          <AppIcon name="clock" />
+                          {formatElapsed(elapsedSeconds)}
+                        </span>
+                        <span>{answeredCount}/{questions.length} answered</span>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const question = questions[Math.min(currentIndex, questions.length - 1)];
+                      const selected = answers[question.id];
+                      return (
+                        <article className="exam-focus-card" key={question.id}>
+                          <p className="exam-focus-count">Question {Math.min(currentIndex, questions.length - 1) + 1} of {questions.length}</p>
+                          <h2>{question.question}</h2>
+                          {question.source ? <p className="exam-question-source">Source: {question.source}</p> : null}
+                          <div className="exam-options">
+                            {question.options.map((option, optionIndex) => {
+                              const optionKey = String.fromCharCode(65 + optionIndex);
+                              const isSelected = selected === optionKey;
+                              return (
+                                <button
+                                  key={`${question.id}-${optionKey}`}
+                                  type="button"
+                                  data-selected={isSelected ? "true" : "false"}
+                                  onClick={() => recordAnswer(question.id, optionKey)}
+                                >
+                                  <strong>{optionKey}</strong>
+                                  <span>{option.replace(/^[A-D][.)]\s*/i, "")}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </article>
+                      );
+                    })()}
+
+                    <div className="exam-focus-nav">
                       <button
                         type="button"
-                        onClick={() => void submitExam()}
-                        disabled={submitted || answeredCount !== questions.length || saving}
-                        className="exam-mode-primary"
+                        className="exam-mode-secondary"
+                        onClick={() => setCurrentIndex((current) => Math.max(0, current - 1))}
+                        disabled={currentIndex === 0}
                       >
-                        {saving ? "Saving result..." : submitted ? "Submitted" : "Submit and review"}
+                        Previous
+                      </button>
+                      {currentIndex < questions.length - 1 ? (
+                        <button
+                          type="button"
+                          className="exam-mode-secondary"
+                          onClick={() => setCurrentIndex((current) => Math.min(questions.length - 1, current + 1))}
+                        >
+                          Next
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={handleSubmitClick}
+                        disabled={saving}
+                        className="exam-mode-primary"
+                        data-ready={answeredCount === questions.length ? "true" : "false"}
+                      >
+                        {saving ? "Saving result..." : "Submit and review"}
                       </button>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="exam-launch-state">
                     <div className="exam-launch-copy">
@@ -1502,7 +1682,7 @@ export default function ExamModePage() {
                         <AppIcon name="spark" />
                       </span>
                       <p className="dashboard-section-kicker">Source-locked assessment</p>
-                      <h2>Build a five-question MCQ pack from {selectedTopic.label}.</h2>
+                      <h2>Build a {questionCount}-question MCQ pack from {selectedTopic.label}.</h2>
                       <p>
                         AgentifyAI will create MCQs, explanations, and source traces from the connected study material only.
                       </p>
@@ -1932,34 +2112,10 @@ export default function ExamModePage() {
                   </div>
 
                   {submitted ? (
-                    <div className="exam-review-layout">
-                      <section className="exam-score-card">
-                        <span>Final score</span>
-                        <strong>{score}/{questions.length}</strong>
-                        <p>{accuracy}% accuracy / {score * 10} XP earned</p>
-                      </section>
-                      <div className="exam-review-list">
-                        {questions.map((question, index) => {
-                          const selected = answers[question.id] || "Not answered";
-                          const correct = selected === question.correct;
-                          return (
-                            <article key={`review-${question.id}`} data-correct={correct ? "true" : "false"}>
-                              <span>{correct ? "Correct" : `Question ${index + 1} needs review`}</span>
-                              <h2>{question.question}</h2>
-                              <p>Your answer: {selected}. Correct answer: {question.correct}.</p>
-                              <p>{question.explanation}</p>
-                            </article>
-                          );
-                        })}
-                      </div>
+                    <div className="exam-mode-alert exam-mode-alert-success" role="status">
+                      MCQ result: {score}/{questions.length} ({accuracy}%). Full solutions live in the MCQ Test tab.
                     </div>
-                  ) : (
-                    <EmptyState
-                      icon="analytics"
-                      title="Submit the MCQ test to unlock MCQ review"
-                      detail="Written feedback and weakness history can still be reviewed below."
-                    />
-                  )}
+                  ) : null}
 
                   <section className="exam-analysis-grid">
                     <section className="exam-distribution-card">
