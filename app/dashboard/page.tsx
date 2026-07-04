@@ -1028,9 +1028,9 @@ export default function DashboardPage() {
                 href="/dashboard?workspace=overview"
                 eyebrow="Overview"
                 title="Dashboard"
-                description="See your level, accuracy, streak, XP, and current student rank."
-                helper="Your essential progress view"
-                action="View progress"
+                description="Face your weekly rival, clear today's missions, and climb the leaderboard."
+                helper="Your weekly battle headquarters"
+                action="Open battle"
                 icon="dashboard"
                 tone="teal"
               />
@@ -1095,9 +1095,9 @@ export default function DashboardPage() {
           </nav>
           {classLevel ? <p className="dashboard-section-kicker">{classLevel} learning profile</p> : null}
           <h1>
-            Student <span>Progress</span>
+            Weekly <span>Challenge</span>
           </h1>
-          <p>Your essential learning signals and student rank, all in one focused view.</p>
+          <p>Your rival, today&apos;s missions, and your leaderboard position — live all week.</p>
         </div>
         <div
           className="dashboard-final-hero-rank"
