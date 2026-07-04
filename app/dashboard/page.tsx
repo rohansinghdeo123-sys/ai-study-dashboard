@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { AlertState, AppIcon, LoadingState, type AppIconName } from "@/components/ui/Polished";
+import { AlertState, AppIcon, LoadingState } from "@/components/ui/Polished";
 import { apiJson, invalidateApiCache, primeBackend } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -39,6 +39,53 @@ interface SessionRecord {
   completed_at: string;
 }
 
+interface RivalWeekSide {
+  name: string;
+  class_level?: string;
+  week_xp: number;
+  sessions: number;
+  accuracy: number;
+  study_minutes: number;
+  active_days: number;
+  daily_xp: number[];
+}
+
+interface RivalActivityItem {
+  type: string;
+  topic: string;
+  xp_earned: number;
+  completed_at: string;
+}
+
+interface RivalMission {
+  id: string;
+  title: string;
+  detail: string;
+  target: number;
+  progress: number;
+  completed: boolean;
+}
+
+interface RivalChallengeState {
+  weekEndUtc: string;
+  secondsRemaining: number;
+  fetchedAt: number;
+  me: RivalWeekSide;
+  rival: (RivalWeekSide & { activity: RivalActivityItem[] }) | null;
+  battleStatus: "leading" | "trailing" | "tied" | "unmatched";
+  myWeekXp: number;
+  rivalWeekXp: number;
+  xpGap: number;
+  missions: RivalMission[];
+  rewardWinXp: number;
+  rewardBadge: string;
+  lastWeek: {
+    outcome: string;
+    reward_xp: number;
+    rival_name: string;
+  } | null;
+}
+
 function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -57,6 +104,76 @@ function normalizeProgress(value: unknown): ProgressState {
     total_correct: toNumber(summary.total_correct ?? summary.totalCorrect),
     xp: toNumber(summary.xp ?? summary.total_xp),
     streak: toNumber(summary.streak),
+  };
+}
+
+function normalizeWeekSide(value: unknown): RivalWeekSide {
+  const source = isRecord(value) ? value : {};
+  const daily = Array.isArray(source.daily_xp) ? source.daily_xp.map((item) => toNumber(item)) : [];
+  return {
+    name: String(source.name || "Student"),
+    class_level: source.class_level ? String(source.class_level) : undefined,
+    week_xp: toNumber(source.week_xp),
+    sessions: toNumber(source.sessions),
+    accuracy: toNumber(source.accuracy),
+    study_minutes: toNumber(source.study_minutes),
+    active_days: toNumber(source.active_days),
+    daily_xp: daily.length === 7 ? daily : [...daily, 0, 0, 0, 0, 0, 0, 0].slice(0, 7),
+  };
+}
+
+function normalizeRivalChallenge(value: unknown): RivalChallengeState | null {
+  if (!isRecord(value)) return null;
+  const week = isRecord(value.week) ? value.week : {};
+  const battle = isRecord(value.battle) ? value.battle : {};
+  const reward = isRecord(value.reward) ? value.reward : {};
+  const lastWeek = isRecord(value.last_week) ? value.last_week : null;
+  const rivalSource = isRecord(value.rival) ? value.rival : null;
+  const status = String(battle.status || "unmatched");
+
+  return {
+    weekEndUtc: String(week.end_utc || ""),
+    secondsRemaining: toNumber(week.seconds_remaining),
+    fetchedAt: Date.now(),
+    me: normalizeWeekSide(value.me),
+    rival: rivalSource
+      ? {
+          ...normalizeWeekSide(rivalSource),
+          activity: (Array.isArray(rivalSource.activity) ? rivalSource.activity : [])
+            .filter(isRecord)
+            .map((item) => ({
+              type: String(item.type || "Study practice"),
+              topic: String(item.topic || ""),
+              xp_earned: toNumber(item.xp_earned),
+              completed_at: String(item.completed_at || ""),
+            })),
+        }
+      : null,
+    battleStatus:
+      status === "leading" || status === "trailing" || status === "tied" ? status : "unmatched",
+    myWeekXp: toNumber(battle.my_week_xp),
+    rivalWeekXp: toNumber(battle.rival_week_xp),
+    xpGap: toNumber(battle.xp_gap),
+    missions: (Array.isArray(value.missions) ? value.missions : [])
+      .filter(isRecord)
+      .map((item) => ({
+        id: String(item.id || "mission"),
+        title: String(item.title || ""),
+        detail: String(item.detail || ""),
+        target: Math.max(1, toNumber(item.target, 1)),
+        progress: Math.max(0, toNumber(item.progress)),
+        completed: Boolean(item.completed),
+      })),
+    rewardWinXp: toNumber(reward.win_xp, 150),
+    rewardBadge: String(reward.badge || "Weekly Champion"),
+    lastWeek:
+      lastWeek && String(lastWeek.outcome || "")
+        ? {
+            outcome: String(lastWeek.outcome),
+            reward_xp: toNumber(lastWeek.reward_xp),
+            rival_name: String(lastWeek.rival_name || "your rival"),
+          }
+        : null,
   };
 }
 
@@ -219,52 +336,254 @@ function formatSessionDate(value: string) {
   });
 }
 
-function MetricCard({
-  label,
-  value,
-  helper,
-  footer,
-  progressValue,
-  icon,
-  badge,
-  accent,
+function formatCountdown(totalSeconds: number) {
+  const seconds = Math.max(0, totalSeconds);
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  const secs = Math.floor(seconds % 60);
+  return `${hours}h ${minutes}m ${String(secs).padStart(2, "0")}s`;
+}
+
+function formatActivityTime(value: string) {
+  const time = new Date(value).getTime();
+  if (!value || !Number.isFinite(time)) return "This week";
+  const minutes = Math.max(1, Math.round((Date.now() - time) / 60000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+const BATTLE_COPY: Record<RivalChallengeState["battleStatus"], { label: string; message: string }> = {
+  leading: { label: "You are winning", message: "Keep your lead — every session counts double for morale." },
+  trailing: { label: "Rival ahead", message: "One strong session can flip this battle." },
+  tied: { label: "Dead heat", message: "Perfectly tied. The next session takes the lead." },
+  unmatched: { label: "Open week", message: "No rival this week — race your own record instead." },
+};
+
+function RivalBattleCard({
+  challenge,
+  displayName,
+  secondsLeft,
 }: {
-  label: string;
-  value: string;
-  helper: string;
-  footer: string;
-  progressValue: number;
-  icon: AppIconName;
-  badge?: string;
-  accent: "teal" | "gold" | "cyan" | "mint";
+  challenge: RivalChallengeState;
+  displayName: string;
+  secondsLeft: number;
 }) {
+  const rivalName = challenge.rival?.name || "Awaiting rival";
+  const total = Math.max(1, challenge.myWeekXp + challenge.rivalWeekXp);
+  const myShare = challenge.rival ? Math.round((challenge.myWeekXp / total) * 100) : 100;
+  const copy = BATTLE_COPY[challenge.battleStatus];
+
   return (
-    <article className="dashboard-final-metric" data-accent={accent}>
-      <div className="dashboard-final-metric-heading">
-        <span className="dashboard-final-metric-icon" aria-hidden="true">
-          <AppIcon name={icon} />
-        </span>
+    <article className="dashboard-final-panel dashboard-rival-battle" data-status={challenge.battleStatus}>
+      <div className="dashboard-rival-battle-top">
         <div>
-          <div className="dashboard-final-metric-label">
-            <p>{label}</p>
-            {badge ? <span>{badge}</span> : null}
+          <p className="dashboard-section-kicker">Weekly Rival Challenge</p>
+          <h2>
+            {challenge.rival ? (
+              <>
+                You <span>vs</span> {rivalName}
+              </>
+            ) : (
+              "Your open training week"
+            )}
+          </h2>
+          <p className="dashboard-rival-battle-message">{copy.message}</p>
+        </div>
+        <div className="dashboard-rival-countdown" role="timer" aria-label="Time left this week">
+          <span className="dashboard-rival-live-dot" aria-hidden="true" />
+          <div>
+            <strong>{formatCountdown(secondsLeft)}</strong>
+            <small>left this week</small>
           </div>
-          <p className="dashboard-final-metric-value">{value}</p>
-          <p className="dashboard-final-metric-helper">{helper}</p>
         </div>
       </div>
-      <div
-        className="dashboard-final-metric-progress"
-        role="progressbar"
-        aria-label={`${label} progress`}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round(progressValue)}
-      >
-        <span style={{ width: `${Math.max(2, Math.min(100, progressValue))}%` }} />
+
+      <div className="dashboard-rival-versus" aria-label="Weekly XP comparison">
+        <div className="dashboard-rival-side" data-side="me">
+          <span className="dashboard-rival-avatar" aria-hidden="true">{getInitials(displayName)}</span>
+          <div>
+            <p>{displayName.split(" ")[0] || "You"}</p>
+            <strong>{formatNumber(challenge.myWeekXp)} XP</strong>
+            <small>
+              {challenge.me.sessions} sessions · {challenge.me.accuracy}% acc · {challenge.me.active_days}/7 days
+            </small>
+          </div>
+        </div>
+        <div className="dashboard-rival-status-chip" data-status={challenge.battleStatus}>
+          <strong>{copy.label}</strong>
+          {challenge.rival && challenge.battleStatus !== "tied" ? (
+            <small>by {formatNumber(challenge.xpGap)} XP</small>
+          ) : null}
+        </div>
+        <div className="dashboard-rival-side" data-side="rival">
+          <span className="dashboard-rival-avatar" aria-hidden="true">
+            {challenge.rival ? getInitials(rivalName) : "?"}
+          </span>
+          <div>
+            <p>{rivalName}</p>
+            <strong>{challenge.rival ? `${formatNumber(challenge.rivalWeekXp)} XP` : "—"}</strong>
+            <small>
+              {challenge.rival
+                ? `${challenge.rival.sessions} sessions · ${challenge.rival.accuracy}% acc · ${challenge.rival.active_days}/7 days`
+                : "Matched from monthly exam ranks"}
+            </small>
+          </div>
+        </div>
       </div>
-      <p className="dashboard-final-metric-footer">{footer}</p>
+
+      {challenge.rival ? (
+        <div
+          className="dashboard-rival-tug"
+          role="progressbar"
+          aria-label={`Your share of this week's battle XP: ${myShare}%`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={myShare}
+        >
+          <span style={{ width: `${Math.max(4, Math.min(96, myShare))}%` }} />
+        </div>
+      ) : null}
+
+      <div className="dashboard-rival-battle-foot">
+        <span className="dashboard-rival-reward">
+          <AppIcon name="spark" />
+          Weekly prize: +{challenge.rewardWinXp} XP · {challenge.rewardBadge}
+        </span>
+        <span className="dashboard-rival-basis">Rivals are matched by Monthly Exam performance and stay fixed all week.</span>
+      </div>
     </article>
+  );
+}
+
+function MissionBoard({ missions }: { missions: RivalMission[] }) {
+  const done = missions.filter((mission) => mission.completed).length;
+  return (
+    <article className="dashboard-final-panel dashboard-rival-missions">
+      <div className="dashboard-final-panel-header">
+        <div>
+          <p className="dashboard-section-kicker">Today&apos;s Missions</p>
+          <h2>What to complete today</h2>
+          <p>Missions track your real activity and complete themselves.</p>
+        </div>
+        <div className="dashboard-final-panel-actions">
+          <span>
+            {done}/{missions.length} done
+          </span>
+        </div>
+      </div>
+      <ol className="dashboard-rival-mission-list">
+        {missions.map((mission) => {
+          const percent = Math.round(Math.min(1, mission.progress / mission.target) * 100);
+          return (
+            <li key={mission.id} data-completed={mission.completed ? "true" : "false"}>
+              <span className="dashboard-rival-mission-check" aria-hidden="true">
+                {mission.completed ? (
+                  <svg viewBox="0 0 20 20" fill="none">
+                    <path d="m5 10.5 3.2 3.2L15 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : null}
+              </span>
+              <div className="dashboard-rival-mission-main">
+                <p>{mission.title}</p>
+                <small>{mission.detail}</small>
+                <div className="dashboard-rival-mission-bar" aria-hidden="true">
+                  <span style={{ width: `${Math.max(mission.completed ? 100 : 3, percent)}%` }} />
+                </div>
+              </div>
+              <span className="dashboard-rival-mission-state">
+                {mission.completed ? "Done" : `${percent}%`}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </article>
+  );
+}
+
+function RivalActivityPanel({ challenge }: { challenge: RivalChallengeState }) {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const peak = Math.max(1, ...challenge.me.daily_xp, ...(challenge.rival?.daily_xp ?? [0]));
+
+  return (
+    <article className="dashboard-final-panel dashboard-rival-activity">
+      <div className="dashboard-final-panel-header">
+        <div>
+          <p className="dashboard-section-kicker">Battle Pulse</p>
+          <h2>This week, day by day</h2>
+          <p>{challenge.rival ? "Your XP against your rival's, updating live." : "Your XP this week, day by day."}</p>
+        </div>
+      </div>
+      <div className="dashboard-rival-week-chart" aria-label="Daily XP this week">
+        {days.map((day, index) => (
+          <div className="dashboard-rival-week-day" key={day}>
+            <div className="dashboard-rival-week-bars">
+              <span
+                data-series="me"
+                style={{ height: `${Math.max(4, Math.round(((challenge.me.daily_xp[index] || 0) / peak) * 100))}%` }}
+                title={`You: ${challenge.me.daily_xp[index] || 0} XP`}
+              />
+              {challenge.rival ? (
+                <span
+                  data-series="rival"
+                  style={{ height: `${Math.max(4, Math.round(((challenge.rival.daily_xp[index] || 0) / peak) * 100))}%` }}
+                  title={`${challenge.rival.name}: ${challenge.rival.daily_xp[index] || 0} XP`}
+                />
+              ) : null}
+            </div>
+            <small>{day}</small>
+          </div>
+        ))}
+      </div>
+      {challenge.rival ? (
+        <>
+          <div className="dashboard-rival-legend" aria-hidden="true">
+            <span data-series="me">You</span>
+            <span data-series="rival">{challenge.rival.name}</span>
+          </div>
+          <ul className="dashboard-rival-feed">
+            {challenge.rival.activity.length ? (
+              challenge.rival.activity.slice(0, 4).map((item, index) => (
+                <li key={`${item.completed_at}-${index}`}>
+                  <span className="dashboard-rival-feed-dot" aria-hidden="true" />
+                  <p>
+                    {challenge.rival?.name} finished <strong>{item.type}</strong>
+                    {item.topic ? ` on ${item.topic}` : ""}
+                  </p>
+                  <small>
+                    +{item.xp_earned} XP · {formatActivityTime(item.completed_at)}
+                  </small>
+                </li>
+              ))
+            ) : (
+              <li data-empty="true">
+                <p>No rival activity yet this week — strike first.</p>
+              </li>
+            )}
+          </ul>
+        </>
+      ) : null}
+    </article>
+  );
+}
+
+function LastWeekBanner({ lastWeek, badge }: { lastWeek: NonNullable<RivalChallengeState["lastWeek"]>; badge: string }) {
+  const tone = lastWeek.outcome === "won" ? "won" : lastWeek.outcome === "tied" ? "tied" : "lost";
+  const headline =
+    tone === "won"
+      ? `You beat ${lastWeek.rival_name} last week — +${lastWeek.reward_xp} XP · ${badge}`
+      : tone === "tied"
+        ? `Last week ended level with ${lastWeek.rival_name} — +${lastWeek.reward_xp} XP each`
+        : `${lastWeek.rival_name} took last week. New week, clean slate.`;
+  return (
+    <div className="dashboard-rival-lastweek" data-tone={tone} role="status">
+      <AppIcon name={tone === "won" ? "spark" : "history"} />
+      <p>{headline}</p>
+    </div>
   );
 }
 
@@ -506,6 +825,8 @@ export default function DashboardPage() {
     streak: 0,
   });
   const [leaderboardSource, setLeaderboardSource] = useState<unknown>([]);
+  const [challenge, setChallenge] = useState<RivalChallengeState | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
   const [sessions, setSessions] = useState<SessionRecord[]>([]);
   const [sessionsError, setSessionsError] = useState("");
   const [loadingData, setLoadingData] = useState(true);
@@ -518,8 +839,6 @@ export default function DashboardPage() {
   const showOverview = searchParams.get("workspace") === "overview";
   const accuracyValue = accuracy(progress);
   const level = Math.floor(progress.xp / 100) + 1;
-  const levelProgress = progress.xp % 100;
-  const nextLevelXp = level * 100;
   const levelLabel = getLevelLabel(level);
 
   const rankedLeaderboard = useMemo(
@@ -555,7 +874,7 @@ export default function DashboardPage() {
         primeBackend(backendURL);
         const headers = await getAuthHeaders();
         const forceFresh = reloadToken > 0;
-        const [progressJson, leaderboardJson, sessionsJson] = await Promise.all([
+        const [progressJson, leaderboardJson, sessionsJson, challengeJson] = await Promise.all([
           apiJson<unknown>(`${backendURL}/get-progress/${userId}`, {
             headers,
             cacheKey: `progress:${userId}`,
@@ -580,12 +899,21 @@ export default function DashboardPage() {
             retries: 1,
             timeoutMs: 7000,
           }).catch(() => null),
+          apiJson<unknown>(`${backendURL}/rivals/weekly-challenge/${userId}`, {
+            headers,
+            cacheKey: `rival-challenge:${userId}`,
+            cacheTtlMs: 30000,
+            forceFresh,
+            retries: 1,
+            timeoutMs: 9000,
+          }).catch(() => null),
         ]);
 
         if (!active) return;
         const normalizedProgress = normalizeProgress(progressJson);
         setProgress(normalizedProgress);
         setLeaderboardSource(leaderboardJson ?? []);
+        setChallenge(normalizeRivalChallenge(challengeJson));
         setSessions(normalizeSessions(sessionsJson));
         setSessionsError(sessionsJson === null ? "Recent learning could not refresh right now." : "");
         setDataError(
@@ -611,24 +939,38 @@ export default function DashboardPage() {
     if (loading || !userId) return;
     let active = true;
 
-    async function refreshLeaderboard() {
+    async function refreshLiveData() {
       try {
-        const leaderboardJson = await apiJson<unknown>(`${backendURL}/leaderboard`, {
-          headers: await getAuthHeaders(),
-          cacheKey: `leaderboard:${userId}`,
-          cacheTtlMs: 0,
-          forceFresh: true,
-          retries: 1,
-          timeoutMs: 7000,
-        });
-        if (active) setLeaderboardSource(leaderboardJson);
+        const headers = await getAuthHeaders();
+        const [leaderboardJson, challengeJson] = await Promise.all([
+          apiJson<unknown>(`${backendURL}/leaderboard`, {
+            headers,
+            cacheKey: `leaderboard:${userId}`,
+            cacheTtlMs: 0,
+            forceFresh: true,
+            retries: 1,
+            timeoutMs: 7000,
+          }),
+          apiJson<unknown>(`${backendURL}/rivals/weekly-challenge/${userId}`, {
+            headers,
+            cacheKey: `rival-challenge:${userId}`,
+            cacheTtlMs: 0,
+            forceFresh: true,
+            retries: 1,
+            timeoutMs: 9000,
+          }).catch(() => null),
+        ]);
+        if (!active) return;
+        setLeaderboardSource(leaderboardJson);
+        const normalizedChallenge = normalizeRivalChallenge(challengeJson);
+        if (normalizedChallenge) setChallenge(normalizedChallenge);
       } catch {
         // Keep the latest complete ranking visible during a transient refresh failure.
       }
     }
 
     const timer = window.setInterval(() => {
-      void refreshLeaderboard();
+      void refreshLiveData();
     }, 20000);
 
     return () => {
@@ -637,10 +979,22 @@ export default function DashboardPage() {
     };
   }, [backendURL, getAuthHeaders, loading, userId]);
 
+  // The countdown ticks locally between server refreshes so the week clock
+  // always moves, even offline.
+  useEffect(() => {
+    if (!challenge) return;
+    const compute = () =>
+      Math.max(0, challenge.secondsRemaining - Math.floor((Date.now() - challenge.fetchedAt) / 1000));
+    setSecondsLeft(compute());
+    const timer = window.setInterval(() => setSecondsLeft(compute()), 1000);
+    return () => window.clearInterval(timer);
+  }, [challenge]);
+
   const retryDashboard = () => {
     invalidateApiCache(`progress:${userId}`);
     invalidateApiCache(`leaderboard:${userId}`);
     invalidateApiCache(`sessions:${userId}`);
+    invalidateApiCache(`rival-challenge:${userId}`);
     setReloadToken((current) => current + 1);
   };
 
@@ -760,44 +1114,55 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <section className="dashboard-final-metrics" aria-label="Core progress metrics" aria-live="polite">
-        <MetricCard
-          label="Level"
-          value={`${level}`}
-          helper="Based on total XP"
-          footer={`${formatNumber(Math.max(0, nextLevelXp - progress.xp))} XP to Level ${level + 1}`}
-          progressValue={levelProgress}
-          icon="spark"
-          badge={levelLabel}
-          accent="cyan"
-        />
-        <MetricCard
-          label="Accuracy"
-          value={`${accuracyValue}%`}
-          helper="Across recorded questions"
-          footer={`${formatNumber(progress.total_correct)} / ${formatNumber(progress.total_questions)} correct`}
-          progressValue={accuracyValue}
-          icon="mission"
-          accent="teal"
-        />
-        <MetricCard
-          label="Streak"
-          value={`${progress.streak} d`}
-          helper="Current learning streak"
-          footer={progress.streak ? "Keep the streak alive today." : "Complete a session to start your streak."}
-          progressValue={Math.min(100, progress.streak * 14)}
-          icon="clock"
-          accent="gold"
-        />
-        <MetricCard
-          label="XP"
-          value={formatNumber(progress.xp)}
-          helper={loadingData ? "Updating..." : "Experience points"}
-          footer={progress.xp ? "Every completed activity grows your XP." : "Keep learning to earn XP."}
-          progressValue={levelProgress}
-          icon="spark"
-          accent="mint"
-        />
+      <section className="dashboard-rival-section" aria-label="Weekly Rival Challenge" aria-live="polite">
+        {challenge?.lastWeek ? (
+          <LastWeekBanner lastWeek={challenge.lastWeek} badge={challenge.rewardBadge} />
+        ) : null}
+
+        {challenge ? (
+          <>
+            <RivalBattleCard challenge={challenge} displayName={displayName} secondsLeft={secondsLeft} />
+            <div className="dashboard-rival-columns">
+              <MissionBoard missions={challenge.missions} />
+              <RivalActivityPanel challenge={challenge} />
+            </div>
+          </>
+        ) : (
+          <article className="dashboard-final-panel dashboard-rival-battle" data-status="unmatched">
+            <div className="dashboard-rival-battle-top">
+              <div>
+                <p className="dashboard-section-kicker">Weekly Rival Challenge</p>
+                <h2>{loadingData ? "Finding your rival…" : "Rival battle unavailable right now"}</h2>
+                <p className="dashboard-rival-battle-message">
+                  {loadingData
+                    ? "Matching you with a student at your level from this month's exam rankings."
+                    : "The challenge could not refresh. Your battle continues — retry above."}
+                </p>
+              </div>
+            </div>
+          </article>
+        )}
+
+        <div className="dashboard-rival-season" aria-label="Season totals">
+          <span>
+            <small>Level</small>
+            <strong>
+              {level} · {levelLabel}
+            </strong>
+          </span>
+          <span>
+            <small>Accuracy</small>
+            <strong>{accuracyValue}%</strong>
+          </span>
+          <span>
+            <small>Streak</small>
+            <strong>{progress.streak} d</strong>
+          </span>
+          <span>
+            <small>Total XP</small>
+            <strong>{formatNumber(progress.xp)}</strong>
+          </span>
+        </div>
       </section>
 
       <section className="dashboard-final-panel dashboard-final-recent" aria-labelledby="recent-learning-title">
