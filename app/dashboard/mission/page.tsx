@@ -3,8 +3,9 @@
 import { useAuth } from "@/context/AuthContext";
 import { AlertState, AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 import { apiFetch } from "@/lib/apiClient";
+import { reconcileSelection, useCatalog } from "@/lib/catalog";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 interface MissionPlanStep {
   title: string;
@@ -76,28 +77,6 @@ interface MissionProfile {
   preferredStyle: string;
   prerequisiteConfidence: string;
 }
-
-const CHAPTERS = [
-  {
-    label: "Hydrocarbon",
-    value: "hydrocarbon",
-    topics: [
-      { label: "Alkanes", value: "alkanes" },
-      { label: "Alkenes", value: "alkenes" },
-      { label: "Alkynes", value: "alkynes" },
-      { label: "Aromatic Hydrocarbons", value: "aromatics" },
-    ],
-  },
-  {
-    label: "Matter",
-    value: "matter",
-    topics: [
-      { label: "Matter Definition", value: "matter_definition" },
-      { label: "States of Matter", value: "states_of_matter" },
-      { label: "Properties of Matter", value: "properties_of_matter" },
-    ],
-  },
-];
 
 const KNOWLEDGE_OPTIONS = [
   { label: "New to this", value: "new" },
@@ -293,7 +272,19 @@ export default function MissionPage() {
   const lastAnswerRef = useRef("");
 
   const authBusy = loading || claimsLoading;
-  const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
+  const { chapters } = useCatalog();
+  const selectedChapter = chapters.find((item) => item.value === chapter) || chapters[0];
+
+  // Snap to a valid selection when the published catalog replaces the
+  // built-in chapter list.
+  useEffect(() => {
+    const next = reconcileSelection(chapters, chapter, topic);
+    if (next.changed) {
+      setChapter(next.chapter);
+      setTopic(next.topic);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapters]);
   const missionReadiness = useMemo(() => getMissionReadiness(profile), [profile]);
 
   const plan = mission?.study_plan || mission?.result?.data?.study_plan || [];
@@ -508,11 +499,11 @@ export default function MissionPage() {
             onChange={(event) => {
               const next = event.target.value;
               setChapter(next);
-              setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
+              setTopic(chapters.find((item) => item.value === next)?.topics[0]?.value || "");
             }}
             className="agentify-field rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
           >
-            {CHAPTERS.map((item) => (
+            {chapters.map((item) => (
               <option key={item.value} value={item.value}>
                 {item.label}
               </option>

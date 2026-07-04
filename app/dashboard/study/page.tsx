@@ -14,6 +14,7 @@ import {
   type AppIconName,
 } from "@/components/ui/Polished";
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
+import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
 import { useSearchParams } from "next/navigation";
 import {
@@ -259,37 +260,6 @@ type SpeechRecognitionLike = {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
-const CHAPTERS = [
-  {
-    label: "Hydrocarbon",
-    value: "hydrocarbon",
-    topics: [
-      { label: "Alkanes", value: "alkanes" },
-      { label: "Alkenes", value: "alkenes" },
-      { label: "Alkynes", value: "alkynes" },
-      { label: "Aromatic Hydrocarbons", value: "aromatics" },
-    ],
-  },
-  {
-    label: "Basic Concepts of Chemistry",
-    value: "matter",
-    topics: [
-      { label: "Definition of Chemistry", value: "chemistry_definition" },
-      { label: "Alchemy and Iatrochemistry", value: "historical_alchemy" },
-      { label: "Ancient Indian Chemistry", value: "ancient_indian_chemistry" },
-      { label: "Role and Importance of Chemistry", value: "importance_of_chemistry" },
-      { label: "Matter Definition", value: "matter_definition" },
-      { label: "Properties of Matter", value: "properties_of_matter" },
-      { label: "States of Matter", value: "states_of_matter" },
-      { label: "Solid State", value: "solid_state" },
-      { label: "Liquid State", value: "liquid_state" },
-      { label: "Gaseous State", value: "gaseous_state" },
-      { label: "Interconversion of States", value: "interconversion_of_states" },
-      { label: "Classification of Matter", value: "classification_of_matter" },
-    ],
-  },
-];
-
 const REVISION_TOOLS: RevisionTool[] = [
   {
     id: "summary",
@@ -338,8 +308,7 @@ function normalizeTopicValue(value: string) {
 }
 
 function findChapterValueForTopic(topicValue: string) {
-  const normalizedTopic = normalizeTopicValue(topicValue);
-  return CHAPTERS.find((chapter) => chapter.topics.some((item) => item.value === normalizedTopic))?.value || "";
+  return findChapterForTopic(BUILTIN_CHAPTERS, topicValue);
 }
 
 const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material. Please upload or select the correct chapter/data.";
@@ -1899,8 +1868,20 @@ export default function StudyPage() {
   const initialTopic = searchParams.get("topic") || "alkanes";
   const initialChapter = searchParams.get("chapter") || findChapterValueForTopic(initialTopic) || "hydrocarbon";
 
+  const { chapters } = useCatalog();
   const [chapter, setChapter] = useState(initialChapter);
   const [topic, setTopic] = useState(initialTopic);
+
+  // Keep the current selection valid when the published catalog replaces the
+  // built-in list (snap to the first chapter/topic when it disappears).
+  useEffect(() => {
+    const next = reconcileSelection(chapters, chapter, topic);
+    if (next.changed) {
+      setChapter(next.chapter);
+      setTopic(next.topic);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapters]);
   const [mode, setMode] = useState<StudyMode>("coach");
   const [coachName, setCoachName] = useState("Aria");
   const [messages, setMessages] = useState<CoachMessage[]>([]);
@@ -1958,7 +1939,7 @@ export default function StudyPage() {
   const examAnswerSelectionsRef = useRef<Record<string, string>>({});
 
   const authBusy = loading || authLoading;
-  const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
+  const selectedChapter = chapters.find((item) => item.value === chapter) || chapters[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const selectedTopicValue = selectedTopic.value;
   const revisionSelectionKey = `${selectedChapter.value}:${selectedTopicValue}`;
@@ -2777,7 +2758,7 @@ export default function StudyPage() {
 
   const resumeConversation = (conversation: StudyConversation) => {
     setCurrentConversationId(conversation.id);
-    const savedChapter = CHAPTERS.find((item) => item.value === conversation.chapter);
+    const savedChapter = chapters.find((item) => item.value === conversation.chapter);
     if (savedChapter) {
       setChapter(savedChapter.value);
       setTopic(savedChapter.topics.some((item) => item.value === conversation.topic) ? conversation.topic : savedChapter.topics[0].value);
@@ -3467,11 +3448,11 @@ export default function StudyPage() {
                         onChange={(event) => {
                           const next = event.target.value;
                           setChapter(next);
-                          setTopic(CHAPTERS.find((item) => item.value === next)?.topics[0]?.value || "alkanes");
+                          setTopic(chapters.find((item) => item.value === next)?.topics[0]?.value || "");
                         }}
                         className="study-select"
                       >
-                        {CHAPTERS.map((item) => (
+                        {chapters.map((item) => (
                           <option key={item.value} value={item.value}>
                             {item.label}
                           </option>

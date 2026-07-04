@@ -1,6 +1,7 @@
 "use client";
 
 import { AppIcon, EmptyState, LoadingState, type AppIconName } from "@/components/ui/Polished";
+import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
@@ -240,37 +241,6 @@ const SUBJECT = "Chemistry";
 const DEFAULT_CLASS_LEVEL = "Class 11";
 const EMPTY_VALUE = "--";
 
-const CHAPTERS = [
-  {
-    label: "Hydrocarbons",
-    value: "hydrocarbon",
-    topics: [
-      { label: "Alkanes", value: "alkanes" },
-      { label: "Alkenes", value: "alkenes" },
-      { label: "Alkynes", value: "alkynes" },
-      { label: "Aromatic Hydrocarbons", value: "aromatics" },
-    ],
-  },
-  {
-    label: "Basic Concepts of Chemistry",
-    value: "matter",
-    topics: [
-      { label: "Definition of Chemistry", value: "chemistry_definition" },
-      { label: "Alchemy and Iatrochemistry", value: "historical_alchemy" },
-      { label: "Ancient Indian Chemistry", value: "ancient_indian_chemistry" },
-      { label: "Role and Importance of Chemistry", value: "importance_of_chemistry" },
-      { label: "Matter Definition", value: "matter_definition" },
-      { label: "Properties of Matter", value: "properties_of_matter" },
-      { label: "States of Matter", value: "states_of_matter" },
-      { label: "Solid State", value: "solid_state" },
-      { label: "Liquid State", value: "liquid_state" },
-      { label: "Gaseous State", value: "gaseous_state" },
-      { label: "Interconversion of States", value: "interconversion_of_states" },
-      { label: "Classification of Matter", value: "classification_of_matter" },
-    ],
-  },
-];
-
 const EXAM_TYPES = [
   { value: "unit_test", label: "Unit test" },
   { value: "class_test", label: "Class test" },
@@ -308,11 +278,6 @@ const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material
 
 function normalizeTopicValue(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
-
-function findChapterValueForTopic(topicValue: string) {
-  const normalizedTopic = normalizeTopicValue(topicValue);
-  return CHAPTERS.find((chapter) => chapter.topics.some((topic) => topic.value === normalizedTopic))?.value || "";
 }
 
 function toNumber(value: unknown, fallback = 0) {
@@ -600,8 +565,10 @@ export default function ExamModePage() {
   const searchParams = useSearchParams();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const initialTopic = normalizeTopicValue(searchParams.get("topic") || "alkanes") || "alkanes";
-  const initialChapter = searchParams.get("chapter") || findChapterValueForTopic(initialTopic) || "hydrocarbon";
+  const initialChapter =
+    searchParams.get("chapter") || findChapterForTopic(BUILTIN_CHAPTERS, initialTopic) || "hydrocarbon";
 
+  const { chapters } = useCatalog();
   const [chapter, setChapter] = useState(initialChapter);
   const [topic, setTopic] = useState(initialTopic);
   const [activePanel, setActivePanel] = useState<ExamPanel>("mcq");
@@ -663,7 +630,7 @@ export default function ExamModePage() {
   const generationLatencyRef = useRef(0);
   const answerSelectionsRef = useRef<Record<string, string>>({});
 
-  const selectedChapter = CHAPTERS.find((item) => item.value === chapter) || CHAPTERS[0];
+  const selectedChapter = chapters.find((item) => item.value === chapter) || chapters[0];
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const classLevel = profile?.classLevel || DEFAULT_CLASS_LEVEL;
   const analyzedPapers = papers.filter((paper) => paper.parse_status === "analyzed");
@@ -736,6 +703,18 @@ export default function ExamModePage() {
     startedAtRef.current = null;
     generationLatencyRef.current = 0;
   };
+
+  // When the published catalog replaces the built-in list, keep the current
+  // selection when it still exists and snap to the first chapter otherwise.
+  useEffect(() => {
+    const next = reconcileSelection(chapters, chapter, topic);
+    if (next.changed) {
+      setChapter(next.chapter);
+      setTopic(next.topic);
+      resetCourseContext();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapters]);
 
   // Elapsed-time chip for the attempt; freezes at submit and never pressures
   // with a countdown — school students get a clock, not a stopwatch race.
@@ -1438,11 +1417,11 @@ export default function ExamModePage() {
                   onChange={(event) => {
                     const nextChapter = event.target.value;
                     setChapter(nextChapter);
-                    setTopic(CHAPTERS.find((item) => item.value === nextChapter)?.topics[0]?.value || "alkanes");
+                    setTopic(chapters.find((item) => item.value === nextChapter)?.topics[0]?.value || "");
                     resetCourseContext();
                   }}
                 >
-                  {CHAPTERS.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  {chapters.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
               <label>
