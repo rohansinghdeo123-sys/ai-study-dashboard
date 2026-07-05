@@ -1,7 +1,6 @@
 // Shared types for the AgentifyAI Founder Admin Console.
 // These mirror the backend `GET /admin/console` (build_admin_console_payload) payload.
 
-export type ConsoleTab = "overview" | "operations" | "activity";
 export type HealthState = "healthy" | "warning" | "error" | "unknown";
 
 export interface ConsoleMetric {
