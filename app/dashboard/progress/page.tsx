@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { LoadingSkeleton } from "@/components/ui/Polished";
 import { apiJson } from "@/lib/apiClient";
+import { fetchRevisionQueue, BUCKET_LABELS, type RevisionBucket, type RevisionEntry } from "@/lib/revision";
 import { useRouter } from "next/navigation";
 
 // Types
@@ -764,10 +765,34 @@ function downloadCSV(sessions: Session[]) {
 }
 
 // Main Analytics page component
+// Dark-surface tones for the revision queue buckets (this page's palette).
+const QUEUE_TONES: Record<RevisionBucket, { card: string; text: string; chip: string }> = {
+  overdue: { card: "border-red-500/20 bg-red-500/5", text: "text-red-400", chip: "border-red-500/30 bg-red-500/10 text-red-400" },
+  due: { card: "border-amber-500/20 bg-amber-500/5", text: "text-amber-400", chip: "border-amber-500/30 bg-amber-500/10 text-amber-400" },
+  strengthen: { card: "border-cyan-500/20 bg-cyan-500/5", text: "text-cyan-400", chip: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400" },
+  fresh: { card: "border-gray-500/20 bg-gray-500/5", text: "text-gray-400", chip: "border-gray-500/30 bg-gray-500/10 text-gray-400" },
+};
+
 export default function ProgressPage() {
   const { userId, currentDisplayName, classLevel, sessions, progress, leaderboard, loading, error, retry } = useDashboardData();
+  const { getAuthHeaders } = useAuth();
   const [range, setRange] = useState<TrendRange>("14d");
+  const [revisionQueue, setRevisionQueue] = useState<RevisionEntry[]>([]);
   const router = useRouter();
+
+  // Spaced-repetition queue: additive fetch, never blocks the dashboard load.
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    (async () => {
+      const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+      const payload = await fetchRevisionQueue(backendURL, userId, await getAuthHeaders(), 6);
+      if (!cancelled && payload) {
+        setRevisionQueue(payload.queue.filter((entry) => entry.bucket !== "fresh"));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [getAuthHeaders, userId]);
 
   // Derived stats
   const totalDuration = useMemo(() => sum(sessions, (s) => s.duration), [sessions]);
@@ -1242,6 +1267,42 @@ export default function ProgressPage() {
           </div>
         </GlassPanel>
       </div>
+
+      {/* Row 3a: Revision Queue — spaced-repetition plan for today */}
+      {revisionQueue.length > 0 && (
+        <GlassPanel title="REVISION_QUEUE" tag="MEMORY" className="border-cyan-500/20">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {revisionQueue.slice(0, 6).map((entry) => {
+              const tones = QUEUE_TONES[entry.bucket];
+              return (
+                <div key={entry.topic} className={cn("rounded-lg border p-4 flex flex-col justify-between", tones.card)}>
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <h4 className={cn("text-sm font-bold uppercase truncate", tones.text)}>{entry.topic.replace(/_/g, " ")}</h4>
+                      <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold", tones.chip)}>
+                        {BUCKET_LABELS[entry.bucket]} · {entry.suggested_minutes}m
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className={cn("text-xl font-bold", tones.text)}>{Math.round(entry.retention_estimate * 100)}%</span>
+                      <span className="text-xs text-gray-400">est. retention</span>
+                      <span className="text-xs text-gray-400">· {entry.accuracy}% acc</span>
+                    </div>
+                    <p className="mt-2 text-[11px] leading-4 text-gray-400">{entry.reason}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleReviseTopic(entry.topic)}
+                    className="agentify-action mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold text-[#14B8A6] hover:bg-[#0E7490]/20 transition-all"
+                  >
+                    REVISE NOW
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Row 3: Weak Topic Spotlight (new, actionable) */}
       {weakTopics.length > 0 && (
