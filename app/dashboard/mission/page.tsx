@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { AlertState, AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 import { apiFetch } from "@/lib/apiClient";
 import { reconcileSelection, useCatalog } from "@/lib/catalog";
+import { BUCKET_CHIPS, BUCKET_LABELS, fetchRevisionQueue, type RevisionEntry } from "@/lib/revision";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -266,6 +267,7 @@ export default function MissionPage() {
   const [loadingMission, setLoadingMission] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [revisionRadar, setRevisionRadar] = useState<RevisionEntry[]>([]);
   const missionStartedAtRef = useRef<string | null>(null);
   const missionResponseLatencyRef = useRef(0);
   const firstAnswerAtRef = useRef<string | null>(null);
@@ -286,6 +288,33 @@ export default function MissionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapters]);
   const missionReadiness = useMemo(() => getMissionReadiness(profile), [profile]);
+
+  // Revision radar: spaced-repetition suggestions for what to run a mission on.
+  // Additive — the page never waits on it and hides the card when empty.
+  useEffect(() => {
+    if (!userId || authBusy) return;
+    let cancelled = false;
+    (async () => {
+      const payload = await fetchRevisionQueue(backendURL, userId, await getAuthHeaders(), 4);
+      if (!cancelled && payload) {
+        setRevisionRadar(payload.queue.filter((entry) => entry.bucket !== "fresh").slice(0, 3));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authBusy, backendURL, getAuthHeaders, userId]);
+
+  // Map a revision topic back to a catalog chapter/topic so one tap can aim
+  // the mission at it. Falls back to label-only display when not in catalog.
+  const radarTarget = (entryTopic: string) => {
+    const normalized = entryTopic.trim().toLowerCase();
+    for (const chapterItem of chapters) {
+      const match = chapterItem.topics.find(
+        (t) => t.value.toLowerCase() === normalized || t.label.toLowerCase() === normalized,
+      );
+      if (match) return { chapter: chapterItem.value, topic: match.value, label: match.label };
+    }
+    return null;
+  };
 
   const plan = mission?.study_plan || mission?.result?.data?.study_plan || [];
   const question = mission?.diagnostic_question || mission?.result?.data?.questions?.[0] || null;
@@ -521,6 +550,43 @@ export default function MissionPage() {
             ))}
           </select>
         </div>
+
+        {revisionRadar.length ? (
+          <div className="mt-5 rounded-3xl border border-[#0E7490]/16 bg-white/60 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#0E7490]">Revision radar</p>
+              <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">Memory-based</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {revisionRadar.map((entry) => {
+                const target = radarTarget(entry.topic);
+                const label = target?.label || formatLabel(entry.topic);
+                return (
+                  <button
+                    key={entry.topic}
+                    type="button"
+                    disabled={!target}
+                    onClick={() => {
+                      if (!target) return;
+                      setChapter(target.chapter);
+                      setTopic(target.topic);
+                    }}
+                    className="w-full rounded-2xl border border-slate-200 bg-white/70 px-3 py-2.5 text-left transition enabled:hover:border-[#0E7490]/40 enabled:hover:bg-white disabled:cursor-default"
+                    title={target ? `Aim the mission at ${label}` : undefined}
+                  >
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 truncate text-sm font-semibold capitalize text-slate-800">{label}</span>
+                      <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold", BUCKET_CHIPS[entry.bucket])}>
+                        {BUCKET_LABELS[entry.bucket]} · {entry.suggested_minutes}m
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-4 text-slate-500">{entry.reason}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
 
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white/60 p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Adaptive profile</p>
