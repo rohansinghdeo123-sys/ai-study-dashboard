@@ -11,7 +11,11 @@ export const metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
   },
 };
 
