@@ -1,7 +1,20 @@
-"use client";
+﻿"use client";
 
 import { AppIcon, EmptyState, LoadingState, type AppIconName } from "@/components/ui/Polished";
+import { ChipList, DistributionList, ExamReadinessStrip } from "@/components/exam/panels";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
+import {
+  DEFAULT_CLASS_LEVEL,
+  EMPTY_VALUE,
+  EXAM_GUARDRAIL,
+  EXAM_TYPES,
+  GENERATION_MODES,
+  MATERIAL_NOT_FOUND_MESSAGE,
+  QUESTION_TYPES,
+  SUBJECT,
+  type GenerationMode,
+} from "@/lib/examConfig";
+import { displayValue, formatLabel, getRecordEntries, toNumber } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
 import { apiFetch, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
@@ -12,7 +25,6 @@ type ExamPanel = "mcq" | "papers" | "probable" | "practice";
 type ParseStatus = "pending" | "analyzed" | "analyzed_empty" | "needs_ocr" | "failed";
 type Priority = "high" | "medium" | "low";
 type EvaluationStatus = "awaiting_answer" | "evaluating" | "evaluated";
-type GenerationMode = "mixed" | "chapter_wise" | "marks_wise" | "section_wise";
 type ProbableMode = "syllabus" | "paper_pattern";
 
 type ExamQuestion = {
@@ -237,52 +249,8 @@ type WeaknessTopic = {
   latest_suggestion: string;
 };
 
-const SUBJECT = "Chemistry";
-const DEFAULT_CLASS_LEVEL = "Class 11";
-const EMPTY_VALUE = "--";
-
-const EXAM_TYPES = [
-  { value: "unit_test", label: "Unit test" },
-  { value: "class_test", label: "Class test" },
-  { value: "school_exam", label: "School exam" },
-  { value: "pre_board", label: "Pre-board" },
-  { value: "board_exam", label: "Board exam" },
-  { value: "chapter_wise", label: "Chapter-wise" },
-  { value: "subject_wise", label: "Subject-wise" },
-  { value: "other", label: "Other" },
-];
-
-const QUESTION_TYPES = [
-  { value: "long_answer", label: "Long answer" },
-  { value: "short_answer", label: "Short answer" },
-  { value: "numerical", label: "Numerical" },
-  { value: "diagram", label: "Diagram" },
-  { value: "case_based", label: "Case based" },
-];
-
-const GENERATION_MODES: Array<{ value: GenerationMode; label: string }> = [
-  { value: "mixed", label: "Mixed" },
-  { value: "chapter_wise", label: "Chapter-wise" },
-  { value: "marks_wise", label: "Marks-wise" },
-  { value: "section_wise", label: "Section-wise" },
-];
-
-const EXAM_GUARDRAIL = [
-  "Use only the uploaded or ingested study material and selected course context.",
-  "Do not use outside knowledge, generic model memory, or guesses.",
-  "Every MCQ must have exactly four options, one correct answer, a clear explanation, and a traceable source.",
-  "If the material is insufficient, return an explicit material-not-found error instead of inventing content.",
-].join(" ");
-
-const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material. Please upload or select the correct chapter/data.";
-
 function normalizeTopicValue(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function isBackendFailureText(value: unknown) {
@@ -357,15 +325,6 @@ function clampMetric(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
-function displayValue(value: unknown) {
-  if (value === null || value === undefined || value === "") return EMPTY_VALUE;
-  return String(value);
-}
-
-function formatLabel(value: string) {
-  return value.replace(/_/g, " ").replace(/\b\w/g, (match) => match.toUpperCase());
-}
-
 function formatDate(value: string | null) {
   if (!value) return EMPTY_VALUE;
   const date = new Date(value);
@@ -394,12 +353,6 @@ function formatFileSize(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function getRecordEntries(record: Record<string, string | number> | Record<string, number> | undefined) {
-  return Object.entries(record || {})
-    .map(([key, value]) => ({ key, value }))
-    .sort((first, second) => toNumber(second.value) - toNumber(first.value));
-}
-
 async function readResponseJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -419,145 +372,6 @@ function removeContentType(headers: HeadersInit) {
   next.delete("Content-Type");
   next.delete("content-type");
   return next;
-}
-
-function DistributionList({
-  title,
-  data,
-  suffix = "",
-}: {
-  title: string;
-  data: Record<string, string | number> | Record<string, number> | undefined;
-  suffix?: string;
-}) {
-  const entries = getRecordEntries(data);
-  const max = Math.max(1, ...entries.map((entry) => toNumber(entry.value)));
-
-  return (
-    <section className="exam-distribution-card">
-      <div className="exam-mini-header">
-        <p className="dashboard-section-kicker">{title}</p>
-      </div>
-      {entries.length ? (
-        <div className="exam-distribution-list">
-          {entries.slice(0, 7).map((entry) => {
-            const numeric = toNumber(entry.value);
-            return (
-              <div key={entry.key}>
-                <span>{formatLabel(entry.key)}</span>
-                <strong>{displayValue(entry.value)}{suffix}</strong>
-                <i style={{ width: `${Math.max(8, Math.round((numeric / max) * 100))}%` }} />
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <p className="exam-muted-copy">No signal yet.</p>
-      )}
-    </section>
-  );
-}
-
-function ChipList({ items, empty = "No signal yet." }: { items: string[]; empty?: string }) {
-  return items.length ? (
-    <div className="exam-chip-list">
-      {items.slice(0, 10).map((item) => <span key={item}>{formatLabel(item)}</span>)}
-    </div>
-  ) : (
-    <p className="exam-muted-copy">{empty}</p>
-  );
-}
-
-function ExamReadinessStrip({
-  hasPack,
-  answeredCount,
-  totalQuestions,
-  submitted,
-  probableCount,
-  papersCount,
-  patternReady,
-  writtenScore,
-}: {
-  hasPack: boolean;
-  answeredCount: number;
-  totalQuestions: number;
-  submitted: boolean;
-  probableCount: number;
-  papersCount: number;
-  patternReady: boolean;
-  writtenScore: string;
-}) {
-  const items: Array<{
-    label: string;
-    value: string;
-    detail: string;
-    icon: AppIconName;
-    active: boolean;
-    complete: boolean;
-  }> = [
-    {
-      label: "MCQ",
-      value: hasPack ? "Ready" : "Pending",
-      detail: hasPack ? `${totalQuestions} questions generated` : "Generate from selected material",
-      icon: "book",
-      active: hasPack,
-      complete: hasPack,
-    },
-    {
-      label: "Papers",
-      value: `${papersCount}`,
-      detail: papersCount ? "Uploaded for pattern work" : "Upload paper PDFs or text",
-      icon: "download",
-      active: papersCount > 0,
-      complete: papersCount > 0,
-    },
-    {
-      label: "Pattern",
-      value: patternReady ? "Ready" : "Open",
-      detail: patternReady ? "Analysis available" : "Analyze uploaded papers",
-      icon: "analytics",
-      active: patternReady,
-      complete: patternReady,
-    },
-    {
-      label: "Attempt",
-      value: totalQuestions ? `${answeredCount}/${totalQuestions}` : "0/5",
-      detail: submitted ? "Submitted once" : "Answer all MCQs before review",
-      icon: "check",
-      active: hasPack && !submitted,
-      complete: Boolean(totalQuestions && answeredCount === totalQuestions),
-    },
-    {
-      label: "Written",
-      value: writtenScore,
-      detail: probableCount ? `${probableCount} prompts ready` : "Teacher feedback after submit",
-      icon: "study",
-      active: writtenScore !== EMPTY_VALUE,
-      complete: writtenScore !== EMPTY_VALUE,
-    },
-  ];
-
-  return (
-    <section className="exam-readiness-strip" aria-label="Exam readiness">
-      {items.map((item) => (
-        <article
-          key={item.label}
-          className="exam-readiness-card"
-          data-active={item.active ? "true" : "false"}
-          data-complete={item.complete ? "true" : "false"}
-        >
-          <span className="exam-readiness-icon" aria-hidden="true">
-            <AppIcon name={item.complete ? "check" : item.icon} />
-          </span>
-          <div>
-            <p>{item.label}</p>
-            <strong>{item.value}</strong>
-            <small>{item.detail}</small>
-          </div>
-        </article>
-      ))}
-    </section>
-  );
 }
 
 export default function ExamModePage() {
@@ -717,7 +531,7 @@ export default function ExamModePage() {
   }, [chapters]);
 
   // Elapsed-time chip for the attempt; freezes at submit and never pressures
-  // with a countdown — school students get a clock, not a stopwatch race.
+  // with a countdown â€” school students get a clock, not a stopwatch race.
   useEffect(() => {
     if (!questions.length || submitted) return;
     const tick = () => {
@@ -948,7 +762,7 @@ export default function ExamModePage() {
       setLegacyProbableQuestions(nextProbable);
       setNotice(
         nextQuestions.length < questionCount
-          ? `This material supported ${Math.min(nextQuestions.length, questionCount)} strong questions — pack ready.`
+          ? `This material supported ${Math.min(nextQuestions.length, questionCount)} strong questions â€” pack ready.`
           : "MCQ pack created from the selected study material.",
       );
       setCurrentIndex(0);
@@ -1262,7 +1076,7 @@ export default function ExamModePage() {
     const firstUnanswered = questions.findIndex((question) => !answers[question.id]);
     if (firstUnanswered >= 0) {
       setCurrentIndex(firstUnanswered);
-      setNotice(`Question ${firstUnanswered + 1} is still unanswered — finish it to submit.`);
+      setNotice(`Question ${firstUnanswered + 1} is still unanswered â€” finish it to submit.`);
       return;
     }
     void submitExam();
@@ -1279,7 +1093,7 @@ export default function ExamModePage() {
     const scorePercent = Math.round((score / questions.length) * 100);
     const focusScore = clampMetric(scorePercent - Math.min(20, retryCount * 3));
 
-    // The result view renders in place — no tab jump; the student lands on
+    // The result view renders in place â€” no tab jump; the student lands on
     // their score and solutions exactly where they pressed Submit.
     setSubmitted(true);
     setNotice("");
@@ -1445,8 +1259,8 @@ export default function ExamModePage() {
                     resetAttempt();
                   }}
                 >
-                  <option value="5">5 — quick check</option>
-                  <option value="10">10 — full drill</option>
+                  <option value="5">5 â€” quick check</option>
+                  <option value="10">10 â€” full drill</option>
                 </select>
               </label>
               <label>
@@ -1523,14 +1337,14 @@ export default function ExamModePage() {
                       <div className="exam-result-meta">
                         <h2>
                           {accuracy >= 80
-                            ? "Strong attempt — exam-ready pace."
+                            ? "Strong attempt â€” exam-ready pace."
                             : accuracy >= 50
-                              ? "Solid base — the review below closes the gaps."
-                              : "Good effort — every solution below is a mark you can win back."}
+                              ? "Solid base â€” the review below closes the gaps."
+                              : "Good effort â€” every solution below is a mark you can win back."}
                         </h2>
                         <p>
-                          +{score * 10} XP earned · {formatElapsed(elapsedSeconds)} taken · {selectedTopic.label}
-                          {saving ? " · Saving result…" : ""}
+                          +{score * 10} XP earned Â· {formatElapsed(elapsedSeconds)} taken Â· {selectedTopic.label}
+                          {saving ? " Â· Saving resultâ€¦" : ""}
                         </p>
                         <div className="exam-result-actions">
                           <button type="button" className="exam-mode-primary" onClick={() => { resetAttempt(); setNotice(""); }}>
@@ -1555,11 +1369,11 @@ export default function ExamModePage() {
                         const correctText = (question.options[question.correct.charCodeAt(0) - 65] || question.correct).replace(/^[A-D][.)]\s*/i, "");
                         return (
                           <article key={`review-${question.id}`} data-correct={correct ? "true" : "false"}>
-                            <span>{correct ? `Question ${index + 1} · Correct` : `Question ${index + 1} · Review this`}</span>
+                            <span>{correct ? `Question ${index + 1} Â· Correct` : `Question ${index + 1} Â· Review this`}</span>
                             <h2>{question.question}</h2>
                             <p>
                               Your answer: <strong>{selected ? `${selected}. ${selectedText}` : selectedText}</strong>
-                              {correct ? "" : <> · Correct answer: <strong>{question.correct}. {correctText}</strong></>}
+                              {correct ? "" : <> Â· Correct answer: <strong>{question.correct}. {correctText}</strong></>}
                             </p>
                             <p>{question.explanation}</p>
                             {question.source ? <small className="exam-question-source">Source: {question.source}</small> : null}
