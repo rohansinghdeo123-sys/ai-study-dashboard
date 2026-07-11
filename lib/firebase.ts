@@ -1,20 +1,60 @@
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getApp, getApps, initializeApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import {
+  getFirebasePublicConfig,
+  getFirebasePublicEnvMessage,
+  type FirebasePublicConfig,
+} from "@/lib/env";
 
-const firebaseAuthDomain =
-  process.env.NEXT_PUBLIC_FIREBASE_BRANDED_AUTH_DOMAIN?.trim() ||
-  process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+type FirebaseEnvSource = Record<string, string | undefined>;
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: firebaseAuthDomain,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-};
+let cachedAuth: Auth | null = null;
+let cachedConfigSignature = "";
 
-const app = initializeApp(firebaseConfig);
+export class FirebaseConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FirebaseConfigError";
+  }
+}
 
-export const auth = getAuth(app);
+function getConfigSignature(config: FirebasePublicConfig) {
+  return [
+    config.apiKey,
+    config.authDomain,
+    config.projectId,
+    config.storageBucket,
+    config.messagingSenderId,
+    config.appId,
+  ].join("|");
+}
+
+export function getFirebaseAuth(source: FirebaseEnvSource = process.env) {
+  const config = getFirebasePublicConfig(source);
+
+  if (!config) {
+    throw new FirebaseConfigError(getFirebasePublicEnvMessage(source));
+  }
+
+  const signature = getConfigSignature(config);
+  if (cachedAuth && cachedConfigSignature === signature) return cachedAuth;
+
+  const app = getApps().length > 0 ? getApp() : initializeApp(config);
+  cachedAuth = getAuth(app);
+  cachedConfigSignature = signature;
+
+  return cachedAuth;
+}
+
+export function getFirebaseAuthSetupMessage(source: FirebaseEnvSource = process.env) {
+  return getFirebasePublicEnvMessage(source);
+}
+
+export function isFirebaseAuthConfigured(source: FirebaseEnvSource = process.env) {
+  return getFirebasePublicEnvMessage(source) === "";
+}
+
+export function resetFirebaseAuthForTests() {
+  cachedAuth = null;
+  cachedConfigSignature = "";
+}

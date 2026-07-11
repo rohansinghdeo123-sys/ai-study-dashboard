@@ -24,9 +24,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     user,
     profile,
     accountProfile,
+    authError,
     profileError,
     refreshProfile,
     loading,
+    sessionExpired,
     isAdmin,
     logout,
   } = useAuth();
@@ -39,6 +41,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!authReady) return;
+    if (authError || sessionExpired) return;
     if (!user) {
       router.replace("/login");
       return;
@@ -46,7 +49,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (!profileError && accountProfile && !accountProfile.onboarding_completed) {
       router.replace("/onboarding");
     }
-  }, [accountProfile, authReady, profileError, router, user]);
+  }, [accountProfile, authError, authReady, profileError, router, sessionExpired, user]);
 
   useEffect(() => {
     if (!authReady || !user || !isAdmin) return;
@@ -65,6 +68,50 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-[100svh] items-center justify-center bg-[#F8FAFC] text-sm text-[#0E7490]">
         <div className="rounded-3xl border border-white/70 bg-white/85 px-5 py-4 shadow-[0_24px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
           Preparing AgentifyAI...
+        </div>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="flex min-h-[100svh] items-center justify-center bg-[var(--agentify-page-bg)] px-5 text-center">
+        <div className="agentify-card max-w-lg rounded-[2rem] p-7">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Sign-in setup</p>
+          <h1 className="mt-3 text-2xl font-semibold text-[var(--agentify-primary-text)]">
+            AgentifyAI sign-in needs configuration.
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--agentify-muted-text)]">
+            {authError}
+          </p>
+          <Link
+            href="/login"
+            className="agentify-action agentify-action-primary mt-6 inline-flex rounded-2xl px-5 py-3 text-sm font-semibold"
+          >
+            Return to sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionExpired) {
+    return (
+      <div className="flex min-h-[100svh] items-center justify-center bg-[var(--agentify-page-bg)] px-5 text-center">
+        <div className="agentify-card max-w-md rounded-[2rem] p-7">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">Session ended</p>
+          <h1 className="mt-3 text-2xl font-semibold text-[var(--agentify-primary-text)]">
+            Please sign in again.
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[var(--agentify-muted-text)]">
+            Your previous session expired, so private study content stays hidden until you reconnect.
+          </p>
+          <Link
+            href="/login"
+            className="agentify-action agentify-action-primary mt-6 inline-flex rounded-2xl px-5 py-3 text-sm font-semibold"
+          >
+            Open sign in
+          </Link>
         </div>
       </div>
     );

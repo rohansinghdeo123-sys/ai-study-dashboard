@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  type Auth,
   type ConfirmationResult,
   type User,
   GoogleAuthProvider,
@@ -22,7 +23,12 @@ import {
   signInWithRedirect,
   signOut,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import {
+  FirebaseConfigError,
+  getFirebaseAuth,
+  getFirebaseAuthSetupMessage,
+} from "@/lib/firebase";
+import { getPublicBackendUrl } from "@/lib/env";
 import {
   ApiRequestError,
   apiJson,
@@ -57,7 +63,10 @@ interface AuthContextType {
   userId: string;
   role: AuthRole;
   isAdmin: boolean;
+  authError: string;
+  authLoading: boolean;
   loading: boolean;
+  sessionExpired: boolean;
   claimsLoading: boolean;
   claims: Record<string, unknown>;
   profileError: string;
@@ -79,7 +88,10 @@ const AuthContext = createContext<AuthContextType>({
   userId: "",
   role: "user",
   isAdmin: false,
+  authError: "",
+  authLoading: true,
   loading: true,
+  sessionExpired: false,
   claimsLoading: true,
   claims: {},
   profileError: "",
@@ -207,15 +219,31 @@ function profileErrorMessage(error: unknown) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [accountProfile, setAccountProfile] = useState<BackendUserProfile | null>(null);
   const [profileError, setProfileError] = useState("");
   const [claimsLoading, setClaimsLoading] = useState(true);
   const [claims, setClaims] = useState<Record<string, unknown>>({});
 
+  const authRef = useRef<Auth | null>(null);
   const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
   const confirmationResultRef = useRef<ConfirmationResult | null>(null);
-  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+  const hasAuthenticatedRef = useRef(false);
+  const manualSignOutRef = useRef(false);
+  const backendURL = getPublicBackendUrl();
+
+  const requireAuthClient = useCallback(() => {
+    if (authRef.current) return authRef.current;
+
+    const message =
+      authError ||
+      getFirebaseAuthSetupMessage() ||
+      "Sign-in is not ready. Please refresh and try again.";
+
+    throw new FirebaseConfigError(message);
+  }, [authError]);
 
   const loadProfile = useCallback(
     async (currentUser: User, forceFresh = false) => {
@@ -268,7 +296,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshClaims = useCallback(async (forceRefresh = false) => {
-    if (!auth.currentUser) {
+    const authClient = authRef.current;
+
+    if (!authClient?.currentUser) {
       setClaims({});
       setClaimsLoading(false);
       return;
@@ -277,7 +307,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setClaimsLoading(true);
 
     try {
-      const tokenResult = await auth.currentUser.getIdTokenResult(forceRefresh);
+      const tokenResult = await authClient.currentUser.getIdTokenResult(forceRefresh);
       setClaims(tokenResult.claims as Record<string, unknown>);
     } finally {
       setClaimsLoading(false);
@@ -285,22 +315,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
+    const authClient = requireAuthClient();
     try {
-      await signInWithPopup(auth, createGoogleProvider());
+      await signInWithPopup(authClient, createGoogleProvider());
     } catch (error) {
       if (shouldUseRedirectFallback(error)) {
-        await signInWithRedirect(auth, createGoogleProvider());
+        await signInWithRedirect(authClient, createGoogleProvider());
         return;
       }
 
       throw error;
     }
-  }, []);
+  }, [requireAuthClient]);
 
   const getRecaptchaVerifier = useCallback(async () => {
+    const authClient = requireAuthClient();
     if (!recaptchaVerifierRef.current) {
       recaptchaVerifierRef.current = new RecaptchaVerifier(
-        auth,
+        authClient,
         getRecaptchaContainer(),
         { size: "invisible" },
       );
@@ -309,7 +341,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return recaptchaVerifierRef.current;
-  }, []);
+  }, [requireAuthClient]);
 
   const resetRecaptcha = useCallback(() => {
     recaptchaVerifierRef.current?.clear();
@@ -323,7 +355,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const appVerifier = await getRecaptchaVerifier();
 
         confirmationResultRef.current = await signInWithPhoneNumber(
-          auth,
+          requireAuthClient(),
           normalizedPhone,
           appVerifier,
         );
@@ -332,7 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    [getRecaptchaVerifier, resetRecaptcha],
+    [getRecaptchaVerifier, requireAuthClient, resetRecaptcha],
   );
 
   const verifyPhoneOtp = useCallback(async (otp: string) => {
@@ -346,15 +378,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     confirmationResultRef.current = null;
+    manualSignOutRef.current = true;
     resetRecaptcha();
     setAccountProfile(null);
     setProfileError("");
-    await signOut(auth);
-  }, [resetRecaptcha]);
+    setSessionExpired(false);
+    await signOut(requireAuthClient());
+  }, [requireAuthClient, resetRecaptcha]);
 
   const getIdToken = useCallback(async (forceRefresh = false) => {
-    if (!auth.currentUser) return null;
-    return auth.currentUser.getIdToken(forceRefresh);
+    const authClient = authRef.current;
+    if (!authClient?.currentUser) return null;
+    return authClient.currentUser.getIdToken(forceRefresh);
   }, []);
 
   const getAuthHeaders = useCallback(async () => {
@@ -367,17 +402,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [getIdToken]);
 
   const refreshProfile = useCallback(async () => {
-    if (!auth.currentUser) {
+    const authClient = authRef.current;
+    if (!authClient?.currentUser) {
       setAccountProfile(null);
       return null;
     }
-    invalidateApiCache(`account-profile:${auth.currentUser.uid}`);
-    return loadProfile(auth.currentUser, true);
+    invalidateApiCache(`account-profile:${authClient.currentUser.uid}`);
+    return loadProfile(authClient.currentUser, true);
   }, [loadProfile]);
 
   const saveProfile = useCallback(
     async (updates: ProfileUpdate) => {
-      const currentUser = auth.currentUser;
+      const currentUser = authRef.current?.currentUser;
       if (!currentUser) throw new Error("Your session has expired. Please sign in again.");
 
       setProfileError("");
@@ -404,13 +440,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    getRedirectResult(auth).catch(() => undefined);
+    let authClient: Auth;
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    try {
+      authClient = getFirebaseAuth();
+      authRef.current = authClient;
+      setAuthError("");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sign-in is not configured. Please contact support.";
+
+      authRef.current = null;
+      setAuthError(message);
+      setAuthLoading(false);
+      setProfileLoading(false);
+      setClaimsLoading(false);
+      return;
+    }
+
+    getRedirectResult(authClient).catch(() => undefined);
+
+    const unsubscribe = onAuthStateChanged(authClient, async (currentUser) => {
       setUser(currentUser);
       setAuthLoading(false);
 
       if (!currentUser) {
+        setSessionExpired(hasAuthenticatedRef.current && !manualSignOutRef.current);
+        manualSignOutRef.current = false;
         setAccountProfile(null);
         setProfileError("");
         setProfileLoading(false);
@@ -419,16 +477,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      primeBackend(process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000");
+      hasAuthenticatedRef.current = true;
+      manualSignOutRef.current = false;
+      setSessionExpired(false);
+      primeBackend(getPublicBackendUrl());
       await Promise.all([refreshClaims(), loadProfile(currentUser)]);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [loadProfile, refreshClaims]);
 
   const isAdmin = useMemo(() => isAdminUser(user, claims), [user, claims]);
   const role: AuthRole = isAdmin ? "admin" : "user";
-  const loading = authLoading || profileLoading;
+  const loading = !authError && (authLoading || profileLoading);
 
   const profile = useMemo<AuthProfile | null>(() => {
     if (!user) return null;
@@ -454,7 +517,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userId: user?.uid ?? "",
       role,
       isAdmin,
+      authError,
+      authLoading,
       loading,
+      sessionExpired,
       claimsLoading,
       claims,
       profileError,
@@ -474,7 +540,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accountProfile,
       role,
       isAdmin,
+      authError,
+      authLoading,
       loading,
+      sessionExpired,
       claimsLoading,
       claims,
       profileError,

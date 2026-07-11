@@ -68,6 +68,12 @@ function getErrorMessage(error: unknown) {
   if (signature.includes("auth/configuration-not-found")) {
     return "Sign-in isn't fully set up yet. Please try again in a little while.";
   }
+  if (
+    signature.includes("Firebase auth configuration is incomplete") ||
+    signature.includes("Sign-in is not ready")
+  ) {
+    return signature;
+  }
   if (signature.includes("auth/invalid-phone-number")) {
     return "That phone number doesn't look right. Use the full format, like +91 98765 43210.";
   }
@@ -182,11 +188,13 @@ export default function LoginPage() {
   const {
     user,
     accountProfile,
+    authError: authSetupError,
     profileError,
     loginWithGoogle,
     sendPhoneOtp,
     verifyPhoneOtp,
     loading,
+    sessionExpired,
   } = useAuth();
   const router = useRouter();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
@@ -206,6 +214,11 @@ export default function LoginPage() {
   const phoneInputRef = useRef<HTMLInputElement>(null);
 
   const formattedPhone = useMemo(() => normalizePhoneNumber(phoneNumber), [phoneNumber]);
+  const signInBlocked = Boolean(authSetupError);
+  const visibleAuthError =
+    authSetupError ||
+    authError ||
+    (sessionExpired ? "Your session expired. Sign in again to continue studying." : "");
 
   useEffect(() => {
     router.prefetch("/dashboard");
@@ -248,6 +261,10 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setAuthError("");
+    if (authSetupError) {
+      setAuthError(authSetupError);
+      return;
+    }
     setGoogleBusy(true);
     try {
       primeBackend(backendURL);
@@ -261,6 +278,10 @@ export default function LoginPage() {
 
   const handleSendOtp = async () => {
     setAuthError("");
+    if (authSetupError) {
+      setAuthError(authSetupError);
+      return;
+    }
     if (!formattedPhone.startsWith("+") || formattedPhone.length < 10) {
       setAuthError("Enter your mobile number with the country code, like +91 98765 43210.");
       return;
@@ -447,7 +468,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={handleGoogleLogin}
-                      disabled={googleBusy}
+                      disabled={googleBusy || signInBlocked}
                       aria-busy={googleBusy}
                       className="auth-google flex min-h-[3.35rem] w-full items-center justify-center gap-3 rounded-2xl px-5 text-[0.95rem] font-semibold"
                     >
@@ -469,7 +490,7 @@ export default function LoginPage() {
                     <button
                       type="button"
                       onClick={() => setUsePhone(true)}
-                      disabled={googleBusy}
+                      disabled={googleBusy || signInBlocked}
                       className="auth-secondary flex min-h-[3.15rem] w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold"
                     >
                       <AppIcon name="send" className="h-4 w-4" />
@@ -490,18 +511,19 @@ export default function LoginPage() {
                           type="tel"
                           inputMode="tel"
                           autoComplete="tel"
+                          disabled={signInBlocked}
                           value={phoneNumber}
                           onChange={(event) => setPhoneNumber(event.target.value)}
                           placeholder="+91 98765 43210"
                           aria-label="Mobile number"
-                          aria-describedby={authError ? "login-auth-error" : undefined}
+                          aria-describedby={visibleAuthError ? "login-auth-error" : undefined}
                           className="auth-field w-full rounded-2xl px-4 py-3.5 text-base font-medium outline-none transition"
                         />
                       </label>
                     ) : (
                       <OtpBoxes
                         value={otp}
-                        disabled={verifyingOtp}
+                        disabled={verifyingOtp || signInBlocked}
                         onChange={(next) => setOtp(next)}
                         onComplete={(code) => void handleVerifyOtp(code)}
                         firstInputRef={otpInputRef}
@@ -510,7 +532,7 @@ export default function LoginPage() {
 
                     <button
                       type="submit"
-                      disabled={sendingOtp || verifyingOtp}
+                      disabled={sendingOtp || verifyingOtp || signInBlocked}
                       aria-busy={sendingOtp || verifyingOtp}
                       className="auth-primary flex min-h-[3.35rem] w-full items-center justify-center gap-2 rounded-2xl px-5 text-[0.95rem] font-semibold"
                     >
@@ -532,7 +554,7 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={handleSendOtp}
-                          disabled={resendIn > 0 || sendingOtp}
+                          disabled={resendIn > 0 || sendingOtp || signInBlocked}
                           className="auth-ghost px-3 py-2 text-xs font-semibold"
                         >
                           {resendIn > 0 ? `Resend in ${resendIn}s` : sendingOtp ? "Sending..." : "Resend code"}
@@ -542,9 +564,9 @@ export default function LoginPage() {
                   </form>
                 )}
 
-                {authError ? (
+                {visibleAuthError ? (
                   <div id="login-auth-error" className="mt-4">
-                    <AlertState message={authError} />
+                    <AlertState message={visibleAuthError} />
                   </div>
                 ) : null}
 
