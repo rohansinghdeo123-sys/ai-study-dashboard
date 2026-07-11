@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { AppIcon, EmptyState, LoadingState, type AppIconName } from "@/components/ui/Polished";
+import { AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 import { ChipList, DistributionList, ExamReadinessStrip } from "@/components/exam/panels";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import {
@@ -14,9 +14,9 @@ import {
   SUBJECT,
   type GenerationMode,
 } from "@/lib/examConfig";
-import { displayValue, formatLabel, getRecordEntries, toNumber } from "@/lib/format";
+import { displayValue, formatLabel, toNumber } from "@/lib/format";
 import { useAuth } from "@/context/AuthContext";
-import { apiFetch, invalidateApiCache } from "@/lib/apiClient";
+import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
@@ -531,7 +531,7 @@ export default function ExamModePage() {
   }, [chapters]);
 
   // Elapsed-time chip for the attempt; freezes at submit and never pressures
-  // with a countdown â€” school students get a clock, not a stopwatch race.
+  // with a countdown - school students get a clock, not a stopwatch race.
   useEffect(() => {
     if (!questions.length || submitted) return;
     const tick = () => {
@@ -567,18 +567,21 @@ export default function ExamModePage() {
       timeoutMs?: number;
       retries?: number;
       cacheKey?: string;
+      cacheTtlMs?: number;
+      forceFresh?: boolean;
     } = {},
   ) => {
     const headers = await getAuthHeaders();
-    const response = await apiFetch(`${backendURL}${path}`, {
+    return apiJson<T>(`${backendURL}${path}`, {
       method: options.method || "GET",
       headers,
       retries: options.retries ?? 1,
       timeoutMs: options.timeoutMs ?? 18000,
       cacheKey: options.cacheKey,
+      cacheTtlMs: options.cacheTtlMs ?? (options.cacheKey ? 30000 : 0),
+      forceFresh: options.forceFresh,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
-    return readResponseJson<T>(response);
   };
 
   const loadPapers = async () => {
@@ -762,7 +765,7 @@ export default function ExamModePage() {
       setLegacyProbableQuestions(nextProbable);
       setNotice(
         nextQuestions.length < questionCount
-          ? `This material supported ${Math.min(nextQuestions.length, questionCount)} strong questions â€” pack ready.`
+          ? `This material supported ${Math.min(nextQuestions.length, questionCount)} strong questions - pack ready.`
           : "MCQ pack created from the selected study material.",
       );
       setCurrentIndex(0);
@@ -1076,7 +1079,7 @@ export default function ExamModePage() {
     const firstUnanswered = questions.findIndex((question) => !answers[question.id]);
     if (firstUnanswered >= 0) {
       setCurrentIndex(firstUnanswered);
-      setNotice(`Question ${firstUnanswered + 1} is still unanswered â€” finish it to submit.`);
+      setNotice(`Question ${firstUnanswered + 1} is still unanswered - finish it to submit.`);
       return;
     }
     void submitExam();
@@ -1093,7 +1096,7 @@ export default function ExamModePage() {
     const scorePercent = Math.round((score / questions.length) * 100);
     const focusScore = clampMetric(scorePercent - Math.min(20, retryCount * 3));
 
-    // The result view renders in place â€” no tab jump; the student lands on
+    // The result view renders in place - no tab jump; the student lands on
     // their score and solutions exactly where they pressed Submit.
     setSubmitted(true);
     setNotice("");
@@ -1259,8 +1262,8 @@ export default function ExamModePage() {
                     resetAttempt();
                   }}
                 >
-                  <option value="5">5 â€” quick check</option>
-                  <option value="10">10 â€” full drill</option>
+                  <option value="5">5 - quick check</option>
+                  <option value="10">10 - full drill</option>
                 </select>
               </label>
               <label>
@@ -1337,14 +1340,14 @@ export default function ExamModePage() {
                       <div className="exam-result-meta">
                         <h2>
                           {accuracy >= 80
-                            ? "Strong attempt â€” exam-ready pace."
+                            ? "Strong attempt - exam-ready pace."
                             : accuracy >= 50
-                              ? "Solid base â€” the review below closes the gaps."
-                              : "Good effort â€” every solution below is a mark you can win back."}
+                              ? "Solid base - the review below closes the gaps."
+                              : "Good effort - every solution below is a mark you can win back."}
                         </h2>
                         <p>
-                          +{score * 10} XP earned Â· {formatElapsed(elapsedSeconds)} taken Â· {selectedTopic.label}
-                          {saving ? " Â· Saving resultâ€¦" : ""}
+                          +{score * 10} XP earned - {formatElapsed(elapsedSeconds)} taken - {selectedTopic.label}
+                          {saving ? " - Saving result..." : ""}
                         </p>
                         <div className="exam-result-actions">
                           <button type="button" className="exam-mode-primary" onClick={() => { resetAttempt(); setNotice(""); }}>
@@ -1369,11 +1372,11 @@ export default function ExamModePage() {
                         const correctText = (question.options[question.correct.charCodeAt(0) - 65] || question.correct).replace(/^[A-D][.)]\s*/i, "");
                         return (
                           <article key={`review-${question.id}`} data-correct={correct ? "true" : "false"}>
-                            <span>{correct ? `Question ${index + 1} Â· Correct` : `Question ${index + 1} Â· Review this`}</span>
+                            <span>{correct ? `Question ${index + 1} - Correct` : `Question ${index + 1} - Review this`}</span>
                             <h2>{question.question}</h2>
                             <p>
                               Your answer: <strong>{selected ? `${selected}. ${selectedText}` : selectedText}</strong>
-                              {correct ? "" : <> Â· Correct answer: <strong>{question.correct}. {correctText}</strong></>}
+                              {correct ? "" : <> - Correct answer: <strong>{question.correct}. {correctText}</strong></>}
                             </p>
                             <p>{question.explanation}</p>
                             {question.source ? <small className="exam-question-source">Source: {question.source}</small> : null}

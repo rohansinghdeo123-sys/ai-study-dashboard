@@ -303,10 +303,6 @@ const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: A
 
 const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
 
-function normalizeTopicValue(value: string) {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-}
-
 function findChapterValueForTopic(topicValue: string) {
   return findChapterForTopic(BUILTIN_CHAPTERS, topicValue);
 }

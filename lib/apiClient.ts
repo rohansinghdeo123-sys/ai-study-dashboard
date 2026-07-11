@@ -14,9 +14,6 @@ type JsonRequestOptions = RequestInit & {
 };
 
 type ApiFetchOptions = RequestInit & {
-  cacheKey?: string;
-  cacheTtlMs?: number;
-  forceFresh?: boolean;
   retries?: number;
   timeoutMs?: number;
 };
@@ -34,7 +31,7 @@ const backendWarmups = new Map<string, Promise<BackendHealth | null>>();
 const BACKEND_READY_TTL_MS = 45000;
 
 function sleep(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
+  return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
 }
 
 function isBackendLiveStatus(status?: string) {
@@ -66,23 +63,17 @@ export async function apiFetch(
   options: ApiFetchOptions = {},
 ) {
   const {
-    cacheKey,
-    cacheTtlMs,
-    forceFresh,
     retries = 0,
     timeoutMs = 9000,
     signal,
     ...requestInit
   } = options;
-  void cacheKey;
-  void cacheTtlMs;
-  void forceFresh;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     const controller = new AbortController();
     const abort = () => controller.abort();
-    const timeout = window.setTimeout(abort, timeoutMs);
+    const timeout = globalThis.setTimeout(abort, timeoutMs);
     signal?.addEventListener("abort", abort, { once: true });
 
     try {
@@ -100,7 +91,7 @@ export async function apiFetch(
       if ((error as Error).name === "AbortError" && signal?.aborted) throw error;
       if (attempt === retries) throw error;
     } finally {
-      window.clearTimeout(timeout);
+      globalThis.clearTimeout(timeout);
       signal?.removeEventListener("abort", abort);
     }
 
@@ -166,6 +157,13 @@ export function invalidateApiCache(prefix?: string) {
   for (const key of responseCache.keys()) {
     if (key.includes(prefix)) responseCache.delete(key);
   }
+}
+
+export function resetApiClientForTests() {
+  responseCache.clear();
+  inFlightJson.clear();
+  backendReadyAt.clear();
+  backendWarmups.clear();
 }
 
 export function isBackendRecentlyReady(backendURL: string, maxAgeMs = BACKEND_READY_TTL_MS) {
