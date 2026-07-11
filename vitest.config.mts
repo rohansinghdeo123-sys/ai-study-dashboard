@@ -9,6 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    exclude: ["tests/e2e/**", "node_modules/**", ".next/**"],
     globals: false,
   },
 });

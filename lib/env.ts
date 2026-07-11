@@ -23,6 +23,18 @@ const AUTH_DOMAIN_ENV = [
   "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
 ] as const;
 
+const INLINE_PUBLIC_ENV: PublicEnvSource = {
+  NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  NEXT_PUBLIC_FIREBASE_BRANDED_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_BRANDED_AUTH_DOMAIN,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  NEXT_PUBLIC_BACKEND_URL: process.env.NEXT_PUBLIC_BACKEND_URL,
+};
+
 export type RequiredFirebaseEnvKey =
   | (typeof REQUIRED_FIREBASE_ENV)[number]
   | "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN or NEXT_PUBLIC_FIREBASE_BRANDED_AUTH_DOMAIN";
@@ -32,7 +44,7 @@ function readPublicEnv(source: PublicEnvSource, key: string) {
 }
 
 export function getMissingFirebasePublicEnv(
-  source: PublicEnvSource = process.env,
+  source: PublicEnvSource = INLINE_PUBLIC_ENV,
 ): RequiredFirebaseEnvKey[] {
   const missing = REQUIRED_FIREBASE_ENV.filter((key) => !readPublicEnv(source, key));
   const hasAuthDomain = AUTH_DOMAIN_ENV.some((key) => readPublicEnv(source, key));
@@ -57,7 +69,7 @@ export function formatFirebasePublicEnvError(
   ].join(" ");
 }
 
-export function assertFirebasePublicEnv(source: PublicEnvSource = process.env) {
+export function assertFirebasePublicEnv(source: PublicEnvSource = INLINE_PUBLIC_ENV) {
   const missing = getMissingFirebasePublicEnv(source);
   if (missing.length > 0) {
     throw new Error(formatFirebasePublicEnvError(missing));
@@ -65,7 +77,7 @@ export function assertFirebasePublicEnv(source: PublicEnvSource = process.env) {
 }
 
 export function getFirebasePublicConfig(
-  source: PublicEnvSource = process.env,
+  source: PublicEnvSource = INLINE_PUBLIC_ENV,
 ): FirebasePublicConfig | null {
   const missing = getMissingFirebasePublicEnv(source);
   if (missing.length > 0) return null;
@@ -88,11 +100,11 @@ export function getFirebasePublicConfig(
   };
 }
 
-export function getFirebasePublicEnvMessage(source: PublicEnvSource = process.env) {
+export function getFirebasePublicEnvMessage(source: PublicEnvSource = INLINE_PUBLIC_ENV) {
   const missing = getMissingFirebasePublicEnv(source);
   return missing.length > 0 ? formatFirebasePublicEnvError(missing) : "";
 }
 
-export function getPublicBackendUrl(source: PublicEnvSource = process.env) {
+export function getPublicBackendUrl(source: PublicEnvSource = INLINE_PUBLIC_ENV) {
   return readPublicEnv(source, "NEXT_PUBLIC_BACKEND_URL") || "http://127.0.0.1:8000";
 }

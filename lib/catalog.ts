@@ -5,7 +5,7 @@
  *
  * Chapters come from the backend `GET /catalog` (admin-published content).
  * The built-in list renders instantly and remains the safety net when the
- * request fails or nothing is published yet — a student never sees empty
+ * request fails or nothing is published yet - a student never sees empty
  * chapter selectors. This module is the ONLY place the frontend defines
  * course structure; pages must not hard-code chapter lists.
  */

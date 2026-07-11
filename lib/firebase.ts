@@ -29,7 +29,7 @@ function getConfigSignature(config: FirebasePublicConfig) {
   ].join("|");
 }
 
-export function getFirebaseAuth(source: FirebaseEnvSource = process.env) {
+export function getFirebaseAuth(source?: FirebaseEnvSource) {
   const config = getFirebasePublicConfig(source);
 
   if (!config) {
@@ -46,11 +46,11 @@ export function getFirebaseAuth(source: FirebaseEnvSource = process.env) {
   return cachedAuth;
 }
 
-export function getFirebaseAuthSetupMessage(source: FirebaseEnvSource = process.env) {
+export function getFirebaseAuthSetupMessage(source?: FirebaseEnvSource) {
   return getFirebasePublicEnvMessage(source);
 }
 
-export function isFirebaseAuthConfigured(source: FirebaseEnvSource = process.env) {
+export function isFirebaseAuthConfigured(source?: FirebaseEnvSource) {
   return getFirebasePublicEnvMessage(source) === "";
 }
 
