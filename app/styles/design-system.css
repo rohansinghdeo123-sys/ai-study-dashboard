@@ -1,0 +1,387 @@
+/* AgentifyAI design system contract.
+   Keep this file small, semantic, and reusable. Page-specific CSS stays in globals.css
+   until each domain is refactored into feature modules. */
+
+@layer base {
+  :root {
+    --ds-bg-app: #f8fafc;
+    --ds-bg-subtle: #f1f5f9;
+    --ds-bg-secondary: #eef6f5;
+    --ds-surface: rgba(255, 255, 255, 0.88);
+    --ds-surface-elevated: rgba(255, 255, 255, 0.96);
+    --ds-surface-overlay: rgba(15, 23, 42, 0.58);
+    --ds-border: rgba(148, 163, 184, 0.24);
+    --ds-border-subtle: rgba(148, 163, 184, 0.16);
+    --ds-border-strong: rgba(14, 116, 144, 0.32);
+
+    --ds-text-primary: #0f172a;
+    --ds-text-secondary: #334155;
+    --ds-text-muted: #64748b;
+    --ds-text-disabled: #94a3b8;
+    --ds-text-inverse: #ffffff;
+
+    --ds-accent-teal: #0e7490;
+    --ds-accent-teal-strong: #14b8a6;
+    --ds-accent-teal-soft: rgba(20, 184, 166, 0.12);
+    --ds-accent-gold: #f2b84b;
+    --ds-accent-gold-strong: #b7791f;
+    --ds-accent-gold-soft: rgba(242, 184, 75, 0.16);
+
+    --ds-success: #0f8f82;
+    --ds-success-soft: rgba(15, 143, 130, 0.12);
+    --ds-warning: #b7791f;
+    --ds-warning-soft: rgba(242, 184, 75, 0.16);
+    --ds-danger: #d94a57;
+    --ds-danger-soft: rgba(217, 74, 87, 0.12);
+    --ds-info: #0e7490;
+    --ds-info-soft: rgba(14, 116, 144, 0.12);
+
+    --ds-focus-ring: rgba(14, 116, 144, 0.36);
+    --ds-focus-ring-outer: rgba(255, 255, 255, 0.92);
+
+    --ds-space-1: 0.25rem;
+    --ds-space-2: 0.5rem;
+    --ds-space-3: 0.75rem;
+    --ds-space-4: 1rem;
+    --ds-space-5: 1.25rem;
+    --ds-space-6: 1.5rem;
+    --ds-space-8: 2rem;
+    --ds-space-10: 2.5rem;
+    --ds-space-12: 3rem;
+
+    --ds-radius-xs: 0.375rem;
+    --ds-radius-sm: 0.5rem;
+    --ds-radius-md: 0.75rem;
+    --ds-radius-lg: 1rem;
+    --ds-radius-xl: 1.25rem;
+    --ds-radius-full: 9999px;
+
+    --ds-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --ds-shadow-md: 0 14px 38px rgba(15, 23, 42, 0.10);
+    --ds-shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.14);
+    --ds-shadow-focus: 0 0 0 3px var(--ds-focus-ring-outer), 0 0 0 6px var(--ds-focus-ring);
+
+    --ds-font-body: var(--font-sans);
+    --ds-font-mono: var(--font-mono);
+    --ds-line-tight: 1.2;
+    --ds-line-normal: 1.5;
+    --ds-line-relaxed: 1.7;
+
+    --ds-duration-fast: 140ms;
+    --ds-duration-normal: 200ms;
+    --ds-duration-slow: 320ms;
+    --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+    --ds-breakpoint-sm: 40rem;
+    --ds-breakpoint-md: 48rem;
+    --ds-breakpoint-lg: 64rem;
+    --ds-breakpoint-xl: 80rem;
+
+    --ds-z-base: 0;
+    --ds-z-nav: 40;
+    --ds-z-popover: 60;
+    --ds-z-overlay: 80;
+    --ds-z-toast: 100;
+  }
+
+  [data-theme="dark"] {
+    --ds-bg-app: #07111f;
+    --ds-bg-subtle: #0b1120;
+    --ds-bg-secondary: #0f172a;
+    --ds-surface: rgba(15, 23, 42, 0.84);
+    --ds-surface-elevated: rgba(17, 24, 39, 0.96);
+    --ds-surface-overlay: rgba(2, 6, 23, 0.72);
+    --ds-border: rgba(255, 255, 255, 0.12);
+    --ds-border-subtle: rgba(255, 255, 255, 0.08);
+    --ds-border-strong: rgba(94, 234, 212, 0.32);
+
+    --ds-text-primary: #f8fafc;
+    --ds-text-secondary: #cbd5e1;
+    --ds-text-muted: #94a3b8;
+    --ds-text-disabled: #64748b;
+
+    --ds-accent-teal: #5eead4;
+    --ds-accent-teal-strong: #14b8a6;
+    --ds-accent-teal-soft: rgba(20, 184, 166, 0.16);
+    --ds-accent-gold: #f2b84b;
+    --ds-accent-gold-strong: #f6c96b;
+    --ds-accent-gold-soft: rgba(242, 184, 75, 0.14);
+
+    --ds-success: #34d399;
+    --ds-success-soft: rgba(52, 211, 153, 0.12);
+    --ds-warning: #f2b84b;
+    --ds-warning-soft: rgba(242, 184, 75, 0.14);
+    --ds-danger: #fb7185;
+    --ds-danger-soft: rgba(251, 113, 133, 0.12);
+    --ds-info: #67e8f9;
+    --ds-info-soft: rgba(103, 232, 249, 0.12);
+
+    --ds-focus-ring: rgba(94, 234, 212, 0.46);
+    --ds-focus-ring-outer: rgba(15, 23, 42, 0.98);
+    --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
+    --ds-shadow-md: 0 18px 48px rgba(0, 0, 0, 0.28);
+    --ds-shadow-lg: 0 32px 90px rgba(0, 0, 0, 0.36);
+  }
+}
+
+@layer components {
+  .ds-card {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    box-shadow: var(--ds-shadow-md);
+  }
+
+  .ds-card-elevated {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    background: var(--ds-surface-elevated);
+    color: var(--ds-text-primary);
+    box-shadow: var(--ds-shadow-lg);
+  }
+
+  .ds-control {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+    transition:
+      border-color var(--ds-duration-fast) var(--ds-ease-standard),
+      background-color var(--ds-duration-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-duration-fast) var(--ds-ease-standard),
+      transform var(--ds-duration-fast) var(--ds-ease-standard);
+  }
+
+  .ds-control:hover {
+    border-color: var(--ds-border-strong);
+  }
+
+  .ds-control:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-shadow-focus);
+  }
+
+  .ds-button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--ds-radius-md);
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    transition:
+      transform var(--ds-duration-fast) var(--ds-ease-standard),
+      border-color var(--ds-duration-fast) var(--ds-ease-standard),
+      background-color var(--ds-duration-fast) var(--ds-ease-standard),
+      color var(--ds-duration-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-duration-fast) var(--ds-ease-standard);
+  }
+
+  .ds-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .ds-button:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .ds-button:focus-visible,
+  .ds-icon-button:focus-visible {
+    outline: none;
+    box-shadow: var(--ds-shadow-focus);
+  }
+
+  .ds-button:disabled,
+  .ds-disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .ds-button-primary {
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, #0f172a 0%, var(--ds-accent-teal) 48%, var(--ds-accent-teal-strong) 100%);
+    color: var(--ds-text-inverse);
+    box-shadow: 0 16px 34px rgba(14, 116, 144, 0.18);
+  }
+
+  .ds-button-secondary {
+    border: 1px solid var(--ds-border);
+    background: var(--ds-surface);
+    color: var(--ds-text-primary);
+  }
+
+  .ds-button-ghost {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ds-text-secondary);
+  }
+
+  .ds-button-ghost:hover:not(:disabled) {
+    background: var(--ds-bg-subtle);
+    color: var(--ds-text-primary);
+  }
+
+  .ds-button-danger {
+    border: 1px solid transparent;
+    background: var(--ds-danger);
+    color: var(--ds-text-inverse);
+  }
+
+  .ds-icon-button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    min-width: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface);
+    color: var(--ds-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: var(--ds-shadow-sm);
+    transition:
+      transform var(--ds-duration-fast) var(--ds-ease-standard),
+      border-color var(--ds-duration-fast) var(--ds-ease-standard),
+      color var(--ds-duration-fast) var(--ds-ease-standard);
+  }
+
+  .ds-icon-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--ds-border-strong);
+    color: var(--ds-accent-teal);
+  }
+
+  .ds-icon-button:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .ds-field {
+    min-height: 2.75rem;
+    width: 100%;
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-surface-elevated);
+    padding: 0.6875rem 0.875rem;
+    color: var(--ds-text-primary);
+    font-size: 0.875rem;
+    line-height: 1.4;
+    transition:
+      border-color var(--ds-duration-fast) var(--ds-ease-standard),
+      box-shadow var(--ds-duration-fast) var(--ds-ease-standard),
+      background-color var(--ds-duration-fast) var(--ds-ease-standard);
+  }
+
+  .ds-field::placeholder {
+    color: var(--ds-text-disabled);
+  }
+
+  .ds-field:focus {
+    border-color: var(--ds-accent-teal);
+    outline: none;
+    box-shadow: var(--ds-shadow-focus);
+  }
+
+  .ds-field:disabled,
+  .ds-field[aria-disabled="true"] {
+    cursor: not-allowed;
+    color: var(--ds-text-disabled);
+    opacity: 0.65;
+  }
+
+  .ds-label {
+    color: var(--ds-text-secondary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .ds-help-text {
+    color: var(--ds-text-muted);
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .ds-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-full);
+    background: var(--ds-bg-subtle);
+    color: var(--ds-text-secondary);
+    padding: 0.25rem 0.625rem;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .ds-alert {
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-info-soft);
+    color: var(--ds-info);
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .ds-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--ds-text-primary);
+    font-size: 0.8125rem;
+  }
+
+  .ds-table th {
+    color: var(--ds-text-muted);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .ds-table th,
+  .ds-table td {
+    border-bottom: 1px solid var(--ds-border-subtle);
+    padding: 0.75rem;
+  }
+
+  .ds-skeleton {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--ds-radius-sm);
+    background: linear-gradient(90deg, var(--ds-border-subtle), var(--ds-bg-subtle), var(--ds-border-subtle));
+    background-size: 220% 100%;
+    animation: ds-skeleton 1.4s ease-in-out infinite;
+  }
+
+  @keyframes ds-skeleton {
+    0% {
+      background-position: 120% 0;
+    }
+    100% {
+      background-position: -120% 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-button,
+  .ds-control,
+  .ds-field,
+  .ds-icon-button,
+  .ds-skeleton {
+    animation: none !important;
+    transition: none !important;
+  }
+}

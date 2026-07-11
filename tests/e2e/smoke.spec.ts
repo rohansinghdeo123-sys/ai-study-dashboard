@@ -91,6 +91,71 @@ test.describe("public routes", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
+  test("semantic design tokens resolve in light and dark themes", async ({ page }) => {
+    await gotoAppRoute(page, "/login");
+
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((nextTheme) => {
+        document.documentElement.setAttribute("data-theme", nextTheme);
+      }, theme);
+
+      const tokenValues = await page.evaluate(() => {
+        const styles = getComputedStyle(document.documentElement);
+
+        return {
+          appBackground: styles.getPropertyValue("--ds-bg-app").trim(),
+          surface: styles.getPropertyValue("--ds-surface").trim(),
+          primaryText: styles.getPropertyValue("--ds-text-primary").trim(),
+          tealAccent: styles.getPropertyValue("--ds-accent-teal").trim(),
+          radius: styles.getPropertyValue("--ds-radius-md").trim(),
+          overlay: styles.getPropertyValue("--ds-z-overlay").trim(),
+        };
+      });
+
+      expect(Object.values(tokenValues).every(Boolean)).toBe(true);
+
+      await page.evaluate(() => {
+        let smokeFixture = document.querySelector<HTMLElement>("[data-ds-smoke]");
+
+        if (!smokeFixture) {
+          smokeFixture = document.createElement("section");
+          smokeFixture.setAttribute("data-ds-smoke", "true");
+          smokeFixture.innerHTML = `
+            <article id="ds-smoke-card" class="ds-card" style="padding: 16px;">
+              <button id="ds-smoke-button" class="ds-button ds-button-primary">Continue</button>
+              <input id="ds-smoke-field" class="ds-field" placeholder="Course goal" />
+              <span id="ds-smoke-badge" class="ds-badge">Ready</span>
+            </article>
+          `;
+          document.body.append(smokeFixture);
+        }
+      });
+
+      await page.locator("#ds-smoke-button").focus();
+
+      const primitiveStyles = await page.evaluate(() => {
+        const card = getComputedStyle(document.querySelector("#ds-smoke-card")!);
+        const button = getComputedStyle(document.querySelector("#ds-smoke-button")!);
+        const field = getComputedStyle(document.querySelector("#ds-smoke-field")!);
+        const badge = getComputedStyle(document.querySelector("#ds-smoke-badge")!);
+
+        return {
+          cardShadow: card.boxShadow,
+          buttonRadius: button.borderRadius,
+          buttonFocusShadow: button.boxShadow,
+          fieldBackground: field.backgroundColor,
+          badgeRadius: badge.borderRadius,
+        };
+      });
+
+      expect(primitiveStyles.cardShadow).not.toBe("none");
+      expect(primitiveStyles.buttonRadius).not.toBe("0px");
+      expect(primitiveStyles.buttonFocusShadow).not.toBe("none");
+      expect(primitiveStyles.fieldBackground).not.toBe("rgba(0, 0, 0, 0)");
+      expect(primitiveStyles.badgeRadius).not.toBe("0px");
+    }
+  });
+
   test("critical public pages have no critical axe violations", async ({ page }) => {
     for (const route of publicRoutes) {
       await gotoAppRoute(page, route.path);

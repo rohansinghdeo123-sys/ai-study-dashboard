@@ -230,10 +230,7 @@ export function IconButton({
       type="button"
       title={label}
       aria-label={children ? undefined : label}
-      className={cn(
-        "agentify-action agentify-action-secondary polished-icon-button inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-3 text-sm font-semibold text-slate-600 shadow-[0_12px_34px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-[#0E7490]/30 hover:text-[#0E7490] disabled:cursor-not-allowed disabled:opacity-45",
-        className,
-      )}
+      className={cn("agentify-action ds-icon-button polished-icon-button px-3", className)}
       {...props}
     >
       <AppIcon name={icon} />
@@ -245,12 +242,12 @@ export function IconButton({
 export function LoadingState({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="flex min-h-[64svh] items-center justify-center p-4" role="status" aria-live="polite">
-      <div className="agentify-state-panel polished-loading-card w-full max-w-md rounded-[1.8rem] border border-white/70 bg-white/78 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+      <div className="agentify-state-panel ds-card polished-loading-card w-full max-w-md p-5">
         <div className="flex items-center gap-3">
-          <span className="h-3 w-3 rounded-full bg-[#14B8A6] shadow-[0_0_0_6px_rgba(20,184,166,0.10)]" />
-          <p className="text-sm font-semibold text-slate-950">{title}</p>
+          <span className="h-3 w-3 rounded-full bg-[color:var(--ds-accent-teal-strong)] shadow-[0_0_0_6px_var(--ds-accent-teal-soft)]" />
+          <p className="text-sm font-semibold text-[color:var(--ds-text-primary)]">{title}</p>
         </div>
-        {detail ? <p className="mt-2 text-sm leading-6 text-slate-500">{detail}</p> : null}
+        {detail ? <p className="mt-2 text-sm leading-6 text-[color:var(--ds-text-muted)]">{detail}</p> : null}
         <div className="mt-5 space-y-2">
           <span className="polished-skeleton block h-3 w-5/6 rounded-full" />
           <span className="polished-skeleton block h-3 w-2/3 rounded-full" />
@@ -293,12 +290,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="agentify-state-panel polished-empty-state flex min-h-[280px] flex-col items-center justify-center rounded-[2rem] border border-dashed border-slate-200 bg-white/62 p-7 text-center">
-      <span className="polished-icon-surface flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0E7490]/10 text-[#0E7490]">
+    <div className="agentify-state-panel ds-card polished-empty-state flex min-h-[280px] flex-col items-center justify-center border-dashed p-7 text-center">
+      <span className="polished-icon-surface flex h-14 w-14 items-center justify-center rounded-[var(--ds-radius-md)] bg-[color:var(--ds-accent-teal-soft)] text-[color:var(--ds-accent-teal)]">
         <AppIcon name={icon} className="h-6 w-6" />
       </span>
-      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">{title}</h2>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">{detail}</p>
+      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-[color:var(--ds-text-primary)]">{title}</h2>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-[color:var(--ds-text-muted)]">{detail}</p>
       {action ? <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div> : null}
     </div>
   );
@@ -314,12 +311,12 @@ export function ErrorState({
   action?: ReactNode;
 }) {
   return (
-    <div className="agentify-state-panel polished-empty-state flex min-h-[280px] flex-col items-center justify-center rounded-[2rem] border border-rose-200/80 bg-rose-50/70 p-7 text-center" role="alert">
-      <span className="polished-icon-surface flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-600">
+    <div className="agentify-state-panel ds-card polished-empty-state flex min-h-[280px] flex-col items-center justify-center border-[color:var(--ds-danger)] bg-[color:var(--ds-danger-soft)] p-7 text-center" role="alert">
+      <span className="polished-icon-surface flex h-14 w-14 items-center justify-center rounded-[var(--ds-radius-md)] bg-[color:var(--ds-danger-soft)] text-[color:var(--ds-danger)]">
         <AppIcon name="x" className="h-6 w-6" />
       </span>
-      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-slate-950">{title}</h2>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600">{detail}</p>
+      <h2 className="mt-5 text-2xl font-semibold tracking-tight text-[color:var(--ds-text-primary)]">{title}</h2>
+      <p className="mt-3 max-w-xl text-sm leading-6 text-[color:var(--ds-text-secondary)]">{detail}</p>
       {action ? <div className="mt-6 flex flex-wrap justify-center gap-3">{action}</div> : null}
     </div>
   );
@@ -328,13 +325,13 @@ export function ErrorState({
 export function AlertState({ message, tone = "rose" }: { message: string; tone?: "rose" | "amber" | "blue" }) {
   const styles =
     tone === "amber"
-      ? "border-amber-200 bg-amber-50 text-amber-700"
+      ? "border-[color:var(--ds-warning)] bg-[color:var(--ds-warning-soft)] text-[color:var(--ds-warning)]"
       : tone === "blue"
-        ? "border-[#0E7490]/20 bg-[#0E7490]/10 text-[#0E7490]"
-        : "border-rose-200 bg-rose-50 text-rose-600";
+        ? "border-[color:var(--ds-info)] bg-[color:var(--ds-info-soft)] text-[color:var(--ds-info)]"
+        : "border-[color:var(--ds-danger)] bg-[color:var(--ds-danger-soft)] text-[color:var(--ds-danger)]";
 
   return (
-    <p className={cn("agentify-alert rounded-2xl border px-4 py-3 text-sm font-medium", styles)} role={tone === "rose" ? "alert" : "status"} aria-live={tone === "rose" ? "assertive" : "polite"}>
+    <p className={cn("agentify-alert ds-alert", styles)} role={tone === "rose" ? "alert" : "status"} aria-live={tone === "rose" ? "assertive" : "polite"}>
       {message}
     </p>
   );
