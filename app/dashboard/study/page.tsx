@@ -4,6 +4,10 @@ import { useAuth } from "@/context/AuthContext";
 import ChatThinkingLogo from "@/components/brand/ChatThinkingLogo";
 import ArtifactCanvas, { ARTIFACT_UNAVAILABLE_MESSAGE } from "@/components/study/ArtifactCanvas";
 import RevisionModeTabs from "@/components/study/RevisionModeTabs";
+import {
+  RenameConversationDialog,
+  StudyConfirmDialog,
+} from "@/features/study/components/StudyConversationDialogs";
 import RichMarkdown from "@/components/RichMarkdown";
 import {
   AlertState,
@@ -16,8 +20,59 @@ import {
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
+import {
+  ARTIFACT_TABS,
+  DATA_GROUNDED_TUTOR_GUARDRAIL,
+  EXAM_TABS,
+  MATERIAL_NOT_FOUND_MESSAGE,
+  REASONING_FIRST_TUTOR_GUARDRAIL,
+  REVISION_TOOLS,
+  STAGE_ORDER,
+  STUDY_MODES,
+  TUTOR_TEMPORARY_ERROR_MESSAGE,
+} from "@/features/study/studyConfig";
+import {
+  createConversationId,
+  getConversationDeleteKeys,
+  getHistoryStorageKey,
+  mergeConversations,
+  normalizeServerConversation,
+  titleFromMessages,
+} from "@/features/study/conversationUtils";
+import { useStudyDraftPersistence } from "@/features/study/hooks/useStudyDraftPersistence";
+import type {
+  AdaptiveAnswerBlock,
+  AgentStagePayload,
+  AgentStageState,
+  AnswerDeltaPayload,
+  ArtifactType,
+  CoachMessage,
+  CoachSources,
+  DisplayAttachment,
+  EmotionalState,
+  ExamPanel,
+  ExamQuestion,
+  LearningIntent,
+  LearningLevel,
+  LearningSpeed,
+  MentorProfile,
+  PendingAttachment,
+  ProbableQuestion,
+  RevisionPanel,
+  RevisionTool,
+  RevisionType,
+  SpeechRecognitionConstructor,
+  SpeechRecognitionLike,
+  StreamProcessResult,
+  StudyArtifact,
+  StudyArtifactResponse,
+  StudyConversation,
+  StudyMode,
+  TurnEventPayload,
+} from "@/features/study/types";
 import { useSearchParams } from "next/navigation";
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -26,309 +81,9 @@ import {
   type KeyboardEvent,
 } from "react";
 
-type CoachRole = "user" | "coach";
-type AgentStageId = "received" | "understanding" | "drafting" | "reviewing" | "formatting" | "delivering";
-type AgentStageStatus = "pending" | "active" | "done";
-type StudyMode = "coach" | "revision" | "exam" | "history";
-type RevisionType = "summary" | "explain" | "keypoints";
-type RevisionPanel = RevisionType | "artifact";
-type ExamPanel = "mcq" | "probable" | "practice" | "review";
-type ArtifactType = "concept_map" | "flip_cards" | "formula_lab" | "mistake_cards";
-type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" | "curiosity";
-type LearningLevel = "beginner" | "intermediate" | "advanced";
-type EmotionalState = "steady" | "confused" | "anxious" | "curious" | "confident";
-type LearningSpeed = "slow" | "balanced" | "fast";
-type AdaptiveAnswerBlockKind = "explanation" | "example" | "formula" | "mistake" | "checkpoint" | "recall";
-
-interface AdaptiveAnswerBlock {
-  kind: AdaptiveAnswerBlockKind | string;
-  title: string;
-  content: string;
-}
-
-interface CoachMessage {
-  role: CoachRole;
-  content: string;
-  timestamp: string;
-  blocks?: AdaptiveAnswerBlock[];
-  sources?: CoachSources;
-  socratic?: boolean;
-  attachments?: DisplayAttachment[];
-}
-
-interface StudyConversation {
-  id: string;
-  sessionId?: string;
-  title: string;
-  updatedAt: string;
-  chapter: string;
-  topic: string;
-  messages: CoachMessage[];
-  pinned?: boolean;
-  archived?: boolean;
-  titleLocked?: boolean;
-}
-
-interface CoachCitation {
-  id: string;
-  label: string;
-  source: string;
-  section_id?: string;
-  excerpt?: string;
-  kind?: string;
-}
-
-interface CoachSources {
-  grounded: boolean;
-  indicator?: string;
-  answer_basis?: string;
-  retrieval_policy?: string;
-  material_supported?: boolean;
-  source_count?: number;
-  citations: CoachCitation[];
-}
-
-interface DisplayAttachment {
-  name: string;
-  mime_type: string;
-  size_bytes: number;
-}
-
-interface PendingAttachment extends DisplayAttachment {
-  id: string;
-  data_url: string;
-}
-
-interface AgentStageState {
-  id: AgentStageId;
-  agent: string;
-  title: string;
-  detail: string;
-  status: AgentStageStatus;
-}
-
-interface AgentStagePayload {
-  type: "agent_stage";
-  stage: AgentStageId;
-  status: AgentStageStatus;
-  agent?: string;
-  title?: string;
-  detail?: string;
-}
-
-interface AnswerDeltaPayload {
-  type: "answer_delta";
-  delta: string;
-}
-
-interface TurnEventPayload {
-  type: "turn_event";
-  event: string;
-  turn_id?: string;
-  answer?: string;
-  blocks?: AdaptiveAnswerBlock[];
-  sources?: CoachSources;
-  socratic?: boolean;
-  metadata?: Record<string, unknown>;
-}
-
-type StreamProcessResult =
-  | { kind: "none" }
-  | { kind: "delta"; value: string }
-  | { kind: "answer"; value: string };
-
-interface RevisionTool {
-  id: RevisionType;
-  title: string;
-  detail: string;
-  mode: "summary" | "explain" | "keypoints";
-  prompt: (topic: string) => string;
-}
-
-interface ArtifactNode {
-  id: string;
-  label: string;
-  description?: string;
-  kind?: "core" | "property" | "related" | "prerequisite";
-}
-
-interface ArtifactEdge {
-  from: string;
-  to: string;
-  label?: string;
-}
-
-interface FlipCard {
-  front: string;
-  back: string;
-  tag?: string;
-}
-
-interface FormulaItem {
-  label: string;
-  formula: string;
-  variables?: string[];
-  hint?: string;
-}
-
-interface MistakeItem {
-  mistake: string;
-  correction: string;
-  frequency?: string;
-}
-
-interface StudyArtifact {
-  type: ArtifactType;
-  title: string;
-  subtitle?: string;
-  nodes?: ArtifactNode[];
-  edges?: ArtifactEdge[];
-  cards?: FlipCard[];
-  formulas?: FormulaItem[];
-  mistakes?: MistakeItem[];
-  empty_note?: string;
-}
-
-interface StudyArtifactResponse {
-  available?: boolean;
-  source: string;
-  section_id: string;
-  subject?: string;
-  chapter?: string;
-  topic?: string;
-  generated_at?: string;
-  title: string;
-  subtitle?: string;
-  student_goal?: string;
-  quality?: {
-    key_points?: number;
-    formulas?: number;
-    mistakes?: number;
-  };
-  artifacts: StudyArtifact[];
-}
-
-interface MentorProfile {
-  intent: LearningIntent;
-  level: LearningLevel;
-  emotion: EmotionalState;
-  confidence: number;
-  speed: LearningSpeed;
-  curiosityDepth: number;
-  answerStyle: string;
-  nextMove: string;
-  shouldTest: boolean;
-  weakSignals: string[];
-}
-
-interface ExamQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correct: string;
-  explanation?: string;
-  source?: string;
-}
-
-interface ProbableQuestion {
-  id: string;
-  marks: number;
-  question: string;
-  source?: string;
-}
-
-type SpeechRecognitionEventLike = {
-  results: {
-    [index: number]: {
-      [index: number]: {
-        transcript: string;
-      };
-    };
-  };
-};
-
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: (() => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-const REVISION_TOOLS: RevisionTool[] = [
-  {
-    id: "summary",
-    title: "Summary",
-    detail: "A clean revision note from the selected chapter data.",
-    mode: "summary",
-    prompt: (topic) => `Create simple revision notes for ${topic} from the selected study material only.`,
-  },
-  {
-    id: "explain",
-    title: "Deep Dive",
-    detail: "A deeper teacher-style explanation while staying grounded in the material.",
-    mode: "explain",
-    prompt: (topic) => `Deeply explain ${topic} from the selected study material only, with examples if available in the data.`,
-  },
-  {
-    id: "keypoints",
-    title: "Quick Recall",
-    detail: "High-yield recall bullets for fast exam revision.",
-    mode: "keypoints",
-    prompt: (topic) => `Extract the most important key points for ${topic} from the selected study material only.`,
-  },
-];
-
-const ARTIFACT_TABS: Array<{ id: ArtifactType; label: string; icon: AppIconName }> = [
-  { id: "flip_cards", label: "Cards", icon: "copy" },
-  { id: "mistake_cards", label: "Mistakes", icon: "check" },
-];
-
-const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: AppIconName }> = [
-  { id: "mcq", label: "MCQ", detail: "Attempt grounded multiple-choice questions.", icon: "check" },
-  { id: "probable", label: "Probable", detail: "Review likely theory questions from the chapter.", icon: "book" },
-  { id: "practice", label: "Practice", detail: "Use the same question set as a quick drill.", icon: "study" },
-  { id: "review", label: "Review", detail: "Check score, explanations, and sources.", icon: "analytics" },
-];
-
-const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
-  { id: "coach", label: "Chat", detail: "Ask doubts and continue your study conversation.", icon: "study" },
-  { id: "revision", label: "Revision", detail: "Open summaries, explanations, recall notes, and study tools.", icon: "book" },
-];
-
-const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
-
 function findChapterValueForTopic(topicValue: string) {
   return findChapterForTopic(BUILTIN_CHAPTERS, topicValue);
 }
-
-const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material. Please upload or select the correct chapter/data.";
-const TUTOR_TEMPORARY_ERROR_MESSAGE = "I could not complete that response right now. Please try again.";
-
-const DATA_GROUNDED_TUTOR_GUARDRAIL = [
-  "You are AgentifyAI's study tutor working inside a data-grounded learning app.",
-  "Use only the uploaded or ingested study material, selected subject, selected chapter, selected topic, and retrieved context supplied by the backend.",
-  "Do not use outside knowledge, generic LLM memory, or guesses.",
-  "If the retrieved context does not contain the answer, reply exactly: I could not find this in your study material. Please upload or select the correct chapter/data.",
-  "Preserve conversation continuity. Follow-up words like this, it, explain again, simplify, more examples, and simple words refer to the previous user question and previous tutor answer unless the student clearly changes topic.",
-  "Never switch topic unless the student clearly asks for a new topic.",
-  "Keep answers exam-focused, clear, and traceable to the study material.",
-].join(" ");
-
-const REASONING_FIRST_TUTOR_GUARDRAIL = [
-  "You are AgentifyAI's reasoning-first private tutor for school students.",
-  "Understand the student's intent, resolve follow-up context, choose the best teaching strategy, and then answer.",
-  "Use conversation memory and reliable subject reasoning naturally. Do not behave like a keyword-search bot.",
-  "Use retrieved study material only when the student asks for notes, textbook, syllabus, uploaded data, or source-grounded verification.",
-  "If source grounding is explicitly requested and the material is unavailable, explain that clearly and ask for the missing material.",
-  "Preserve conversation continuity. Follow-up words like this, it, explain again, simplify, more examples, and simple words refer to the previous user question and previous tutor answer unless the student clearly changes topic.",
-  "Remain subject-agnostic, calm, accurate, student-friendly, and clear.",
-].join(" ");
 
 function safeJsonResponse(response: Response) {
   return response.json().catch(() => null);
@@ -585,80 +340,6 @@ function buildMentorDirective(profile: MentorProfile) {
     "If curiosity is high, add one real-world connection after the core answer.",
     "End with one useful next step, not generic motivation.",
   ].join(" ");
-}
-
-function getHistoryStorageKey(userId?: string) {
-  return `agentify-study-history-${userId || "guest"}`;
-}
-
-function createConversationId() {
-  return `study-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-}
-
-function titleFromMessages(messages: CoachMessage[]) {
-  const firstUserMessage = messages.find((message) => message.role === "user")?.content.trim();
-  if (!firstUserMessage) return "New study conversation";
-  return firstUserMessage.length > 54 ? `${firstUserMessage.slice(0, 54)}...` : firstUserMessage;
-}
-
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function normalizeServerMessage(value: unknown): CoachMessage | null {
-  if (!isPlainRecord(value)) return null;
-  const role = value.role === "user" ? "user" : value.role === "coach" ? "coach" : null;
-  if (!role) return null;
-  return {
-    role,
-    content: String(value.content || ""),
-    timestamp: String(value.timestamp || ""),
-    ...(Array.isArray(value.blocks) ? { blocks: value.blocks as AdaptiveAnswerBlock[] } : {}),
-    ...(isPlainRecord(value.sources) ? { sources: value.sources as unknown as CoachSources } : {}),
-    ...(typeof value.socratic === "boolean" ? { socratic: value.socratic } : {}),
-  };
-}
-
-function normalizeServerConversation(value: unknown): StudyConversation | null {
-  if (!isPlainRecord(value)) return null;
-  const id = String(value.id || "").trim();
-  if (!id) return null;
-  const messages = Array.isArray(value.messages)
-    ? value.messages.map(normalizeServerMessage).filter((message): message is CoachMessage => Boolean(message))
-    : [];
-  return {
-    id,
-    sessionId: String(value.sessionId || ""),
-    title: String(value.title || "New study conversation").slice(0, 72),
-    updatedAt: String(value.updatedAt || new Date().toISOString()),
-    chapter: String(value.chapter || "Open tutor"),
-    topic: String(value.topic || "Any subject"),
-    messages,
-    pinned: Boolean(value.pinned),
-    archived: Boolean(value.archived),
-    titleLocked: Boolean(value.titleLocked),
-  };
-}
-
-function mergeConversations(primary: StudyConversation[], secondary: StudyConversation[]) {
-  const seen = new Set<string>();
-  const merged: StudyConversation[] = [];
-  for (const conversation of [...primary, ...secondary]) {
-    if (!conversation?.id || seen.has(conversation.id)) continue;
-    seen.add(conversation.id);
-    merged.push(conversation);
-  }
-  return merged
-    .sort((left, right) => {
-      const pinnedDelta = Number(Boolean(right.pinned)) - Number(Boolean(left.pinned));
-      if (pinnedDelta) return pinnedDelta;
-      return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
-    })
-    .slice(0, 40);
-}
-
-function getConversationDeleteKeys(conversation: Pick<StudyConversation, "id" | "sessionId">) {
-  return [conversation.id, conversation.sessionId].filter((value): value is string => Boolean(value));
 }
 
 function getSpeechRecognitionCtor(): SpeechRecognitionConstructor | null {
@@ -1857,6 +1538,12 @@ function CoachHistorySidebar({
   );
 }
 
+type StudyConfirmDialogState =
+  | { kind: "clearCoachHistory" }
+  | { kind: "clearRevisionWorkspace" }
+  | { kind: "clearExamWorkspace" }
+  | { kind: "deleteConversation"; conversation: StudyConversation };
+
 export default function StudyPage() {
   const { profile, userId, authLoading, loading, getAuthHeaders } = useAuth() as ReturnType<typeof useAuth> & { authLoading?: boolean };
   const searchParams = useSearchParams();
@@ -1888,6 +1575,17 @@ export default function StudyPage() {
   const [showArchivedChats, setShowArchivedChats] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState(createConversationId);
   const [input, setInput] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<StudyConfirmDialogState | null>(null);
+  const [renameTarget, setRenameTarget] = useState<StudyConversation | null>(null);
+  const restoreDraft = useCallback((draft: string) => {
+    setInput((current) => current || draft);
+  }, []);
+  const { clearDraft } = useStudyDraftPersistence({
+    userId,
+    conversationId: currentConversationId,
+    value: input,
+    onRestore: restoreDraft,
+  });
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [composerMenuOpen, setComposerMenuOpen] = useState(false);
   const [socraticMode, setSocraticMode] = useState(true);
@@ -2320,6 +2018,7 @@ export default function StudyPage() {
     const controller = new AbortController();
     abortRef.current = controller;
     setInput("");
+    clearDraft();
     setPendingAttachments([]);
     setStrictAttachmentGrounding(false);
     setComposerMenuOpen(false);
@@ -2481,6 +2180,7 @@ export default function StudyPage() {
 
   const startNewChat = () => {
     abortRef.current?.abort();
+    clearDraft();
     setCurrentConversationId(createConversationId());
     setMessages([]);
     setInput("");
@@ -2497,6 +2197,7 @@ export default function StudyPage() {
   const clearChat = () => {
     abortRef.current?.abort();
     abortRef.current = null;
+    clearDraft();
     setCurrentConversationId(createConversationId());
     setMessages([]);
     setInput("");
@@ -2543,7 +2244,7 @@ export default function StudyPage() {
     examAnswerSelectionsRef.current = {};
   };
 
-  const clearAllCoachHistory = () => {
+  const requestClearAllCoachHistory = () => {
     const currentSessionId = userId ? `coach-${userId}-${currentConversationId}` : currentConversationId;
     const currentConversation: StudyConversation = {
       id: currentConversationId,
@@ -2560,15 +2261,28 @@ export default function StudyPage() {
     );
     const shouldConfirm = Boolean(targets.length || messages.length || pendingAttachments.length || loadingAnswer || error);
     if (!shouldConfirm) return;
+    setConfirmDialog({ kind: "clearCoachHistory" });
+  };
 
-    const confirmed = window.confirm(
-      "Clear all Study Lab chat history and messages? Your profile, XP, analytics, and saved exam records stay untouched.",
+  const clearAllCoachHistory = () => {
+    const currentSessionId = userId ? `coach-${userId}-${currentConversationId}` : currentConversationId;
+    const currentConversation: StudyConversation = {
+      id: currentConversationId,
+      sessionId: currentSessionId,
+      title: titleFromMessages(messages),
+      updatedAt: new Date().toISOString(),
+      chapter: "Open tutor",
+      topic: "Any subject",
+      messages,
+    };
+    const targets = mergeConversations(
+      conversations,
+      messages.length ? [currentConversation] : [],
     );
-    if (!confirmed) return;
-
     targets.forEach(markConversationDeleted);
     abortRef.current?.abort();
     abortRef.current = null;
+    clearDraft();
     setCurrentConversationId(createConversationId());
     setMessages([]);
     setConversations([]);
@@ -2591,7 +2305,7 @@ export default function StudyPage() {
   const clearCurrentWorkspace = () => {
     if (!canClearCurrentWorkspace) return;
     if (mode === "coach") {
-      clearAllCoachHistory();
+      requestClearAllCoachHistory();
       return;
     }
 
@@ -2602,12 +2316,10 @@ export default function StudyPage() {
         : false;
 
     if (shouldConfirm) {
-      const confirmed = window.confirm(
-        mode === "revision"
-            ? "Clear generated revision notes and artifacts from this workspace? Your saved profile, XP, and analytics stay untouched."
-            : "Clear this exam workspace, generated questions, and current answers? Your saved profile, XP, and analytics stay untouched.",
-      );
-      if (!confirmed) return;
+      setConfirmDialog({
+        kind: mode === "revision" ? "clearRevisionWorkspace" : "clearExamWorkspace",
+      });
+      return;
     }
 
     if (mode === "revision") {
@@ -2664,13 +2376,17 @@ export default function StudyPage() {
     }
   };
 
-  const renameConversation = (conversation: StudyConversation) => {
-    const title = window.prompt("Rename this chat", conversation.title)?.trim();
+  const applyConversationRename = (conversation: StudyConversation, nextTitle: string) => {
+    const title = nextTitle.trim();
     if (!title) return;
     updateConversationList((items) => items.map((item) => (
       item.id === conversation.id ? { ...item, title: title.slice(0, 72), titleLocked: true } : item
     )));
     void syncConversationPatch(conversation, { title: title.slice(0, 72), titleLocked: true });
+  };
+
+  const renameConversation = (conversation: StudyConversation) => {
+    setRenameTarget(conversation);
   };
 
   const togglePinConversation = (conversation: StudyConversation) => {
@@ -2689,11 +2405,10 @@ export default function StudyPage() {
   };
 
   const deleteConversation = (conversation: StudyConversation) => {
-    const confirmed = window.confirm(
-      "Delete this Study Lab conversation and all its messages? Your profile, XP, analytics, and saved exam records stay untouched.",
-    );
-    if (!confirmed) return;
+    setConfirmDialog({ kind: "deleteConversation", conversation });
+  };
 
+  const performDeleteConversation = (conversation: StudyConversation) => {
     markConversationDeleted(conversation);
     updateConversationList((items) => items.filter((item) => item.id !== conversation.id));
     if (conversation.id === currentConversationId) {
@@ -3254,6 +2969,62 @@ export default function StudyPage() {
         {error ? <div className="mt-2"><AlertState message={error} /></div> : null}
       </div>
     );
+  };
+
+  const confirmCopy = (() => {
+    if (!confirmDialog) return null;
+    if (confirmDialog.kind === "clearCoachHistory") {
+      return {
+        title: "Clear Study Lab history?",
+        detail: "This clears local chat history and current messages from Study Lab. Your profile, XP, analytics, and saved exam records stay untouched.",
+        confirmLabel: "Clear history",
+      };
+    }
+    if (confirmDialog.kind === "clearRevisionWorkspace") {
+      return {
+        title: "Clear revision workspace?",
+        detail: "This clears generated revision notes and study tools from the current workspace. Your saved profile, XP, and analytics stay untouched.",
+        confirmLabel: "Clear revision",
+      };
+    }
+    if (confirmDialog.kind === "clearExamWorkspace") {
+      return {
+        title: "Clear exam workspace?",
+        detail: "This clears generated questions and current answers from this Study Lab exam workspace. Your saved profile, XP, and analytics stay untouched.",
+        confirmLabel: "Clear exam",
+      };
+    }
+    return {
+      title: "Delete this conversation?",
+      detail: `"${confirmDialog.conversation.title}" and its messages will be removed from Study Lab history. Your profile, XP, analytics, and saved exam records stay untouched.`,
+      confirmLabel: "Delete chat",
+    };
+  })();
+
+  const confirmStudyDialog = () => {
+    if (!confirmDialog) return;
+    const action = confirmDialog;
+    setConfirmDialog(null);
+
+    if (action.kind === "clearCoachHistory") {
+      clearAllCoachHistory();
+      return;
+    }
+    if (action.kind === "clearRevisionWorkspace") {
+      clearRevisionWorkspace();
+      return;
+    }
+    if (action.kind === "clearExamWorkspace") {
+      clearExamWorkspace();
+      return;
+    }
+    performDeleteConversation(action.conversation);
+  };
+
+  const submitRenameConversation = (title: string) => {
+    if (!renameTarget) return;
+    applyConversationRename(renameTarget, title);
+    setRenameTarget(null);
   };
 
   const threeMarkQuestions = probableQuestions.filter((question) => question.marks !== 5);
@@ -3913,6 +3684,23 @@ export default function StudyPage() {
           </div>
         ) : null}
       </section>
+      {confirmCopy ? (
+        <StudyConfirmDialog
+          open={Boolean(confirmDialog)}
+          title={confirmCopy.title}
+          detail={confirmCopy.detail}
+          confirmLabel={confirmCopy.confirmLabel}
+          onConfirm={confirmStudyDialog}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      ) : null}
+      <RenameConversationDialog
+        key={renameTarget?.id || "rename-closed"}
+        open={Boolean(renameTarget)}
+        initialTitle={renameTarget?.title || ""}
+        onCancel={() => setRenameTarget(null)}
+        onRename={submitRenameConversation}
+      />
     </div>
   );
 }
