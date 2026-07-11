@@ -1,73 +1,141 @@
 import Link from "next/link";
+import {
+  DATA_REQUEST_LINKS,
+  LEGAL_EFFECTIVE_DATE,
+  SUPPORT_EMAIL,
+  STUDENT_PRIVACY_COMMITMENTS,
+} from "@/lib/legal";
 
 export const metadata = {
   title: "Terms of Service - AgentifyAI",
 };
 
-const termsHighlights = [
+const termsSections = [
   {
-    label: "Personal study use",
-    detail: "AgentifyAI is built for learning support, practice, revision, and student progress tracking.",
+    id: "study-use",
+    title: "Study-first use",
+    body:
+      "AgentifyAI is provided as an AI learning workspace for study support, revision, practice, exam preparation, progress tracking, and related student workflows. You agree to use it for lawful learning activity and not to disrupt, scrape, abuse, reverse engineer, or overload the service.",
   },
   {
-    label: "Account security",
-    detail: "Students are responsible for keeping sign-in access secure and using the product through their own account.",
+    id: "acceptable-use",
+    title: "Acceptable use",
+    body:
+      "Do not upload content you do not have the right to use, attempt to bypass security, impersonate another person, submit harmful instructions, use the service to cheat in live assessments, or rely on generated answers as a substitute for your own exam work.",
   },
   {
-    label: "Responsible outputs",
-    detail: "Generated study material should be reviewed, practiced, and used as learning guidance rather than a shortcut.",
+    id: "ai-guidance",
+    title: "AI-generated educational content",
+    body:
+      "AI answers, summaries, missions, quizzes, citations, and feedback are educational guidance. They can be incomplete or incorrect. Students should verify important work with source material, teachers, guardians, or official curriculum resources before relying on it.",
   },
-];
+  {
+    id: "accounts",
+    title: "Accounts and security",
+    body:
+      "You are responsible for activity under your account and for keeping sign-in access secure. If you believe your account was accessed without permission, contact support promptly so access and related study data can be reviewed.",
+  },
+  {
+    id: "uploads",
+    title: "Uploaded material and study data",
+    body:
+      "When you upload notes, papers, answers, prompts, or other study material, you give AgentifyAI permission to process that content to provide tutoring, retrieval, analytics, evaluation, and progress features for your account.",
+  },
+  {
+    id: "changes",
+    title: "Changes and availability",
+    body:
+      "AgentifyAI may update features, safety rules, models, limits, or these terms as the product improves. If changes materially affect student rights or responsibilities, the updated effective date will be shown on this page.",
+  },
+] as const;
 
 export default function TermsPage() {
   return (
-    <main className="min-h-[100dvh] bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.14),transparent_32%),radial-gradient(circle_at_88%_10%,rgba(242,184,75,0.12),transparent_28%),var(--agentify-bg)] px-5 py-10 text-[var(--agentify-primary-text)] sm:px-8">
-      <section className="mx-auto grid min-h-[calc(100dvh-5rem)] w-full max-w-6xl items-center gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(360px,1fr)]">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">AgentifyAI terms</p>
-          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">Terms of Service</h1>
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--agentify-muted-text)] sm:text-base">
-            Our full Terms of Service are being finalized ahead of public launch. By using AgentifyAI you agree to
-            use it for personal study, to keep your account secure, and to use generated study material responsibly.
-            The complete, binding terms will be published on this page before general availability.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <Link
-              href="/login"
-              className="inline-flex items-center rounded-2xl border border-[#0E7490]/25 bg-[#0E7490]/10 px-5 py-3 text-sm font-semibold text-[#0E7490] transition hover:-translate-y-0.5 hover:bg-[#0E7490]/15"
-            >
-              Back to sign in
-            </Link>
-            <Link
-              href="/privacy"
-              className="inline-flex items-center rounded-2xl border border-[var(--agentify-border)] bg-[var(--agentify-card-bg)] px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5 hover:border-[#0E7490]/35"
-            >
-              View privacy
-            </Link>
-          </div>
-        </div>
+    <main className="min-h-[100dvh] bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.14),transparent_32%),radial-gradient(circle_at_88%_10%,rgba(242,184,75,0.12),transparent_28%),var(--agentify-bg)] px-5 py-8 text-[var(--agentify-primary-text)] sm:px-8">
+      <section className="mx-auto w-full max-w-5xl">
+        <nav className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
+          <Link href="/login" className="font-semibold text-[#0E7490] hover:underline">
+            Back to sign in
+          </Link>
+          <Link href="/privacy" className="font-semibold text-[var(--agentify-muted-text)] hover:text-[#0E7490]">
+            Privacy Policy
+          </Link>
+        </nav>
 
-        <div className="rounded-[2rem] border border-[var(--agentify-border)] bg-[var(--agentify-card-bg)] p-5 shadow-[0_28px_80px_rgba(15,23,42,0.10)] backdrop-blur-xl sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--agentify-border)] pb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--agentify-muted-text)]">At a glance</p>
-              <h2 className="mt-1 text-xl font-semibold">Simple use expectations</h2>
-            </div>
-            <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-600">
-              Study-first
-            </span>
-          </div>
-          <div className="mt-5 space-y-3">
-            {termsHighlights.map((item) => (
-              <article key={item.label} className="rounded-2xl border border-[var(--agentify-border)] bg-white/[0.035] p-4">
-                <p className="text-sm font-semibold">{item.label}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--agentify-muted-text)]">{item.detail}</p>
+        <header className="pt-12">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#0E7490]">
+            AgentifyAI terms
+          </p>
+          <h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl">
+            Terms of Service
+          </h1>
+          <p className="mt-4 text-sm font-semibold text-[var(--agentify-muted-text)]">
+            Effective {LEGAL_EFFECTIVE_DATE}
+          </p>
+          <p className="mt-5 max-w-3xl text-sm leading-7 text-[var(--agentify-muted-text)] sm:text-base">
+            These terms explain how students may use AgentifyAI and how the product treats AI-generated study support.
+            They are written to keep the learning workspace safe, honest, and useful.
+          </p>
+        </header>
+
+        <div className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <section className="space-y-4" aria-label="Terms sections">
+            {termsSections.map((section) => (
+              <article
+                key={section.id}
+                id={section.id}
+                className="rounded-[1.5rem] border border-[var(--agentify-border)] bg-[var(--agentify-card-bg)] p-5 shadow-[0_18px_52px_rgba(15,23,42,0.08)] backdrop-blur-xl"
+              >
+                <h2 className="text-lg font-semibold tracking-tight">{section.title}</h2>
+                <p className="mt-3 text-sm leading-7 text-[var(--agentify-muted-text)]">
+                  {section.body}
+                </p>
               </article>
             ))}
-          </div>
-          <p className="mt-5 rounded-2xl border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-4 text-xs leading-6 text-[var(--agentify-muted-text)]">
-            This page keeps the product rules visible before sign-in while the complete launch terms are finalized.
-          </p>
+          </section>
+
+          <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+            <div className="rounded-[1.5rem] border border-[#14B8A6]/25 bg-[#14B8A6]/10 p-5">
+              <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[#0E7490]">
+                Student commitments
+              </h2>
+              <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--agentify-muted-text)]">
+                {STUDENT_PRIVACY_COMMITMENTS.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-[var(--agentify-border)] bg-[var(--agentify-card-bg)] p-5">
+              <h2 className="text-sm font-bold uppercase tracking-[0.14em] text-[var(--agentify-muted-text)]">
+                Account and data requests
+              </h2>
+              <div className="mt-4 space-y-3">
+                {DATA_REQUEST_LINKS.map((item) => (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="block rounded-2xl border border-[var(--agentify-border)] bg-white/[0.04] p-4 transition hover:border-[#0E7490]/35"
+                  >
+                    <span className="text-sm font-semibold text-[var(--agentify-primary-text)]">
+                      {item.label}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-[var(--agentify-muted-text)]">
+                      {item.detail}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <p className="rounded-[1.5rem] border border-amber-300/25 bg-amber-300/10 p-4 text-xs leading-6 text-[var(--agentify-muted-text)]">
+              Questions about these terms can be sent to{" "}
+              <a className="font-semibold text-[#0E7490] hover:underline" href={`mailto:${SUPPORT_EMAIL}`}>
+                {SUPPORT_EMAIL}
+              </a>
+              .
+            </p>
+          </aside>
         </div>
       </section>
     </main>

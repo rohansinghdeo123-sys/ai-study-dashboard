@@ -8,6 +8,7 @@ import {
   type ClassLevel,
   isValidDisplayName,
 } from "@/lib/profile";
+import { LEGAL_CONSENT_STORAGE_KEY, LEGAL_VERSION } from "@/lib/legal";
 import { Manrope } from "next/font/google";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -52,9 +53,9 @@ export default function OnboardingPage() {
   } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState<OnboardingStep>(0);
-  const [termsAccepted, setTermsAccepted] = useState(true);
-  const [privacyAccepted, setPrivacyAccepted] = useState(true);
-  const [tipsAccepted, setTipsAccepted] = useState(true);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [tipsAccepted, setTipsAccepted] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [classLevel, setClassLevel] = useState<ClassLevel>("");
   const [saving, setSaving] = useState(false);
@@ -131,6 +132,24 @@ export default function OnboardingPage() {
     router.replace("/login");
   }
 
+  function recordLegalConsent() {
+    try {
+      localStorage.setItem(
+        LEGAL_CONSENT_STORAGE_KEY,
+        JSON.stringify({
+          version: LEGAL_VERSION,
+          termsAccepted,
+          privacyAccepted,
+          optionalProductTipsAccepted: tipsAccepted,
+          recordedAt: new Date().toISOString(),
+          scope: "device",
+        }),
+      );
+    } catch {
+      // Local consent storage is a UX aid. Backend consent auditing needs a separate API contract.
+    }
+  }
+
   if (loading) {
     return (
       <OnboardingShell
@@ -191,8 +210,14 @@ export default function OnboardingPage() {
           <div className="onboarding-review-list">
             {checkedRow(
               termsAccepted,
-              setTermsAccepted,
+              (checked) => {
+                setTermsAccepted(checked);
+                setError("");
+              },
               <>
+                <span className="mr-2 rounded-full bg-[#0E7490]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0E7490]">
+                  Required
+                </span>
                 I agree to AgentifyAI{" "}
                 <Link href="/terms" target="_blank">Terms</Link> and{" "}
                 <Link href="/terms#acceptable-use" target="_blank">
@@ -202,8 +227,14 @@ export default function OnboardingPage() {
             )}
             {checkedRow(
               privacyAccepted,
-              setPrivacyAccepted,
+              (checked) => {
+                setPrivacyAccepted(checked);
+                setError("");
+              },
               <>
+                <span className="mr-2 rounded-full bg-[#0E7490]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#0E7490]">
+                  Required
+                </span>
                 I consent to collection and use of my personal information in
                 accordance with the{" "}
                 <Link href="/privacy" target="_blank">Privacy Policy</Link>.
@@ -211,18 +242,34 @@ export default function OnboardingPage() {
             )}
             {checkedRow(
               tipsAccepted,
-              setTipsAccepted,
+              (checked) => {
+                setTipsAccepted(checked);
+                setError("");
+              },
               <>
-                Send me occasional learning tips and product updates. I can opt
-                out anytime.
+                <span className="mr-2 rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--agentify-muted-text)]">
+                  Optional
+                </span>
+                Send me occasional learning tips and product updates. This is
+                optional and does not affect my account.
               </>,
             )}
           </div>
+          {error ? (
+            <p className="onboarding-inline-error" role="alert">
+              {error}
+            </p>
+          ) : null}
           <button
             type="button"
             className="onboarding-primary"
-            disabled={!canCreate}
+            aria-disabled={!canCreate}
             onClick={() => {
+              if (!canCreate) {
+                setError("Accept the required Terms and Privacy Policy to create your account.");
+                return;
+              }
+              recordLegalConsent();
               setError("");
               setStep(1);
             }}
