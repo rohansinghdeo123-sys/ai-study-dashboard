@@ -490,7 +490,14 @@ function MissionBoard({ missions }: { missions: RivalMission[] }) {
               <div className="dashboard-rival-mission-main">
                 <p>{mission.title}</p>
                 <small>{mission.detail}</small>
-                <div className="dashboard-rival-mission-bar" aria-hidden="true">
+                <div
+                  className="dashboard-rival-mission-bar"
+                  role="progressbar"
+                  aria-label={`${mission.title} progress`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={percent}
+                >
                   <span style={{ width: `${Math.max(mission.completed ? 100 : 3, percent)}%` }} />
                 </div>
               </div>
@@ -518,7 +525,7 @@ function RivalActivityPanel({ challenge }: { challenge: RivalChallengeState }) {
           <p>{challenge.rival ? "Your XP against your rival's, updating live." : "Your XP this week, day by day."}</p>
         </div>
       </div>
-      <div className="dashboard-rival-week-chart" aria-label="Daily XP this week">
+      <div className="dashboard-rival-week-chart" aria-hidden="true">
         {days.map((day, index) => (
           <div className="dashboard-rival-week-day" key={day}>
             <div className="dashboard-rival-week-bars">
@@ -539,6 +546,25 @@ function RivalActivityPanel({ challenge }: { challenge: RivalChallengeState }) {
           </div>
         ))}
       </div>
+      <table className="sr-only">
+        <caption>Daily XP this week</caption>
+        <thead>
+          <tr>
+            <th scope="col">Day</th>
+            <th scope="col">Your XP</th>
+            {challenge.rival ? <th scope="col">{challenge.rival.name}&apos;s XP</th> : null}
+          </tr>
+        </thead>
+        <tbody>
+          {days.map((day, index) => (
+            <tr key={`xp-summary-${day}`}>
+              <th scope="row">{day}</th>
+              <td>{challenge.me.daily_xp[index] || 0}</td>
+              {challenge.rival ? <td>{challenge.rival.daily_xp[index] || 0}</td> : null}
+            </tr>
+          ))}
+        </tbody>
+      </table>
       {challenge.rival ? (
         <>
           <div className="dashboard-rival-legend" aria-hidden="true">
@@ -650,18 +676,18 @@ function HubTile({
 }) {
   const toneClass =
     tone === "gold"
-      ? "from-[#FFF8E7] via-[#FFF0C8] to-[#FFE3A3] text-[#744900]"
+      ? "border-amber-200/70 bg-[#FFFCF4] text-[#6B4A12]"
       : tone === "mission"
-        ? "from-[#ECFDF5] via-[#E5FAF3] to-[#CDEFE5] text-[#075F54]"
+        ? "border-emerald-200/70 bg-[#F3FBF8] text-[#075F54]"
         : tone === "study"
-          ? "from-[#F1FBFF] via-[#E7F8F6] to-[#C9F0EC] text-[#0B5363]"
-          : "from-[#EAFDFC] via-[#DFF8F3] to-[#D5F0EA] text-[#0E5264]";
+          ? "border-cyan-200/70 bg-[#F4FAFB] text-[#0B5363]"
+          : "border-teal-200/70 bg-[#F2FAF8] text-[#0E5264]";
 
   return (
     <Link
       href={href}
       aria-label={`${title}: ${description}`}
-      className={`hub-tile hub-tile--${tone} group relative min-h-[238px] overflow-hidden bg-gradient-to-br ${toneClass} p-6 outline-none sm:p-7`}
+      className={`hub-tile hub-tile--${tone} group relative min-h-[214px] overflow-hidden rounded-[1.25rem] border ${toneClass} p-5 outline-none sm:p-6`}
     >
       <div className="hub-tile-glow absolute right-[-3.5rem] top-[-3.5rem] h-36 w-36 rounded-full bg-white/28 blur-2xl transition duration-500 group-hover:scale-110" />
       <div className="hub-tile-content relative z-20 flex h-full flex-col">
@@ -670,16 +696,16 @@ function HubTile({
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] opacity-70">{eyebrow}</p>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h2>
           </div>
-          <span className="hub-tile-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/50 bg-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+          <span className="hub-tile-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/70 bg-white/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
             <HubIcon name={icon} />
           </span>
         </div>
 
-        <p className="hub-tile-description mt-4 max-w-sm text-sm leading-6 opacity-[0.78]">{description}</p>
-        <div className="hub-tile-footer mt-auto pt-7">
+        <p className="hub-tile-description mt-3 max-w-sm text-sm leading-6 opacity-[0.78]">{description}</p>
+        <div className="hub-tile-footer mt-auto pt-5">
           <div className="flex items-end justify-between gap-4">
             <span className="hub-tile-helper min-w-0 text-xs font-semibold leading-5 opacity-[0.68]">{helper}</span>
-            <span className="hub-tile-action inline-flex shrink-0 items-center rounded-full border border-white/60 bg-white/48 px-4 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+            <span className="hub-tile-action inline-flex shrink-0 items-center rounded-lg border border-white/80 bg-white/70 px-3.5 py-2 text-sm font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_6px_18px_rgba(15,23,42,0.06)] backdrop-blur-xl">
               {action}
             </span>
           </div>
@@ -1011,7 +1037,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#0E7490]">
               Learning Hub{classLevel ? ` / ${classLevel}` : ""}
             </p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">
+            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.035em] text-slate-950 sm:text-5xl">
               Good to see you, {firstName}
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-500">
@@ -1019,10 +1045,10 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="relative w-full max-w-[1180px] px-1 sm:px-4">
+          <div className="relative w-full max-w-[1120px] px-1 sm:px-4">
             <div
               aria-label="AgentifyAI learning spaces"
-              className="hub-grid grid grid-cols-1 overflow-visible rounded-[3rem] border border-white/70 bg-white/60 shadow-[0_36px_120px_rgba(15,23,42,0.14)] backdrop-blur-2xl md:grid-cols-2"
+              className="hub-grid grid grid-cols-1 gap-3 overflow-visible rounded-[1.5rem] border border-white/70 bg-white/52 p-3 shadow-[0_20px_70px_rgba(15,23,42,0.10)] backdrop-blur-2xl md:grid-cols-2"
             >
               <HubTile
                 href="/dashboard?workspace=overview"
@@ -1114,7 +1140,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <section className="dashboard-rival-section" aria-label="Weekly Rival Challenge" aria-live="polite">
+      <section className="dashboard-rival-section" aria-label="Weekly Rival Challenge">
         {challenge?.lastWeek ? (
           <LastWeekBanner lastWeek={challenge.lastWeek} badge={challenge.rewardBadge} />
         ) : null}
@@ -1128,7 +1154,7 @@ export default function DashboardPage() {
             </div>
           </>
         ) : (
-          <article className="dashboard-final-panel dashboard-rival-battle" data-status="unmatched">
+          <article className="dashboard-final-panel dashboard-rival-battle" data-status="unmatched" role="status">
             <div className="dashboard-rival-battle-top">
               <div>
                 <p className="dashboard-section-kicker">Weekly Rival Challenge</p>

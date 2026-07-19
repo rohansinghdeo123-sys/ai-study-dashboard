@@ -3,17 +3,12 @@
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Fraunces, Manrope } from "next/font/google";
+import { Fraunces } from "next/font/google";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ThemeToggle from "@/components/ThemeToggle";
 import ChatThinkingLogo from "@/components/brand/ChatThinkingLogo";
 import { AlertState, AppIcon, LoadingState } from "@/components/ui/Polished";
 import { primeBackend } from "@/lib/apiClient";
-
-const uiFont = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-});
 
 const displayFont = Fraunces({
   subsets: ["latin"],
@@ -95,12 +90,14 @@ const RESEND_COOLDOWN_SECONDS = 30;
 function OtpBoxes({
   value,
   disabled,
+  invalid,
   onChange,
   onComplete,
   firstInputRef,
 }: {
   value: string;
   disabled?: boolean;
+  invalid?: boolean;
   onChange: (next: string) => void;
   onComplete: (code: string) => void;
   firstInputRef?: React.MutableRefObject<HTMLInputElement | null>;
@@ -173,6 +170,8 @@ function OtpBoxes({
           disabled={disabled}
           value={char}
           aria-label={`Digit ${index + 1}`}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? "login-auth-error" : undefined}
           onChange={(event) => handleChange(index, event.target.value)}
           onKeyDown={(event) => handleKeyDown(index, event)}
           onPaste={handlePaste}
@@ -337,14 +336,14 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className={uiFont.className}>
+      <main id="main-content">
         <LoadingState title="Preparing secure sign in..." detail="Opening your private AgentifyAI study workspace." />
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className={cn("auth-scene auth-scene-final flex min-h-[100dvh] flex-col antialiased", uiFont.className)}>
+    <div className="auth-scene auth-scene-final flex min-h-[100dvh] flex-col antialiased">
       <div className="auth-final-backdrop" aria-hidden="true" />
 
       <header className="auth-header-final flex items-center justify-between px-5 py-5 sm:px-8 sm:py-6 lg:px-12">
@@ -367,7 +366,7 @@ export default function LoginPage() {
         <ThemeToggle compact />
       </header>
 
-      <main className="auth-center relative mx-auto flex w-full max-w-[48rem] flex-1 items-center justify-center px-5 py-7 sm:px-8 sm:py-10">
+      <main id="main-content" className="auth-center relative mx-auto flex w-full max-w-[48rem] flex-1 items-center justify-center px-5 py-7 sm:px-8 sm:py-10">
         <section aria-label="Sign in to AgentifyAI" className="auth-hero flex w-full flex-col items-center text-center">
           {!granted ? (
             <>
@@ -516,6 +515,7 @@ export default function LoginPage() {
                           onChange={(event) => setPhoneNumber(event.target.value)}
                           placeholder="+91 98765 43210"
                           aria-label="Mobile number"
+                          aria-invalid={Boolean(visibleAuthError) || undefined}
                           aria-describedby={visibleAuthError ? "login-auth-error" : undefined}
                           className="auth-field w-full rounded-2xl px-4 py-3.5 text-base font-medium outline-none transition"
                         />
@@ -524,6 +524,7 @@ export default function LoginPage() {
                       <OtpBoxes
                         value={otp}
                         disabled={verifyingOtp || signInBlocked}
+                        invalid={Boolean(visibleAuthError)}
                         onChange={(next) => setOtp(next)}
                         onComplete={(code) => void handleVerifyOtp(code)}
                         firstInputRef={otpInputRef}

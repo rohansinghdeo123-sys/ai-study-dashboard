@@ -156,19 +156,19 @@ function AdminSkeleton() {
 
 function UnauthorizedState({ email }: { email: string }) {
   return (
-    <div className="flex min-h-[calc(100svh-8rem)] items-center justify-center p-4">
+    <main id="main-content" className="flex min-h-[calc(100svh-8rem)] items-center justify-center p-4">
       <div className={cn(P, "max-w-xl p-8 text-center")}>
         <HealthBadge state="error" label="Founder access only" />
         <h1 className={cn("mt-5 text-2xl font-semibold", TEXT)}>Admin Console is restricted</h1>
         <p className={cn("mt-3 text-sm leading-6", MUTED)}>Signed in as {email || "an unknown account"}. This console only opens for approved founder emails.</p>
         <Link href="/dashboard" className={cn(P, "mt-6 inline-flex px-5 py-2.5 text-sm font-semibold", TEXT, "hover:bg-[color:var(--agentify-hover-bg)]")}>Return to dashboard</Link>
       </div>
-    </div>
+    </main>
   );
 }
 function VerifyingState() {
   return (
-    <div className="flex min-h-[60svh] items-center justify-center p-4">
+    <main id="main-content" className="flex min-h-[60svh] items-center justify-center p-4">
       <div className={cn(P, "flex items-center gap-3 px-6 py-5")}>
         <HealthDot state="warning" pulse />
         <div>
@@ -176,7 +176,7 @@ function VerifyingState() {
           <p className={cn("text-xs", MUTED)}>Checking admin claims and the founder allow-list.</p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -309,7 +309,7 @@ export default function FounderAdminConsolePage() {
   const pendingChapters = Number(statusCounts.pending || 0) + Number(statusCounts.review || 0) + Number(statusCounts.extracted || 0);
 
   return (
-    <div className="relative min-h-[100svh]" data-theme="dark">
+    <main id="main-content" className="relative min-h-[100svh]" data-theme="dark">
       <div className="pointer-events-none fixed inset-0 -z-20 bg-[#060D18]" />
 
       <div className="flex w-full flex-col gap-2 px-2.5 pb-10 pt-2.5 sm:px-4 lg:px-5">
@@ -534,6 +534,6 @@ export default function FounderAdminConsolePage() {
           </>
         ) : null}
       </div>
-    </div>
+    </main>
   );
 }

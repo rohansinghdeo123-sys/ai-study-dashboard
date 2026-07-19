@@ -5,6 +5,7 @@ const publicRoutes = [
   { path: "/login", heading: /your personal ai agent/i },
   { path: "/terms", heading: "Terms of Service" },
   { path: "/privacy", heading: "Privacy Policy" },
+  { path: "/this-page-does-not-exist", heading: "This study space does not exist." },
 ] as const;
 
 const protectedRoutes = [
@@ -34,8 +35,33 @@ async function expectNoHorizontalOverflow(page: Page) {
   expect(overflow.bodyOverflow).toBeLessThanOrEqual(1);
 }
 
+async function expectVisibleControlsInsideViewport(page: Page) {
+  const clipped = await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    return Array.from(document.querySelectorAll<HTMLElement>("h1, a, button, input, select, textarea"))
+      .filter((element) => {
+        const style = getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+        return style.visibility !== "hidden" && style.display !== "none" && rect.width > 0 && rect.height > 0;
+      })
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          label: element.getAttribute("aria-label") || element.textContent?.trim().slice(0, 60) || element.tagName,
+          left: rect.left,
+          right: rect.right,
+        };
+      })
+      .filter(({ left, right }) => left < -1 || right > viewportWidth + 1);
+  });
+
+  expect(clipped).toEqual([]);
+}
+
 async function expectLoginReady(page: Page) {
-  await expect(page.getByRole("heading", { name: /your personal ai agent/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /your personal ai agent/i })).toBeVisible({
+    timeout: 30_000,
+  });
   await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
 }
 
@@ -81,13 +107,16 @@ test.describe("public routes", () => {
     await gotoAppRoute(page, "/login");
 
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-    await page.getByRole("button", { name: /switch to dark theme/i }).click();
+    const themeToggle = page.getByRole("button", { name: "Dark theme" });
+    await expect(themeToggle).toHaveAttribute("aria-pressed", "false");
+    await themeToggle.click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(themeToggle).toHaveAttribute("aria-pressed", "true");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
-    await page.getByRole("button", { name: /switch to light theme/i }).click();
+    await page.getByRole("button", { name: "Dark theme" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
@@ -157,18 +186,29 @@ test.describe("public routes", () => {
   });
 
   test("critical public pages have no critical axe violations", async ({ page }) => {
+    test.setTimeout(180_000);
+
     for (const route of publicRoutes) {
       await gotoAppRoute(page, route.path);
       await page.getByRole("heading", { name: route.heading }).waitFor();
 
-      const results = await new AxeBuilder({ page })
-        .disableRules(["color-contrast"])
-        .analyze();
-      const criticalViolations = results.violations.filter(
-        (violation) => violation.impact === "critical",
+      const results = await new AxeBuilder({ page }).analyze();
+      const highImpactViolations = results.violations.filter(
+        (violation) => violation.impact === "critical" || violation.impact === "serious",
       );
 
-      expect(criticalViolations, `${route.path} critical axe violations`).toEqual([]);
+      expect(highImpactViolations, `${route.path} serious or critical axe violations`).toEqual([]);
+    }
+  });
+
+  test("public UI stays fully reachable at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+
+    for (const route of publicRoutes) {
+      await gotoAppRoute(page, route.path);
+      await expect(page.getByRole("heading", { name: route.heading })).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectVisibleControlsInsideViewport(page);
     }
   });
 });
@@ -187,9 +227,8 @@ test.describe("protected routes", () => {
     test(`${route} keeps unauthenticated students out of private UI`, async ({ page }) => {
       await gotoAppRoute(page, route);
 
-      await expect(page).toHaveURL(/\/login$/);
-      await expect(page.getByRole("heading", { name: /your personal ai agent/i })).toBeVisible();
-      await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
+      await expect(page).toHaveURL(/\/login$/, { timeout: 30_000 });
+      await expectLoginReady(page);
       await expect(page.getByText(/private study content/i)).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
     });

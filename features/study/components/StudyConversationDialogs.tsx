@@ -55,6 +55,7 @@ export function RenameConversationDialog({
     <Dialog
       open={open}
       title="Rename chat"
+      onClose={onCancel}
       footer={(
         <>
           <Button type="button" variant="ghost" onClick={onCancel}>

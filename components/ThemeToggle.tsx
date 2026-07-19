@@ -26,9 +26,9 @@ function subscribeToTheme(onStoreChange: () => void) {
 
 export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const theme = useSyncExternalStore(subscribeToTheme, getStoredTheme, () => "light");
+  const nextTheme = theme === "dark" ? "light" : "dark";
 
   const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
     applyTheme(nextTheme);
     window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
   };
@@ -38,10 +38,24 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
       type="button"
       onClick={toggleTheme}
       data-theme-toggle
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+      aria-label="Dark theme"
+      aria-pressed={theme === "dark"}
+      title={`Switch to ${nextTheme} theme`}
       className="agentify-action ds-icon-button theme-toggle-button px-3"
     >
-      {compact ? (theme === "dark" ? "Light" : "Dark") : theme === "dark" ? "Light theme" : "Dark theme"}
+      {theme === "dark" ? (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.8">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4" />
+        </svg>
+      ) : (
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.8">
+          <path d="M20.2 15.1A8.2 8.2 0 0 1 8.9 3.8 8.3 8.3 0 1 0 20.2 15Z" />
+        </svg>
+      )}
+      <span className={compact ? "sr-only" : "theme-toggle-label"}>
+        {theme === "dark" ? "Light theme" : "Dark theme"}
+      </span>
     </button>
   );
 }

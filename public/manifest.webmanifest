@@ -5,8 +5,8 @@
   "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#F8FAFC",
-  "theme_color": "#F8FAFC",
+  "background_color": "#F7F7F5",
+  "theme_color": "#F7F7F5",
   "orientation": "portrait-primary",
   "categories": ["education", "productivity"],
   "icons": [

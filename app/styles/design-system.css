@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --ds-bg-app: #f8fafc;
-    --ds-bg-subtle: #f1f5f9;
-    --ds-bg-secondary: #eef6f5;
-    --ds-surface: rgba(255, 255, 255, 0.88);
-    --ds-surface-elevated: rgba(255, 255, 255, 0.96);
+    --ds-bg-app: #f7f7f5;
+    --ds-bg-subtle: #f1f1ef;
+    --ds-bg-secondary: #edf5f3;
+    --ds-surface: rgba(255, 255, 255, 0.9);
+    --ds-surface-elevated: rgba(255, 255, 255, 0.98);
     --ds-surface-overlay: rgba(15, 23, 42, 0.58);
-    --ds-border: rgba(148, 163, 184, 0.24);
-    --ds-border-subtle: rgba(148, 163, 184, 0.16);
-    --ds-border-strong: rgba(14, 116, 144, 0.32);
+    --ds-border: rgba(15, 23, 42, 0.13);
+    --ds-border-subtle: rgba(15, 23, 42, 0.08);
+    --ds-border-strong: rgba(14, 116, 144, 0.38);
 
-    --ds-text-primary: #0f172a;
-    --ds-text-secondary: #334155;
-    --ds-text-muted: #64748b;
+    --ds-text-primary: #172033;
+    --ds-text-secondary: #3f4b5f;
+    --ds-text-muted: #667085;
     --ds-text-disabled: #94a3b8;
     --ds-text-inverse: #ffffff;
 
@@ -51,14 +51,14 @@
 
     --ds-radius-xs: 0.375rem;
     --ds-radius-sm: 0.5rem;
-    --ds-radius-md: 0.75rem;
-    --ds-radius-lg: 1rem;
-    --ds-radius-xl: 1.25rem;
+    --ds-radius-md: 0.625rem;
+    --ds-radius-lg: 0.875rem;
+    --ds-radius-xl: 1.125rem;
     --ds-radius-full: 9999px;
 
     --ds-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
-    --ds-shadow-md: 0 14px 38px rgba(15, 23, 42, 0.10);
-    --ds-shadow-lg: 0 28px 80px rgba(15, 23, 42, 0.14);
+    --ds-shadow-md: 0 8px 28px rgba(15, 23, 42, 0.075);
+    --ds-shadow-lg: 0 20px 56px rgba(15, 23, 42, 0.11);
     --ds-shadow-focus: 0 0 0 3px var(--ds-focus-ring-outer), 0 0 0 6px var(--ds-focus-ring);
 
     --ds-font-body: var(--font-sans);
@@ -85,11 +85,11 @@
   }
 
   [data-theme="dark"] {
-    --ds-bg-app: #07111f;
-    --ds-bg-subtle: #0b1120;
-    --ds-bg-secondary: #0f172a;
-    --ds-surface: rgba(15, 23, 42, 0.84);
-    --ds-surface-elevated: rgba(17, 24, 39, 0.96);
+    --ds-bg-app: #07101c;
+    --ds-bg-subtle: #0b1422;
+    --ds-bg-secondary: #101a2a;
+    --ds-surface: rgba(13, 23, 38, 0.88);
+    --ds-surface-elevated: rgba(16, 27, 44, 0.98);
     --ds-surface-overlay: rgba(2, 6, 23, 0.72);
     --ds-border: rgba(255, 255, 255, 0.12);
     --ds-border-subtle: rgba(255, 255, 255, 0.08);
@@ -119,8 +119,8 @@
     --ds-focus-ring: rgba(94, 234, 212, 0.46);
     --ds-focus-ring-outer: rgba(15, 23, 42, 0.98);
     --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
-    --ds-shadow-md: 0 18px 48px rgba(0, 0, 0, 0.28);
-    --ds-shadow-lg: 0 32px 90px rgba(0, 0, 0, 0.36);
+    --ds-shadow-md: 0 12px 36px rgba(0, 0, 0, 0.26);
+    --ds-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.34);
   }
 }
 
@@ -164,14 +164,14 @@
 
   .ds-button {
     display: inline-flex;
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
     border-radius: var(--ds-radius-md);
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 650;
     line-height: 1.2;
     white-space: nowrap;
     transition:
@@ -203,10 +203,15 @@
   }
 
   .ds-button-primary {
-    border: 1px solid transparent;
-    background: linear-gradient(135deg, #0f172a 0%, var(--ds-accent-teal) 48%, var(--ds-accent-teal-strong) 100%);
+    border: 1px solid rgba(7, 89, 101, 0.7);
+    background: linear-gradient(180deg, #168091 0%, #0e6878 100%);
     color: var(--ds-text-inverse);
-    box-shadow: 0 16px 34px rgba(14, 116, 144, 0.18);
+    box-shadow: 0 5px 14px rgba(14, 116, 144, 0.18);
+  }
+
+  [data-theme="dark"] .ds-button-primary {
+    border-color: rgba(94, 234, 212, 0.24);
+    background: linear-gradient(180deg, #148b8a 0%, #0f6f73 100%);
   }
 
   .ds-button-secondary {
@@ -234,8 +239,8 @@
 
   .ds-icon-button {
     display: inline-flex;
-    min-height: 2.5rem;
-    min-width: 2.5rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;

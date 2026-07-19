@@ -17,6 +17,7 @@ import {
   LoadingState,
   type AppIconName,
 } from "@/components/ui/Polished";
+import { handleTabListKeyDown } from "@/components/ui/primitives";
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
@@ -977,13 +978,16 @@ function ArtifactViewer({
         </div>
       </aside>
 
-      <div className="study-artifact-tabs" role="tablist" aria-label="Interactive study tool views">
+      <div className="study-artifact-tabs" role="tablist" aria-label="Interactive study tool views" onKeyDown={handleTabListKeyDown}>
         {availableTabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             role="tab"
+            id={`artifact-tab-${tab.id}`}
+            aria-controls={`artifact-panel-${tab.id}`}
             aria-selected={selectedTab === tab.id}
+            tabIndex={selectedTab === tab.id ? 0 : -1}
             onClick={() => onTabChange(tab.id)}
             className={`study-artifact-tab ${selectedTab === tab.id ? "is-active" : ""}`}
           >
@@ -993,7 +997,12 @@ function ArtifactViewer({
         ))}
       </div>
 
-      <section className="study-artifact-stage">
+      <section
+        id={`artifact-panel-${selectedTab}`}
+        className="study-artifact-stage"
+        role="tabpanel"
+        aria-labelledby={`artifact-tab-${selectedTab}`}
+      >
         <div className="mb-4">
           <p className="agentify-label">{activeLabel} workspace</p>
           <h3 className="mt-1 text-xl font-semibold text-slate-950">{renderInlineChemistry(readableArtifactText(artifact.title))}</h3>
@@ -1350,12 +1359,14 @@ function TutorResponseCard({
 
 function ModeButton({
   active,
+  id,
   label,
   detail,
   icon,
   onClick,
 }: {
   active: boolean;
+  id: StudyMode;
   label: string;
   detail: string;
   icon: AppIconName;
@@ -1365,7 +1376,10 @@ function ModeButton({
     <button
       type="button"
       role="tab"
+      id={`study-mode-tab-${id}`}
+      aria-controls={`study-mode-panel-${id}`}
       aria-selected={active}
+      tabIndex={active ? 0 : -1}
       data-active={active ? "true" : "false"}
       onClick={onClick}
       title={detail}
@@ -2837,12 +2851,20 @@ export default function StudyPage() {
           {pendingAttachments.length ? (
             <AttachmentChips attachments={pendingAttachments} onRemove={removePendingAttachment} />
           ) : null}
+          <label className="sr-only" htmlFor="study-tutor-message">
+            Message your AI tutor
+          </label>
+          <p id="study-tutor-message-help" className="sr-only">
+            Ask a study question. Press Enter to send or Shift+Enter to start a new line.
+          </p>
           <textarea
+            id="study-tutor-message"
             ref={inputRef}
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
             rows={isHero ? 2 : 1}
+            aria-describedby="study-tutor-message-help"
             placeholder={listening ? "Listening..." : isHero ? "Ask anything you want to learn..." : `Message ${coachName}...`}
             className="study-textarea min-h-14 flex-1 resize-none bg-transparent px-1 py-1 text-base text-slate-900 outline-none placeholder:text-slate-400 sm:px-2"
           />
@@ -2855,6 +2877,7 @@ export default function StudyPage() {
                 multiple
                 accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"
                 onChange={handleAttachmentSelect}
+                aria-label="Attach photos, documents, or notes to your tutor message"
                 className="sr-only"
               />
               <div ref={composerMenuRef} className="study-composer-menu-wrap">
@@ -3038,13 +3061,15 @@ export default function StudyPage() {
 
   return (
     <div className="study-lab-shell flex h-full min-h-0 w-full flex-col overflow-hidden">
+      <h1 className="sr-only">Study with your AI tutor</h1>
       <section className="study-lab-header px-3 py-2.5 sm:px-5">
         <div data-mode={mode} className="study-workspace-bar flex w-full flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="study-mode-segment" role="tablist" aria-label="Study mode">
+          <div className="study-mode-segment" role="tablist" aria-label="Study mode" onKeyDown={handleTabListKeyDown}>
             {STUDY_MODES.map((item) => (
               <ModeButton
                 key={item.id}
                 active={mode === item.id}
+                id={item.id}
                 label={item.label}
                 detail={item.detail}
                 icon={item.icon}
@@ -3061,7 +3086,12 @@ export default function StudyPage() {
         </div>
       </section>
 
-      <section className="study-lab-main flex min-h-0 flex-1 flex-col">
+      <section
+        id={`study-mode-panel-${mode}`}
+        className="study-lab-main flex min-h-0 flex-1 flex-col"
+        role="tabpanel"
+        aria-labelledby={`study-mode-tab-${mode}`}
+      >
         {mode === "coach" ? (
           <div className="study-coach-layout flex min-h-0 flex-1" data-sidebar-open={sidebarOpen ? "true" : "false"}>
             {sidebarOpen ? (
@@ -3260,7 +3290,12 @@ export default function StudyPage() {
                 </div>
               </aside>
 
-              <section className={`study-content-card study-focus-panel study-revision-canvas ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-0 flex-1 flex-col`}>
+              <section
+                id={`revision-panel-${activeRevisionPanel}`}
+                className={`study-content-card study-focus-panel study-revision-canvas ${activeRevisionPanel === "artifact" ? "study-artifact-focus" : ""} flex min-h-0 flex-1 flex-col`}
+                role="tabpanel"
+                aria-labelledby={`revision-tab-${activeRevisionPanel}`}
+              >
                 {activeRevisionTool ? (
                   <>
                     <header className="study-revision-canvas-header">
@@ -3357,14 +3392,17 @@ export default function StudyPage() {
                       <span className="agentify-chip">{examSubmitted ? `Score ${examScore}/${examQuestions.length}` : `${progressPercent}% ready`}</span>
                     </div>
                   </div>
-                  <div className="study-panel-tabs" role="tablist" aria-label="Exam workspaces">
+                  <div className="study-panel-tabs" role="tablist" aria-label="Exam workspaces" onKeyDown={handleTabListKeyDown}>
                     {EXAM_TABS.map((tab) => (
                       <button
                         key={tab.id}
                         type="button"
                         role="tab"
+                        id={`study-exam-tab-${tab.id}`}
+                        aria-controls={`study-exam-panel-${tab.id}`}
                         title={tab.detail}
                         aria-selected={activeExamPanel === tab.id}
+                        tabIndex={activeExamPanel === tab.id ? 0 : -1}
                         onClick={() => setActiveExamPanel(tab.id)}
                         className={`study-panel-tab ${activeExamPanel === tab.id ? "is-active" : ""}`}
                       >
@@ -3379,7 +3417,12 @@ export default function StudyPage() {
                 </div>
               </div>
 
-              <section className="study-content-card study-focus-panel flex min-h-0 flex-1 flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl">
+              <section
+                id={`study-exam-panel-${activeExamPanel}`}
+                className="study-content-card study-focus-panel flex min-h-0 flex-1 flex-col rounded-[2rem] border border-white/60 bg-white/84 p-5 shadow-[0_20px_64px_rgba(15,23,42,0.10)] backdrop-blur-2xl"
+                role="tabpanel"
+                aria-labelledby={`study-exam-tab-${activeExamPanel}`}
+              >
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0E7490]">{EXAM_TABS.find((tab) => tab.id === activeExamPanel)?.label}</p>

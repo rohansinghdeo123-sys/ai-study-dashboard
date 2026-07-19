@@ -50,7 +50,7 @@ export default function BackendStatus() {
     };
   }, [backendURL, checkBackend]);
 
-  const label = state === "ready" ? "Backend ready" : "Starting backend";
+  const label = state === "ready" ? "Learning services ready" : "Connecting to learning services";
 
   return (
     <div
@@ -60,7 +60,9 @@ export default function BackendStatus() {
       aria-live="polite"
     >
       <span />
-      <span className="hidden xl:inline">{label}</span>
+      <span className={state === "ready" ? "sr-only xl:not-sr-only" : "hidden xl:inline"}>
+        {state === "ready" ? "Ready" : "Connecting"}
+      </span>
     </div>
   );
 }

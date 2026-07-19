@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useId, type KeyboardEvent } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { LoadingSkeleton } from "@/components/ui/Polished";
 import { apiJson } from "@/lib/apiClient";
@@ -522,7 +522,7 @@ function GlassCard({ label, value, tone = "neutral", active = false }: { label: 
   return (
     <div
       className={cn(
-        "progress-glass-card group relative overflow-hidden rounded-2xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(8,18,31,0.86),rgba(9,15,27,0.80))] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.18)] backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200/20 hover:bg-white/[0.055]",
+        "progress-glass-card group relative overflow-hidden rounded-xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(8,18,31,0.86),rgba(9,15,27,0.80))] p-4 shadow-[0_10px_32px_rgba(0,0,0,0.16)] backdrop-blur-2xl transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-200/20 hover:bg-white/[0.055]",
         active && "border-[#14B8A6]/36 bg-[linear-gradient(135deg,rgba(8,47,73,0.58),rgba(8,29,43,0.78))]",
       )}
     >
@@ -530,7 +530,7 @@ function GlassCard({ label, value, tone = "neutral", active = false }: { label: 
       <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#14B8A6]/7 blur-2xl transition group-hover:bg-[#14B8A6]/10" />
       <div className="relative">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">{label}</div>
+          <div className="text-xs font-semibold text-slate-500">{label}</div>
           <span className={cn("h-1.5 w-1.5 rounded-full", tone === "green" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-400" : "bg-[#14B8A6]")} />
         </div>
         <div className={cn("mt-3 text-3xl font-semibold tracking-tight", toneText(tone))}>{value}</div>
@@ -540,12 +540,13 @@ function GlassCard({ label, value, tone = "neutral", active = false }: { label: 
 }
 
 function GlassPanel({ title, tag, right, className, children }: { title: string; tag?: string; right?: React.ReactNode; className?: string; children: React.ReactNode }) {
+  const titleId = useId();
   return (
-    <section className={cn("progress-glass-panel overflow-hidden rounded-2xl border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(8,18,31,0.88),rgba(10,14,24,0.82))] shadow-[0_18px_54px_rgba(0,0,0,0.20)] backdrop-blur-2xl", className)}>
+    <section aria-labelledby={titleId} className={cn("progress-glass-panel overflow-hidden rounded-[1.25rem] border border-cyan-100/10 bg-[linear-gradient(135deg,rgba(8,18,31,0.88),rgba(10,14,24,0.82))] shadow-[0_14px_44px_rgba(0,0,0,0.18)] backdrop-blur-2xl", className)}>
       <div className="progress-panel-header flex items-center justify-between border-b border-cyan-100/10 bg-white/[0.025] px-5 py-4">
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#14B8A6] shadow-[0_0_18px_rgba(20,184,166,0.8)]" />
-          <span className="text-sm font-bold uppercase tracking-[0.12em] text-slate-100">{title.replace(/_/g, " ")}</span>
+          <h2 id={titleId} className="text-sm font-semibold tracking-[-0.01em] text-slate-100">{title.replace(/_/g, " ")}</h2>
           {tag && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-amber-300">{tag}</span>}
         </div>
         {right}
@@ -563,11 +564,18 @@ function TonePill({ children, tone = "neutral" }: { children: React.ReactNode; t
   );
 }
 
-function Rail({ value, tone = "neutral" }: { value: number; tone?: Tone }) {
+function Rail({ value, tone = "neutral", label = "Progress" }: { value: number; tone?: Tone; label?: string }) {
   const width = Math.max(0, Math.min(100, value));
   const bg = tone === "green" ? "bg-emerald-400" : tone === "blue" ? "bg-[#14B8A6]" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-400" : "bg-gray-400";
   return (
-    <div className="progress-rail h-2 w-full overflow-hidden rounded-full bg-white/7">
+    <div
+      className="progress-rail h-2 w-full overflow-hidden rounded-full bg-white/7"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(width)}
+    >
       <div className={cn("h-full rounded-full shadow-[0_0_22px_currentColor] transition-all duration-700", bg)} style={{ width: `${width}%` }} />
     </div>
   );
@@ -583,13 +591,39 @@ function EmptyState({ title, detail }: { title: string; detail: string }) {
 }
 
 function TrendRangeToggle({ range, setRange }: { range: TrendRange; setRange: (v: TrendRange) => void }) {
+  const options = ["14d", "8w"] as const;
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, item: TrendRange) => {
+    let nextIndex: number | null = null;
+    const currentIndex = options.indexOf(item);
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = currentIndex + 1;
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = currentIndex - 1;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = options.length - 1;
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextRange = options[(nextIndex + options.length) % options.length];
+    setRange(nextRange);
+    const group = event.currentTarget.closest<HTMLElement>("[role='radiogroup']");
+    window.requestAnimationFrame(() => {
+      group?.querySelector<HTMLButtonElement>(`[data-trend-range='${nextRange}']`)?.focus();
+    });
+  };
+
   return (
-    <div className="flex gap-1">
-      {(["14d", "8w"] as const).map((item) => (
+    <div className="flex gap-1" role="radiogroup" aria-label="Trend range">
+      {options.map((item) => (
         <button
           type="button"
+          role="radio"
+          aria-checked={item === range}
+          aria-label={item === "14d" ? "14 days" : "8 weeks"}
+          data-trend-range={item}
+          tabIndex={item === range ? 0 : -1}
           key={item}
           onClick={() => setRange(item)}
+          onKeyDown={(event) => handleKeyDown(event, item)}
           className={cn(
             "agentify-action",
             "rounded-md border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] transition-all font-mono",
@@ -612,6 +646,8 @@ function LineChart({
   series: Array<{ label: string; color: string; data: number[] }>;
   valueSuffix?: string;
 }) {
+  const chartTitleId = useId();
+  const chartDescriptionId = useId();
   if (!labels.length || !series.some((s) => s.data.some((v) => Number.isFinite(v)))) {
     return <EmptyState title="No trend data" detail="Timestamped sessions are required to render this chart." />;
   }
@@ -621,8 +657,9 @@ function LineChart({
   const height = 66;
   const padding = { top: 7, right: 5, bottom: 10, left: 16 };
   const values = velocitySeries.data.filter((v) => Number.isFinite(v));
-  const maxValue = Math.max(...values, 0);
-  const yMax = Math.max(100, Math.ceil(maxValue / 25) * 25);
+  const maxValue = values.length ? Math.max(...values) : 0;
+  const minValue = values.length ? Math.min(...values) : 0;
+  const yMax = Math.max(100, Math.ceil(Math.max(maxValue, 0) / 25) * 25);
   const innerWidth = width - padding.left - padding.right;
   const innerHeight = height - padding.top - padding.bottom;
   const x = (index: number) => padding.left + (labels.length === 1 ? 0 : (index / (labels.length - 1)) * innerWidth);
@@ -637,6 +674,7 @@ function LineChart({
     return `${currentPath} C ${controlX} ${previous.y}, ${controlX} ${point.y}, ${point.x} ${point.y}`;
   }, "");
   const areaPath = `${path} L ${points[points.length - 1]?.x ?? padding.left} ${baseline} L ${points[0]?.x ?? padding.left} ${baseline} Z`;
+  const summary = `${velocitySeries.label} ranges from ${minValue}${valueSuffix} to ${maxValue}${valueSuffix} across ${labels.length} periods.`;
 
   return (
     <div className="progress-chart-frame relative min-h-[430px] overflow-hidden rounded-[1.6rem] border border-[#1A2C3C] bg-[#050A0D] px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_56px_rgba(0,0,0,0.24)]">
@@ -653,7 +691,14 @@ function LineChart({
         </div>
       </div>
 
-      <svg viewBox={`0 0 ${width} ${height}`} className="relative h-[335px] w-full overflow-visible">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="relative h-[335px] w-full overflow-visible"
+        role="img"
+        aria-labelledby={`${chartTitleId} ${chartDescriptionId}`}
+      >
+        <title id={chartTitleId}>XP velocity trend</title>
+        <desc id={chartDescriptionId}>{summary}</desc>
         <defs>
           <linearGradient id="analyticsXpArea" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="#FFAA0A" stopOpacity="0.46" />
@@ -939,24 +984,24 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-[calc(100svh-105px)] w-full max-w-[1880px] space-y-5 py-5">
+      <div className="mx-auto min-h-[calc(100svh-105px)] w-full max-w-[1880px] space-y-5 py-5">
         <LoadingSkeleton className="h-28 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
         <section className="grid gap-5 lg:grid-cols-2">
           <LoadingSkeleton className="h-64 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
           <LoadingSkeleton className="h-64 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
         </section>
         <LoadingSkeleton className="h-72 rounded-[2rem] border border-white/10 bg-slate-900/70 p-6" />
-      </main>
+      </div>
     );
   }
 
   return (
-    <div className="progress-analytics-shell relative -mx-1 overflow-hidden rounded-[2.2rem] border border-cyan-100/10 bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.10),transparent_30%),radial-gradient(circle_at_88%_4%,rgba(242,184,75,0.09),transparent_28%),linear-gradient(135deg,#06111D_0%,#080D16_50%,#0D1420_100%)] p-4 text-slate-200 shadow-[0_26px_80px_rgba(0,0,0,0.28)] sm:p-6">
+    <div className="progress-analytics-shell relative -mx-1 overflow-hidden rounded-[1.5rem] border border-cyan-100/10 bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.10),transparent_30%),radial-gradient(circle_at_88%_4%,rgba(242,184,75,0.09),transparent_28%),linear-gradient(135deg,#06111D_0%,#080D16_50%,#0D1420_100%)] p-4 text-slate-200 shadow-[0_20px_64px_rgba(0,0,0,0.24)] sm:p-6">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(148,163,184,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.035)_1px,transparent_1px)] bg-[size:64px_64px] opacity-45" />
       <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/40 to-transparent" />
 
       <div className="relative space-y-6">
-        <section className="progress-hero-panel overflow-hidden rounded-[2rem] border border-cyan-100/12 bg-[linear-gradient(135deg,rgba(8,20,34,0.92),rgba(7,12,22,0.82))] shadow-[0_28px_90px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+        <section className="progress-hero-panel overflow-hidden rounded-[1.25rem] border border-cyan-100/12 bg-[linear-gradient(135deg,rgba(8,20,34,0.92),rgba(7,12,22,0.82))] shadow-[0_18px_56px_rgba(0,0,0,0.22)] backdrop-blur-2xl">
           <div className="grid gap-0 xl:grid-cols-[minmax(0,1.25fr)_420px]">
             <div className="p-6 sm:p-8">
               <div className="flex flex-wrap items-center gap-2">
@@ -1028,7 +1073,7 @@ export default function ProgressPage() {
                   <span className="pb-3 text-sm font-semibold text-slate-500">/ 100</span>
                 </div>
                 <div className="mt-5">
-                  <Rail value={readinessScore} tone={readinessTone} />
+                  <Rail value={readinessScore} tone={readinessTone} label="Readiness score" />
                 </div>
                 <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
                   <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-3">
@@ -1095,7 +1140,7 @@ export default function ProgressPage() {
                   <span className={cn("text-sm font-semibold", toneText(readinessTone))}>{readinessScore}%</span>
                 </div>
                 <div className="mt-3">
-                  <Rail value={readinessScore} tone={readinessTone} />
+                  <Rail value={readinessScore} tone={readinessTone} label="Readiness score" />
                 </div>
               </div>
               <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -1172,7 +1217,7 @@ export default function ProgressPage() {
                 <span className="text-gray-400">Avg XP (all users)</span>
                 <span className="text-gray-200">{leaderboardAvg.xp}</span>
               </div>
-              <Rail value={leaderboardAvg.xp > 0 ? Math.round((totalXp / leaderboardAvg.xp) * 100) : 0} tone="blue" />
+              <Rail value={leaderboardAvg.xp > 0 ? Math.round((totalXp / leaderboardAvg.xp) * 100) : 0} tone="blue" label="XP compared with the leaderboard average" />
               <div className="text-[10px] text-gray-500 uppercase tracking-wider">Rank #{currentRank.rank} of {Math.max(1, rankedLeaderboard.length)}</div>
             </div>
           </GlassPanel>
@@ -1185,14 +1230,14 @@ export default function ProgressPage() {
                   <div>
                     <div className="text-[10px] uppercase text-gray-500 mb-1">Consistency</div>
                     <div className="text-2xl font-bold text-white">{progress.consistency_index}%</div>
-                    <Rail value={progress.consistency_index} tone="blue" />
+                    <Rail value={progress.consistency_index} tone="blue" label="Consistency index" />
                   </div>
                 )}
                 {progress.learning_efficiency > 0 && (
                   <div>
                     <div className="text-[10px] uppercase text-gray-500 mb-1">Efficiency</div>
                     <div className="text-2xl font-bold text-white">{progress.learning_efficiency}%</div>
-                    <Rail value={progress.learning_efficiency} tone="green" />
+                    <Rail value={progress.learning_efficiency} tone="green" label="Learning efficiency" />
                   </div>
                 )}
               </div>
@@ -1349,7 +1394,7 @@ export default function ProgressPage() {
                 return (
                   <div key={label} className="grid grid-cols-[90px_1fr_80px] items-center gap-4">
                     <span className="text-xs text-gray-400 text-right">{label}</span>
-                    <Rail value={percent} tone="amber" />
+                    <Rail value={percent} tone="amber" label={`Relative study time for ${label}`} />
                     <span className="text-xs text-white font-mono">{formatMinutes(weeklyDurations[i])}</span>
                   </div>
                 );
@@ -1386,7 +1431,7 @@ export default function ProgressPage() {
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <GlassPanel title="Activity heatmap" tag="35D" right={<TonePill tone="amber">{heatmap.reduce((a, b) => a + b.value, 0)} sessions</TonePill>}>
           {heatmap.length ? (
-            <div className="space-y-2">
+            <div className="space-y-2" role="list" aria-label="Study sessions during the last 35 days">
               {Array.from({ length: Math.ceil(heatmap.length / 7) }, (_, i) => heatmap.slice(i * 7, i * 7 + 7)).map((week, wi) => (
                 <div key={wi} className="grid grid-cols-7 gap-2">
                   {week.map((item) => {
@@ -1394,6 +1439,8 @@ export default function ProgressPage() {
                     return (
                       <div
                         key={item.key}
+                        role="listitem"
+                        aria-label={`${item.label}: ${item.value} sessions`}
                         title={`${item.label}: ${item.value} sessions`}
                         className="aspect-square rounded-sm border border-white/10"
                         style={{ backgroundColor: `rgba(255, 170, 10, ${intensity})` }}

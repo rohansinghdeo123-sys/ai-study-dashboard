@@ -45,7 +45,7 @@ const privacySections = [
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-[100dvh] bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.14),transparent_32%),radial-gradient(circle_at_88%_10%,rgba(242,184,75,0.12),transparent_28%),var(--agentify-bg)] px-5 py-8 text-[var(--agentify-primary-text)] sm:px-8">
+    <main id="main-content" className="min-h-[100dvh] bg-[radial-gradient(circle_at_12%_0%,rgba(20,184,166,0.14),transparent_32%),radial-gradient(circle_at_88%_10%,rgba(242,184,75,0.12),transparent_28%),var(--agentify-bg)] px-5 py-8 text-[var(--agentify-primary-text)] sm:px-8">
       <section className="mx-auto w-full max-w-5xl">
         <nav className="flex flex-wrap items-center justify-between gap-3 py-2 text-sm">
           <Link href="/login" className="font-semibold text-[#0E7490] hover:underline">

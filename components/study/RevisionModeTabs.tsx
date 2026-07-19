@@ -1,6 +1,7 @@
 "use client";
 
 import { AppIcon, type AppIconName } from "@/components/ui/Polished";
+import { handleTabListKeyDown } from "@/components/ui/primitives";
 
 export type RevisionWorkspaceId = "summary" | "explain" | "keypoints" | "artifact";
 
@@ -19,13 +20,16 @@ export default function RevisionModeTabs({
   onChange: (tab: RevisionWorkspaceId) => void;
 }) {
   return (
-    <div className="study-panel-tabs" role="tablist" aria-label="Revision workspaces">
+    <div className="study-panel-tabs" role="tablist" aria-label="Revision workspaces" onKeyDown={handleTabListKeyDown}>
       {TABS.map((tab) => (
         <button
           key={tab.id}
           type="button"
           role="tab"
+          id={`revision-tab-${tab.id}`}
+          aria-controls={`revision-panel-${tab.id}`}
           aria-selected={activeTab === tab.id}
+          tabIndex={activeTab === tab.id ? 0 : -1}
           onClick={() => onChange(tab.id)}
           className={`study-panel-tab ${activeTab === tab.id ? "is-active" : ""}`}
         >

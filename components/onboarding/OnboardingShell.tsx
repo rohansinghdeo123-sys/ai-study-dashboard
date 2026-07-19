@@ -20,7 +20,7 @@ export default function OnboardingShell({
   fontClassName?: string;
 }) {
   return (
-    <main className={`onboarding-page ${fontClassName || ""}`}>
+    <main id="main-content" className={`onboarding-page ${fontClassName || ""}`}>
       <div className="onboarding-ambient" aria-hidden="true">
         <span className="onboarding-glow onboarding-glow-teal" />
         <span className="onboarding-glow onboarding-glow-gold" />

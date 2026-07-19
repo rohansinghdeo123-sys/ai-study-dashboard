@@ -1,6 +1,7 @@
 "use client";
 
 import { AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
+import { handleTabListKeyDown } from "@/components/ui/primitives";
 import { ChipList, DistributionList, ExamReadinessStrip } from "@/components/exam/panels";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import {
@@ -1219,7 +1220,7 @@ export default function ExamModePage() {
       </section>
 
       <div className="exam-mode-layout">
-        <main className="exam-mode-main">
+        <div className="exam-mode-main">
           <section className="exam-mode-setup" aria-label="Exam setup">
             <div className="exam-mode-builder-copy">
               <p>Course scope</p>
@@ -1310,13 +1311,16 @@ export default function ExamModePage() {
           {error ? <div className="exam-mode-alert" role="status">{error}</div> : null}
 
           <section className="exam-mode-workspace">
-            <div className="exam-mode-tabs" role="tablist" aria-label="Exam sections">
+            <div className="exam-mode-tabs" role="tablist" aria-label="Exam sections" onKeyDown={handleTabListKeyDown}>
               {tabs.map(([id, label, count]) => (
                 <button
                   key={id}
                   type="button"
                   role="tab"
+                  id={`exam-section-tab-${id}`}
+                  aria-controls={`exam-section-panel-${id}`}
                   aria-selected={activePanel === id}
+                  tabIndex={activePanel === id ? 0 : -1}
                   onClick={() => openPanel(id)}
                   className={activePanel === id ? "is-active" : ""}
                 >
@@ -1326,7 +1330,12 @@ export default function ExamModePage() {
               ))}
             </div>
 
-            <div className="exam-mode-content">
+            <div
+              id={`exam-section-panel-${activePanel}`}
+              className="exam-mode-content"
+              role="tabpanel"
+              aria-labelledby={`exam-section-tab-${activePanel}`}
+            >
               {activePanel === "mcq" ? (
                 generating ? (
                   <LoadingState title="Creating your grounded questions..." detail="Checking options, explanations, and textbook sources." />
@@ -1388,13 +1397,12 @@ export default function ExamModePage() {
                 ) : questions.length ? (
                   <div className="exam-focus-flow">
                     <div className="exam-focus-top">
-                      <div className="exam-focus-palette" role="tablist" aria-label="Question navigator">
+                      <div className="exam-focus-palette" role="navigation" aria-label="Question navigator">
                         {questions.map((question, index) => (
                           <button
                             key={`dot-${question.id}`}
                             type="button"
-                            role="tab"
-                            aria-selected={index === currentIndex}
+                            aria-current={index === currentIndex ? "step" : undefined}
                             aria-label={`Question ${index + 1}${answers[question.id] ? ", answered" : ", not answered"}`}
                             data-answered={answers[question.id] ? "true" : "false"}
                             data-current={index === currentIndex ? "true" : "false"}
@@ -1804,13 +1812,22 @@ export default function ExamModePage() {
                   </div>
 
                   <section className="exam-toolbar-panel">
-                    <label>
+                    <label htmlFor="exam-marks-focus">
                       <span>Marks focus</span>
-                      <input value={marksFocus} onChange={(event) => setMarksFocus(event.target.value)} />
+                      <input
+                        id="exam-marks-focus"
+                        value={marksFocus}
+                        onChange={(event) => setMarksFocus(event.target.value)}
+                        aria-describedby="exam-marks-focus-help"
+                        aria-invalid={!marksFocus.trim() || !Number.isFinite(Number(marksFocus)) || Number(marksFocus) < 1}
+                      />
                     </label>
-                    <label>
+                    <small id="exam-marks-focus-help" className="sr-only">
+                      Enter a positive number of marks for the generated written question.
+                    </small>
+                    <label htmlFor="exam-written-question-type">
                       <span>Question type</span>
-                      <select value={writtenQuestionType} onChange={(event) => setWrittenQuestionType(event.target.value)}>
+                      <select id="exam-written-question-type" value={writtenQuestionType} onChange={(event) => setWrittenQuestionType(event.target.value)}>
                         {QUESTION_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                       </select>
                     </label>
@@ -1824,13 +1841,21 @@ export default function ExamModePage() {
                       {writtenQuestion ? (
                         <>
                           <span>{formatLabel(writtenQuestion.question_type)} / {writtenQuestion.marks_total} marks / {formatLabel(writtenQuestion.command_word)}</span>
-                          <h2>{writtenQuestion.question_text}</h2>
+                          <h2 id="exam-generated-question">{writtenQuestion.question_text}</h2>
+                          <label className="sr-only" htmlFor="exam-written-answer">
+                            Answer to the generated written question
+                          </label>
                           <textarea
+                            id="exam-written-answer"
                             value={writtenAnswer}
                             onChange={(event) => setWrittenAnswer(event.target.value)}
+                            aria-describedby="exam-generated-question exam-written-answer-help"
                             placeholder="Write your answer here."
                             rows={8}
                           />
+                          <p id="exam-written-answer-help" className="sr-only">
+                            Write a complete answer before submitting it for teacher-style evaluation.
+                          </p>
                           <button type="button" className="exam-mode-primary" onClick={() => void submitWrittenAnswer()} disabled={!writtenAnswer.trim() || submittingWritten}>
                             {submittingWritten ? "Evaluating..." : "Submit answer"}
                           </button>
@@ -1847,9 +1872,41 @@ export default function ExamModePage() {
 
                     <div className="exam-written-question">
                       <span>Self-chosen question</span>
-                      <input value={customQuestionText} onChange={(event) => setCustomQuestionText(event.target.value)} placeholder="Paste your question" />
-                      <input value={customMarks} onChange={(event) => setCustomMarks(event.target.value)} placeholder="Marks" />
-                      <textarea value={customAnswer} onChange={(event) => setCustomAnswer(event.target.value)} placeholder="Write your answer here." rows={7} />
+                      <label className="sr-only" htmlFor="exam-custom-question">Question to grade</label>
+                      <input
+                        id="exam-custom-question"
+                        value={customQuestionText}
+                        onChange={(event) => setCustomQuestionText(event.target.value)}
+                        aria-describedby="exam-custom-question-help"
+                        placeholder="Paste your question"
+                      />
+                      <p id="exam-custom-question-help" className="sr-only">
+                        Paste the exact self-chosen question you want evaluated.
+                      </p>
+                      <label className="sr-only" htmlFor="exam-custom-marks">Marks available</label>
+                      <input
+                        id="exam-custom-marks"
+                        value={customMarks}
+                        onChange={(event) => setCustomMarks(event.target.value)}
+                        aria-describedby="exam-custom-marks-help"
+                        aria-invalid={customMarks.trim() !== "" && (!Number.isFinite(Number(customMarks)) || Number(customMarks) < 1)}
+                        placeholder="Marks"
+                      />
+                      <p id="exam-custom-marks-help" className="sr-only">
+                        Enter the number of marks available for the self-chosen question.
+                      </p>
+                      <label className="sr-only" htmlFor="exam-custom-answer">Answer to grade</label>
+                      <textarea
+                        id="exam-custom-answer"
+                        value={customAnswer}
+                        onChange={(event) => setCustomAnswer(event.target.value)}
+                        aria-describedby="exam-custom-answer-help"
+                        placeholder="Write your answer here."
+                        rows={7}
+                      />
+                      <p id="exam-custom-answer-help" className="sr-only">
+                        Write the answer that should receive teacher-style feedback.
+                      </p>
                       <button type="button" className="exam-mode-secondary" onClick={() => void submitCustomWrittenAnswer()} disabled={!customQuestionText.trim() || !customAnswer.trim() || submittingWritten}>
                         Grade self-chosen answer
                       </button>
@@ -1968,7 +2025,7 @@ export default function ExamModePage() {
               ) : null}
             </div>
           </section>
-        </main>
+        </div>
 
         <aside className="exam-mode-brief-rail exam-mode-insight-grid" aria-label="Exam guidance">
           <section className="exam-brief-panel">

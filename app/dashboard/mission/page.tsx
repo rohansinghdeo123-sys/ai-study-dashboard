@@ -525,6 +525,7 @@ export default function MissionPage() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           <select
             value={chapter}
+            aria-label="Chapter"
             onChange={(event) => {
               const next = event.target.value;
               setChapter(next);
@@ -540,6 +541,7 @@ export default function MissionPage() {
           </select>
           <select
             value={topic}
+            aria-label="Topic"
             onChange={(event) => setTopic(event.target.value)}
             className="agentify-field rounded-2xl border border-slate-200 bg-white/75 px-4 py-3 text-sm font-medium text-slate-700 outline-none transition focus:border-[#0E7490]"
           >
