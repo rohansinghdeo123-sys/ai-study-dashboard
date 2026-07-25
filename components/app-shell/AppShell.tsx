@@ -1,8 +1,7 @@
 "use client";
 
-import ChatThinkingLogo from "@/components/brand/ChatThinkingLogo";
-import AppNavigation from "@/components/app-shell/AppNavigation";
 import UserMenu from "@/components/app-shell/UserMenu";
+import { AppIcon } from "@/components/ui/Polished";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -21,40 +20,41 @@ export default function AppShell({
   onLogout: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  const isLanding = pathname === "/dashboard" || pathname === "/dashboard/";
   const immersive = pathname.startsWith("/dashboard/study")
     || pathname.startsWith("/dashboard/revision")
     || pathname.startsWith("/dashboard/exam");
 
   return (
     <div className="dashboard-shell market-ready-shell">
-      <div className="market-shell-ambient" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </div>
-
-      <header className="market-shell-topbar">
-        <Link href="/dashboard" className="market-shell-brand" aria-label="AgentifyAI Workspace">
-          <ChatThinkingLogo state="idle" size={38} className="market-shell-logo" label="" />
-          <span>
-            <strong>Agentify<span>AI</span></strong>
-            <small>Learning workspace</small>
-          </span>
-        </Link>
-
-        <UserMenu
-          displayName={displayName}
-          classLevel={classLevel}
-          isAdmin={isAdmin}
-          onLogout={onLogout}
-        />
-      </header>
-
-      <AppNavigation />
+      {!isLanding ? (
+        <div className="market-floating-controls">
+          <Link
+            href="/dashboard"
+            className="market-floating-home"
+            aria-label="Return to Workspace"
+            title="Workspace"
+          >
+            <AppIcon name="home" />
+            <span className="sr-only">Workspace</span>
+          </Link>
+          <UserMenu
+            compact
+            displayName={displayName}
+            classLevel={classLevel}
+            isAdmin={isAdmin}
+            onLogout={onLogout}
+          />
+        </div>
+      ) : null}
 
       <main
         id="main-content"
-        className={`market-shell-main${immersive ? " is-immersive" : ""}`}
+        className={[
+          "market-shell-main",
+          isLanding ? "is-landing" : "is-route",
+          immersive ? "is-immersive" : "",
+        ].filter(Boolean).join(" ")}
       >
         {children}
       </main>

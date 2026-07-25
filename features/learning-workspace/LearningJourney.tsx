@@ -1,60 +1,66 @@
 import { AppIcon } from "@/components/ui/Polished";
 import { LEARNING_WORKSPACE_STEPS } from "@/features/learning-workspace/config";
-import type { LearningModeId } from "@/features/learning-workspace/types";
 import Link from "next/link";
+import type { CSSProperties } from "react";
+import styles from "./journey-landing.module.css";
 
-export default function LearningJourney({
-  recommendedMode,
-}: {
-  recommendedMode: LearningModeId;
-}) {
+const STEP_LABELS = ["Begin", "Build", "Strengthen", "Destination"] as const;
+
+export default function LearningJourney() {
   return (
-    <section className="learning-journey" aria-labelledby="learning-journey-title">
-      <div className="learning-journey-heading">
-        <div>
-          <p>Learning flow</p>
-          <h2 id="learning-journey-title">One connected path. Four focused modes.</h2>
-        </div>
-        <span>Move forward when you are ready</span>
-      </div>
+    <section
+      className={styles.canvas}
+      aria-labelledby="learning-journey-title"
+    >
+      <h1 id="learning-journey-title" className={styles.srOnly}>
+        AgentifyAI learning journey
+      </h1>
 
-      <ol className="learning-journey-grid">
-        {LEARNING_WORKSPACE_STEPS.map((step) => {
-          const recommended = step.id === recommendedMode;
+      <span className={styles.connector} aria-hidden="true" />
 
-          return (
-            <li
-              key={step.id}
-              className="learning-journey-item"
-              data-mode={step.id}
-              data-recommended={recommended ? "true" : "false"}
+      <ol className={styles.grid} aria-label="Planning, Study, Revision, and Exam">
+        {LEARNING_WORKSPACE_STEPS.map((step, index) => (
+          <li
+            key={step.id}
+            className={styles.tile}
+            data-mode={step.id}
+            style={{ "--journey-delay": `${index * 90}ms` } as CSSProperties}
+          >
+            <Link
+              href={step.href}
+              className={styles.card}
+              aria-describedby={`${step.id}-description ${step.id}-outcome`}
             >
-              <Link href={step.href} className="learning-journey-card">
-                <span className="learning-journey-step">
-                  <span>{step.step}</span>
-                  <span className="learning-journey-icon" aria-hidden="true">
-                    <AppIcon name={step.icon} />
-                  </span>
-                </span>
+              <span className={styles.cardAura} aria-hidden="true" />
 
-                <span className="learning-journey-card-copy">
-                  <span className="learning-journey-card-topline">
-                    <small>{step.eyebrow}</small>
-                    {recommended ? <em>Recommended</em> : null}
-                  </span>
-                  <strong>{step.title}</strong>
-                  <span>{step.description}</span>
+              <span className={styles.cardTopline}>
+                <span className={styles.sequence}>
+                  <strong>{String(step.step).padStart(2, "0")}</strong>
+                  <small>{STEP_LABELS[index]}</small>
                 </span>
+                <span className={styles.icon} aria-hidden="true">
+                  <AppIcon name={step.icon} />
+                </span>
+              </span>
 
-                <span className="learning-journey-outcome">
+              <span className={styles.cardCopy}>
+                <small>{step.eyebrow}</small>
+                <h2>{step.title}</h2>
+                <span id={`${step.id}-description`}>{step.description}</span>
+              </span>
+
+              <span className={styles.cardFooter}>
+                <span id={`${step.id}-outcome`}>
                   <small>Outcome</small>
-                  <span>{step.outcome}</span>
+                  <strong>{step.outcome}</strong>
+                </span>
+                <span className={styles.openIndicator} aria-hidden="true">
                   <AppIcon name="arrowRight" />
                 </span>
-              </Link>
-            </li>
-          );
-        })}
+              </span>
+            </Link>
+          </li>
+        ))}
       </ol>
     </section>
   );

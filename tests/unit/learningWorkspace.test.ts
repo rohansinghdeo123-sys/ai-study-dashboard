@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import {
   LEARNING_WORKSPACE_STEPS,
   getContinueDestination,
@@ -6,6 +8,7 @@ import {
   getSessionDestination,
 } from "@/features/learning-workspace";
 import type { SessionRecord } from "@/features/learning-workspace";
+import LearningJourney from "@/features/learning-workspace/LearningJourney";
 
 function session(sessionType: string, topic = "Chemical Bonding"): SessionRecord {
   return {
@@ -54,5 +57,17 @@ describe("learning workspace journey", () => {
     expect(getSessionDestination(latest)).toBe(
       "/dashboard/study?topic=Organic%20reactions",
     );
+  });
+
+  it("renders only the four canonical landing destinations", () => {
+    const markup = renderToStaticMarkup(createElement(LearningJourney));
+    const destinationLinks = markup.match(/href="\/dashboard\/(?:planning|study|revision|exam)"/g) ?? [];
+
+    expect(destinationLinks).toHaveLength(4);
+    expect(markup).not.toContain("<header");
+    expect(markup).not.toContain("<aside");
+    expect(markup).not.toContain("<nav");
+    expect(markup).not.toContain("Progress snapshot");
+    expect(markup).not.toContain("Recent work");
   });
 });

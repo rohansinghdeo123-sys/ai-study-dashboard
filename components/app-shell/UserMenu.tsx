@@ -17,11 +17,13 @@ function getInitials(name: string) {
 }
 
 export default function UserMenu({
+  compact = false,
   displayName,
   classLevel,
   isAdmin,
   onLogout,
 }: {
+  compact?: boolean;
   displayName: string;
   classLevel: string;
   isAdmin: boolean;
@@ -50,7 +52,11 @@ export default function UserMenu({
   }, []);
 
   return (
-    <details ref={detailsRef} className="market-user-menu">
+    <details
+      ref={detailsRef}
+      className="market-user-menu"
+      data-compact={compact ? "true" : "false"}
+    >
       <summary aria-label={`Open account menu for ${displayName}`}>
         <span className="market-user-avatar" aria-hidden="true">{getInitials(displayName)}</span>
         <span className="market-user-summary-copy">
@@ -75,6 +81,24 @@ export default function UserMenu({
         </div>
 
         <ThemeToggle />
+
+        <Link
+          href="/dashboard/analytics"
+          className="market-user-action"
+          onClick={() => detailsRef.current?.removeAttribute("open")}
+        >
+          <AppIcon name="analytics" />
+          <span>Analytics</span>
+        </Link>
+
+        <Link
+          href="/dashboard/rankings"
+          className="market-user-action"
+          onClick={() => detailsRef.current?.removeAttribute("open")}
+        >
+          <AppIcon name="spark" />
+          <span>Rankings</span>
+        </Link>
 
         {isAdmin ? (
           <Link
