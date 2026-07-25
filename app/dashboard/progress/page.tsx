@@ -6,6 +6,9 @@ import { LoadingSkeleton } from "@/components/ui/Polished";
 import { apiJson } from "@/lib/apiClient";
 import { fetchRevisionQueue, BUCKET_LABELS, type RevisionBucket, type RevisionEntry } from "@/lib/revision";
 import { useRouter } from "next/navigation";
+import { AnalyticsDisclosure } from "@/components/analytics/AnalyticsDisclosure";
+import { AnalyticsSectionNav } from "@/components/analytics/AnalyticsSectionNav";
+import { RankSummaryCard } from "@/components/analytics/RankSummaryCard";
 
 // Types
 type Session = {
@@ -107,36 +110,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function toNumber(value: unknown, fallback = 0) {
   const num = Number(value);
   return Number.isFinite(num) ? num : fallback;
-}
-
-function shortId(value: string) {
-  if (!value) return "UNKNOWN";
-  if (value.length <= 12) return value;
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
-}
-
-function getLeaderboardDisplayName(entry: LeaderboardEntry, currentUserId: string, currentDisplayName: string) {
-  if (entry.user_id === currentUserId) return currentDisplayName;
-  return entry.display_name || entry.name || `Learner ${shortId(entry.user_id)}`;
-}
-
-function getLeaderboardMeta(entry: LeaderboardEntry, currentUserId: string) {
-  if (entry.user_id === currentUserId) {
-    return entry.class_level ? `${entry.class_level} - Your profile` : "Your profile";
-  }
-  if (entry.class_level) {
-    return `${entry.class_level}${entry.class_rank ? ` - Class rank #${entry.class_rank}` : ""}`;
-  }
-  return "Student profile";
-}
-
-function getInitials(value: string) {
-  return value
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "AI";
 }
 
 function getAccuracy(session: Session) {
@@ -915,29 +888,30 @@ export default function ProgressPage() {
       .map((entry, index) => ({
         ...entry,
         rank: index + 1,
-        displayLabel: getLeaderboardDisplayName(entry, userId, currentDisplayName),
-        metaLabel: getLeaderboardMeta(entry, userId),
       }));
-  }, [leaderboard, userId, currentDisplayName]);
+  }, [leaderboard]);
 
   const currentRank = useMemo(() => (
     rankedLeaderboard.find((e) => e.user_id === userId) ?? {
       rank: 1,
       user_id: userId,
       display_name: currentDisplayName,
+      class_rank: null,
       xp: totalXp,
       streak: progress.streak,
       total_tests: progress.total_tests,
-      displayLabel: currentDisplayName,
-      metaLabel: "Your profile",
     }
   ), [rankedLeaderboard, userId, currentDisplayName, totalXp, progress.streak, progress.total_tests]);
 
-  const visibleLeaderboard = useMemo(
-    () => (rankedLeaderboard.length ? rankedLeaderboard : [currentRank]).slice(0, 6),
-    [rankedLeaderboard, currentRank],
-  );
-  const maxLeaderboardXp = Math.max(1, ...visibleLeaderboard.map((entry) => entry.xp));
+  const nextRankEntry = currentRank.rank > 1
+    ? rankedLeaderboard[currentRank.rank - 2] ?? null
+    : null;
+  const xpToAdvance = nextRankEntry
+    ? Math.max(1, nextRankEntry.xp - currentRank.xp + 1)
+    : 0;
+  const topPercentile = rankedLeaderboard.length
+    ? Math.max(1, Math.ceil((currentRank.rank / rankedLeaderboard.length) * 100))
+    : 100;
 
   const handleExportCSV = useCallback(() => downloadCSV(sessions), [sessions]);
 
@@ -1020,7 +994,8 @@ export default function ProgressPage() {
                 Learning intelligence
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-400 sm:text-base">
-                Track mastery, rank, weak topics, consistency, and the next best study action from one calm view.
+                See what is improving, where to focus next, and how your study
+                habits are building over time.
               </p>
               {error ? (
                 <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -1098,7 +1073,35 @@ export default function ProgressPage() {
           </div>
         </section>
 
-        <section className="progress-action-plan rounded-[2rem] border border-cyan-100/12 bg-[linear-gradient(135deg,rgba(20,184,166,0.10),rgba(255,170,10,0.07))] p-5 shadow-[0_24px_72px_rgba(0,0,0,0.18)]">
+        <AnalyticsSectionNav
+          sections={[
+            {
+              href: "#analytics-overview",
+              label: "Overview",
+              detail: "Your next move and core learning signals.",
+            },
+            {
+              href: "#analytics-trends",
+              label: "Progress trends",
+              detail: "Open XP history, insights, and comparison signals.",
+            },
+            {
+              href: "#analytics-focus",
+              label: "Focus next",
+              detail: "Revision priorities and topics to strengthen.",
+            },
+            {
+              href: "#analytics-details",
+              label: "Study details",
+              detail: "Time, activity, subjects, and topic history.",
+            },
+          ]}
+        />
+
+        <section
+          id="analytics-overview"
+          className="progress-action-plan scroll-mt-28 rounded-[2rem] border border-cyan-100/12 bg-[linear-gradient(135deg,rgba(20,184,166,0.10),rgba(255,170,10,0.07))] p-5 shadow-[0_24px_72px_rgba(0,0,0,0.18)]"
+        >
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_440px]">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
@@ -1161,16 +1164,22 @@ export default function ProgressPage() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <GlassCard label="Accuracy" value={`${avgAccuracy}%`} tone={getScoreTone(avgAccuracy)} />
         <GlassCard label="Study Time" value={formatHours(totalDuration)} tone="blue" />
-        <GlassCard label="XP Bank" value={`${totalXp}`} tone="amber" />
+        <GlassCard label="Total XP" value={`${totalXp}`} tone="amber" />
         <GlassCard label="Streak" value={`${progress.streak} DAYS`} tone="amber" />
         <GlassCard label="Level" value={`LVL ${progress.level || 1}`} tone="blue" active />
-        <GlassCard label="Prime Subject" value={bestSubject} tone="green" />
+        <GlassCard label="Best Subject" value={bestSubject} tone="green" />
       </div>
 
       {/* Row 1: Chart + side widgets (predictive, cohort, export + consistency/efficiency)*/}
+      <AnalyticsDisclosure
+        id="analytics-trends"
+        title="Explore progress trends"
+        detail="Open your XP history, learning signals, peer comparison, and deeper study metrics."
+        badge="Trends and signals"
+      >
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.8fr)_540px]">
         <GlassPanel
-          title="PERFORMANCE_HISTORY // XP_VELOCITY"
+          title="XP progress over time"
           right={
             <div className="flex items-center gap-4">
               <span className="text-[10px] uppercase tracking-[0.24em] text-emerald-400 font-mono">LIVE</span>
@@ -1189,7 +1198,7 @@ export default function ProgressPage() {
 
         <div className="space-y-6">
           {/* Predictive Insights */}
-          <GlassPanel title="PREDICTIVE_SIGNALS" tag="AI">
+          <GlassPanel title="What your data suggests" tag="AI">
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {insights.map((insight, i) => (
                 <div key={i} className={cn(
@@ -1207,7 +1216,7 @@ export default function ProgressPage() {
           </GlassPanel>
 
           {/* Cohort Comparison */}
-          <GlassPanel title="COHORT_VS_AVERAGE">
+          <GlassPanel title="How you compare">
             <div className="space-y-3">
               <div className="flex justify-between text-xs">
                 <span className="text-gray-400">Your XP</span>
@@ -1224,7 +1233,7 @@ export default function ProgressPage() {
 
           {/* Consistency & Efficiency (new) */}
           { (progress.consistency_index > 0 || progress.learning_efficiency > 0) && (
-            <GlassPanel title="STUDY_METRICS" tag="DEEP">
+            <GlassPanel title="Study habits" tag="DEEP">
               <div className="grid grid-cols-2 gap-4">
                 {progress.consistency_index > 0 && (
                   <div>
@@ -1246,10 +1255,11 @@ export default function ProgressPage() {
 
         </div>
       </div>
+      </AnalyticsDisclosure>
 
-      {/* Row 2: Level progression + Global rankings */}
+      {/* Row 2: Level progression + compact rank summary */}
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <GlassPanel title="LEVEL_PROGRESSION">
+        <GlassPanel title="Level progress">
           <div className="space-y-4">
             <div className="flex justify-between text-xs">
               <span className="text-gray-400">Total XP</span>
@@ -1266,56 +1276,20 @@ export default function ProgressPage() {
           </div>
         </GlassPanel>
 
-        <GlassPanel
-          title="GLOBAL_RANKINGS"
-          right={<TonePill tone="amber">TOP {Math.min(6, Math.max(visibleLeaderboard.length, rankedLeaderboard.length))}</TonePill>}
-        >
-          <div className="space-y-3">
-            {visibleLeaderboard.map((entry) => {
-              const isCurrent = entry.user_id === userId;
-              return (
-                <div
-                  key={entry.user_id}
-                  className={cn(
-                    "rounded-lg border px-3 py-3 text-xs transition-colors",
-                    isCurrent
-                      ? "border-cyan-300/25 bg-cyan-300/10"
-                      : "border-white/5 bg-white/[0.025] hover:border-white/10 hover:bg-white/[0.045]",
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 shrink-0 font-mono text-[11px] text-gray-500">#{entry.rank}</span>
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-[11px] font-semibold text-cyan-200">
-                      {getInitials(entry.displayLabel)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate font-semibold text-white">{entry.displayLabel}</span>
-                        {isCurrent && <span className="rounded border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">YOU</span>}
-                      </div>
-                      <div className="mt-0.5 truncate text-[10px] text-gray-500">{entry.metaLabel}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-amber-400">{entry.xp}</div>
-                      <div className="mt-0.5 text-[10px] text-gray-500">XP</div>
-                    </div>
-                  </div>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/5">
-                    <div
-                      className={cn("h-full rounded-full", isCurrent ? "bg-cyan-300" : "bg-amber-400")}
-                      style={{ width: `${Math.max(3, Math.round((entry.xp / maxLeaderboardXp) * 100))}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </GlassPanel>
+        <RankSummaryCard
+          rank={currentRank.rank}
+          totalLearners={Math.max(1, rankedLeaderboard.length)}
+          classRank={currentRank.class_rank}
+          xp={currentRank.xp}
+          xpToAdvance={xpToAdvance}
+          percentile={topPercentile}
+        />
       </div>
 
       {/* Row 3a: Revision Queue — spaced-repetition plan for today */}
+      <div id="analytics-focus" className="scroll-mt-28 space-y-6">
       {revisionQueue.length > 0 && (
-        <GlassPanel title="REVISION_QUEUE" tag="MEMORY" className="border-cyan-500/20">
+        <GlassPanel title="Today's revision" tag="MEMORY" className="border-cyan-500/20">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {revisionQueue.slice(0, 6).map((entry) => {
               const tones = QUEUE_TONES[entry.bucket];
@@ -1351,7 +1325,7 @@ export default function ProgressPage() {
 
       {/* Row 3: Weak Topic Spotlight (new, actionable) */}
       {weakTopics.length > 0 && (
-        <GlassPanel title="WEAK_TOPIC_SPOTLIGHT" tag="PRIORITY" className="border-red-500/20">
+        <GlassPanel title="Topics to strengthen" tag="PRIORITY" className="border-red-500/20">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {weakTopics.map((topic) => (
               <div key={`${topic.subject}-${topic.topic}`} className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 flex flex-col justify-between">
@@ -1382,113 +1356,123 @@ export default function ProgressPage() {
           </div>
         </GlassPanel>
       )}
-
-      {/* Row 4: Weekly Time + Subject Breakdown */}
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <GlassPanel title="Weekly study time" tag="TIME">
-          {weeklyLabels.length ? (
-            <div className="space-y-4">
-              {weeklyLabels.map((label, i) => {
-                const maxDuration = Math.max(...weeklyDurations);
-                const percent = maxDuration > 0 ? Math.round((weeklyDurations[i] / maxDuration) * 100) : 0;
-                return (
-                  <div key={label} className="grid grid-cols-[90px_1fr_80px] items-center gap-4">
-                    <span className="text-xs text-gray-400 text-right">{label}</span>
-                    <Rail value={percent} tone="amber" label={`Relative study time for ${label}`} />
-                    <span className="text-xs text-white font-mono">{formatMinutes(weeklyDurations[i])}</span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <EmptyState title="No weekly data" detail="Complete timestamped sessions to see weekly study time." />
-          )}
-        </GlassPanel>
-
-        <GlassPanel title="Subject breakdown" tag="SUBJ">
-          {subjects.length ? (
-            <div className="space-y-4">
-              {subjects.map((subj) => (
-                <div key={subj.subject} className="flex items-center justify-between border-b border-white/5 pb-3 last:border-0">
-                  <div>
-                    <div className="text-sm font-bold text-white uppercase">{subj.subject}</div>
-                    <div className="text-[10px] text-gray-400">{subj.sessions} sessions / {formatMinutes(subj.duration)}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className={cn("text-lg font-bold", toneText(getScoreTone(subj.accuracy)))}>{subj.accuracy}%</div>
-                    <div className="text-[10px] text-gray-500">focus {subj.focus}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No subject data" detail="Complete sessions to populate subject breakdown." />
-          )}
-        </GlassPanel>
       </div>
 
-      {/* Row 5: Heatmap + Topic Matrix */}
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
-        <GlassPanel title="Activity heatmap" tag="35D" right={<TonePill tone="amber">{heatmap.reduce((a, b) => a + b.value, 0)} sessions</TonePill>}>
-          {heatmap.length ? (
-            <div className="space-y-2" role="list" aria-label="Study sessions during the last 35 days">
-              {Array.from({ length: Math.ceil(heatmap.length / 7) }, (_, i) => heatmap.slice(i * 7, i * 7 + 7)).map((week, wi) => (
-                <div key={wi} className="grid grid-cols-7 gap-2">
-                  {week.map((item) => {
-                    const intensity = item.value === 0 ? 0.08 : 0.24 + (item.value / Math.max(...heatmap.map((h) => h.value)) / 1.15);
+      {/* Row 4: Weekly Time + Subject Breakdown */}
+      <AnalyticsDisclosure
+        id="analytics-details"
+        title="Open detailed study history"
+        detail="Review weekly time, subject performance, activity, and the full topic breakdown."
+        badge="Study history"
+      >
+        <div className="space-y-6">
+          <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+            <GlassPanel title="Weekly study time" tag="TIME">
+              {weeklyLabels.length ? (
+                <div className="space-y-4">
+                  {weeklyLabels.map((label, i) => {
+                    const maxDuration = Math.max(...weeklyDurations);
+                    const percent = maxDuration > 0 ? Math.round((weeklyDurations[i] / maxDuration) * 100) : 0;
                     return (
-                      <div
-                        key={item.key}
-                        role="listitem"
-                        aria-label={`${item.label}: ${item.value} sessions`}
-                        title={`${item.label}: ${item.value} sessions`}
-                        className="aspect-square rounded-sm border border-white/10"
-                        style={{ backgroundColor: `rgba(255, 170, 10, ${intensity})` }}
-                      />
+                      <div key={label} className="grid grid-cols-[90px_1fr_80px] items-center gap-4">
+                        <span className="text-xs text-gray-400 text-right">{label}</span>
+                        <Rail value={percent} tone="amber" label={`Relative study time for ${label}`} />
+                        <span className="text-xs text-white font-mono">{formatMinutes(weeklyDurations[i])}</span>
+                      </div>
                     );
                   })}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No activity grid" detail="Timestamped sessions unlock the 35-day activity view." />
-          )}
-        </GlassPanel>
+              ) : (
+                <EmptyState title="No weekly data" detail="Complete timestamped sessions to see weekly study time." />
+              )}
+            </GlassPanel>
 
-        <GlassPanel title="Topic matrix" tag="LOG">
-          {topics.length ? (
-            <div className="overflow-auto">
-              <div className="min-w-[700px]">
-                <div className="grid grid-cols-[1.6fr_0.9fr_0.8fr_0.8fr_0.8fr_0.5fr] border-b border-white/10 bg-white/[0.02] px-4 py-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
-                  <div>Topic</div>
-                  <div>Subject</div>
-                  <div className="text-right">Acc</div>
-                  <div className="text-right">Sessions</div>
-                  <div className="text-right">Time</div>
-                  <div className="text-right">Trend</div>
-                </div>
-                {topics.map((topic) => {
-                  const trend = getTopicTrend(sessions, topic.topic, topic.subject);
-                  return (
-                    <div key={`${topic.subject}-${topic.topic}`} className="grid grid-cols-[1.6fr_0.9fr_0.8fr_0.8fr_0.8fr_0.5fr] border-b border-white/5 px-4 py-3 text-xs hover:bg-white/[0.02]">
-                      <div className="truncate pr-4 text-white font-mono uppercase">{topic.topic}</div>
-                      <div className="text-gray-400">{topic.subject}</div>
-                      <div className={cn("text-right font-bold", toneText(getScoreTone(topic.accuracy)))}>{topic.accuracy}%</div>
-                      <div className="text-right text-gray-300">{topic.sessions}</div>
-                      <div className="text-right text-gray-300">{formatMinutes(topic.duration)}</div>
-                      <div className="text-right text-gray-400">
-                        {trend === 1 ? "up" : trend === -1 ? "down" : "flat"}
+            <GlassPanel title="Subject breakdown" tag="SUBJ">
+              {subjects.length ? (
+                <div className="space-y-4">
+                  {subjects.map((subj) => (
+                    <div key={subj.subject} className="flex items-center justify-between border-b border-white/5 pb-3 last:border-0">
+                      <div>
+                        <div className="text-sm font-bold text-white uppercase">{subj.subject}</div>
+                        <div className="text-[10px] text-gray-400">{subj.sessions} sessions / {formatMinutes(subj.duration)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className={cn("text-lg font-bold", toneText(getScoreTone(subj.accuracy)))}>{subj.accuracy}%</div>
+                        <div className="text-[10px] text-gray-500">focus {subj.focus}</div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <EmptyState title="No topic data" detail="Complete sessions to populate topic breakdown." />
-          )}
-        </GlassPanel>
-      </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No subject data" detail="Complete sessions to populate subject breakdown." />
+              )}
+            </GlassPanel>
+          </div>
+
+          {/* Row 5: Heatmap + Topic Matrix */}
+          <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+            <GlassPanel title="Activity heatmap" tag="35D" right={<TonePill tone="amber">{heatmap.reduce((a, b) => a + b.value, 0)} sessions</TonePill>}>
+              {heatmap.length ? (
+                <div className="space-y-2" role="list" aria-label="Study sessions during the last 35 days">
+                  {Array.from({ length: Math.ceil(heatmap.length / 7) }, (_, i) => heatmap.slice(i * 7, i * 7 + 7)).map((week, wi) => (
+                    <div key={wi} className="grid grid-cols-7 gap-2">
+                      {week.map((item) => {
+                        const intensity = item.value === 0 ? 0.08 : 0.24 + (item.value / Math.max(...heatmap.map((h) => h.value)) / 1.15);
+                        return (
+                          <div
+                            key={item.key}
+                            role="listitem"
+                            aria-label={`${item.label}: ${item.value} sessions`}
+                            title={`${item.label}: ${item.value} sessions`}
+                            className="aspect-square rounded-sm border border-white/10"
+                            style={{ backgroundColor: `rgba(255, 170, 10, ${intensity})` }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No activity grid" detail="Timestamped sessions unlock the 35-day activity view." />
+              )}
+            </GlassPanel>
+
+            <GlassPanel title="Topic matrix" tag="LOG">
+              {topics.length ? (
+                <div className="overflow-auto">
+                  <div className="min-w-[700px]">
+                    <div className="grid grid-cols-[1.6fr_0.9fr_0.8fr_0.8fr_0.8fr_0.5fr] border-b border-white/10 bg-white/[0.02] px-4 py-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
+                      <div>Topic</div>
+                      <div>Subject</div>
+                      <div className="text-right">Acc</div>
+                      <div className="text-right">Sessions</div>
+                      <div className="text-right">Time</div>
+                      <div className="text-right">Trend</div>
+                    </div>
+                    {topics.map((topic) => {
+                      const trend = getTopicTrend(sessions, topic.topic, topic.subject);
+                      return (
+                        <div key={`${topic.subject}-${topic.topic}`} className="grid grid-cols-[1.6fr_0.9fr_0.8fr_0.8fr_0.8fr_0.5fr] border-b border-white/5 px-4 py-3 text-xs hover:bg-white/[0.02]">
+                          <div className="truncate pr-4 text-white font-mono uppercase">{topic.topic}</div>
+                          <div className="text-gray-400">{topic.subject}</div>
+                          <div className={cn("text-right font-bold", toneText(getScoreTone(topic.accuracy)))}>{topic.accuracy}%</div>
+                          <div className="text-right text-gray-300">{topic.sessions}</div>
+                          <div className="text-right text-gray-300">{formatMinutes(topic.duration)}</div>
+                          <div className="text-right text-gray-400">
+                            {trend === 1 ? "up" : trend === -1 ? "down" : "flat"}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState title="No topic data" detail="Complete sessions to populate topic breakdown." />
+              )}
+            </GlassPanel>
+          </div>
+        </div>
+      </AnalyticsDisclosure>
     </div>
     </div>
   );

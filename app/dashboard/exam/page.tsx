@@ -2,7 +2,7 @@
 
 import { AppIcon, EmptyState, LoadingState } from "@/components/ui/Polished";
 import { handleTabListKeyDown } from "@/components/ui/primitives";
-import { ChipList, DistributionList, ExamReadinessStrip } from "@/components/exam/panels";
+import { ChipList, DistributionList } from "@/components/exam/panels";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import {
   DEFAULT_CLASS_LEVEL,
@@ -21,6 +21,7 @@ import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import styles from "./market.module.css";
 
 type ExamPanel = "mcq" | "papers" | "probable" | "practice";
 type ParseStatus = "pending" | "analyzed" | "analyzed_empty" | "needs_ocr" | "failed";
@@ -457,27 +458,10 @@ export default function ExamModePage() {
   const fiveMarkQuestions = legacyProbableQuestions.filter((question) => question.marks === 5);
   const accuracy = submitted && questions.length ? Math.round((score / questions.length) * 100) : 0;
   const targetQuestionCount = questions.length || questionCount;
-  const studyHref = `/dashboard/study?chapter=${encodeURIComponent(selectedChapter.value)}&topic=${encodeURIComponent(selectedTopic.value)}`;
+  const studyHref = `/dashboard/revision?chapter=${encodeURIComponent(selectedChapter.value)}&topic=${encodeURIComponent(selectedTopic.value)}`;
   const writtenScore = writtenFeedback ? `${formatMarks(writtenFeedback.marks_awarded)}/${formatMarks(writtenFeedback.marks_total)}` : EMPTY_VALUE;
-
-  const packPhase = generating
-    ? "Generating"
-    : submitted
-      ? "Review ready"
-      : questions.length
-        ? "Attempt active"
-        : patternAnalysis
-          ? "Pattern ready"
-          : "Command center";
-  const packIntent = patternAnalysis
-    ? patternAnalysis.pattern_summary
-    : "Run MCQs, upload papers for pattern intelligence, generate probable questions, and practice written answers in one full-screen workspace.";
-  const briefMetrics = [
-    { label: "MCQs", value: `${targetQuestionCount}`, detail: questions.length ? "Generated" : "Planned" },
-    { label: "Papers", value: `${papers.length}`, detail: analyzedPapers.length ? `${analyzedPapers.length} analyzed` : "Upload ready" },
-    { label: "Pattern", value: patternAnalysis ? formatConfidence(patternAnalysis.confidence_score) : EMPTY_VALUE, detail: patternAnalysis ? "Confidence" : "After analysis" },
-    { label: "Written", value: writtenScore, detail: writtenFeedback ? "Latest score" : "Practice ready" },
-  ];
+  const attemptActive = activePanel === "mcq" && questions.length > 0 && !submitted;
+  const resultsActive = activePanel === "mcq" && questions.length > 0 && submitted;
 
   const statusLabel = useMemo(() => {
     if (generating) return "Building a grounded MCQ pack";
@@ -1172,56 +1156,42 @@ export default function ExamModePage() {
   ];
 
   return (
-    <div className="dashboard-overview exam-mode-page w-full">
-      <section className="exam-command-hero">
-        <header className="exam-mode-header">
-          <div>
-            <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
-              <Link href="/dashboard">Learning Hub</Link>
-              <span aria-hidden="true">/</span>
-              <span aria-current="page">Exam Mode</span>
-            </nav>
-            <p className="dashboard-section-kicker">
-              Focused Assessment{classLevel ? ` / ${classLevel}` : ""}
-            </p>
-            <h1>Exam command center</h1>
-            <p>{packIntent}</p>
-          </div>
-          <div className="exam-mode-status">
-            <span>Status</span>
-            <strong>{statusLabel}</strong>
-            <small>{selectedChapter.label} / {selectedTopic.label}</small>
-          </div>
-        </header>
-
-        <aside className="exam-hero-brief" aria-label="Exam pack brief">
-          <div className="exam-hero-brief-top">
-            <span className="exam-hero-icon" aria-hidden="true">
-              <AppIcon name={generating || uploadingPaper || analyzingPattern ? "clock" : submitted ? "analytics" : patternAnalysis ? "check" : "book"} />
-            </span>
+    <div
+      className={`${styles.workspace} dashboard-overview exam-mode-page w-full`}
+      data-phase={attemptActive ? "attempt" : resultsActive ? "results" : "prepare"}
+    >
+      {!attemptActive && !resultsActive ? (
+        <section className={`${styles.hero} exam-command-hero`}>
+          <header className="exam-mode-header">
             <div>
-              <p>Current phase</p>
-              <strong>{packPhase}</strong>
+              <nav aria-label="Breadcrumb" className="dashboard-breadcrumb">
+                <Link href="/dashboard">Workspace</Link>
+                <span aria-hidden="true">/</span>
+                <span aria-current="page">Exam Lab</span>
+              </nav>
+              <p className="dashboard-section-kicker">
+                Exam Lab{classLevel ? ` / ${classLevel}` : ""}
+              </p>
+              <h1>Practice with exam-day focus.</h1>
+              <p>Build a grounded test, complete it without distractions, then review every mark you can win back.</p>
             </div>
-          </div>
-          <p className="exam-hero-brief-copy">
-            {patternAnalysis ? `${patternAnalysis.total_questions} observed questions across ${patternAnalysis.source_paper_ids.length} paper source${patternAnalysis.source_paper_ids.length === 1 ? "" : "s"}.` : "Keep the selected chapter as the source of truth across MCQ, uploaded papers, probable questions, and written practice."}
-          </p>
-          <div className="exam-brief-metrics">
-            {briefMetrics.map((metric) => (
-              <div key={metric.label}>
-                <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
-                <small>{metric.detail}</small>
-              </div>
-            ))}
-          </div>
-        </aside>
-      </section>
+            <div className="exam-mode-status">
+              <span>Status</span>
+              <strong>{statusLabel}</strong>
+              <small>{selectedChapter.label} / {selectedTopic.label}</small>
+            </div>
+          </header>
+        </section>
+      ) : null}
 
       <div className="exam-mode-layout">
         <div className="exam-mode-main">
-          <section className="exam-mode-setup" aria-label="Exam setup">
+          {!attemptActive && !resultsActive ? (
+            <section
+              className="exam-mode-setup"
+              aria-label="Exam setup"
+              data-compact={activePanel === "mcq" ? "false" : "true"}
+            >
             <div className="exam-mode-builder-copy">
               <p>Course scope</p>
               <strong>{selectedTopic.label}</strong>
@@ -1254,87 +1224,88 @@ export default function ExamModePage() {
                   {selectedChapter.topics.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                 </select>
               </label>
-              <label>
-                <span>Questions</span>
-                <select
-                  value={String(questionCount)}
-                  onChange={(event) => {
-                    setQuestionCount(Number(event.target.value) === 10 ? 10 : 5);
-                    resetAttempt();
-                  }}
-                >
-                  <option value="5">5 - quick check</option>
-                  <option value="10">10 - full drill</option>
-                </select>
-              </label>
-              <label>
-                <span>Difficulty</span>
-                <select
-                  value={difficulty}
-                  onChange={(event) => {
-                    setDifficulty(event.target.value);
-                    resetAttempt();
-                  }}
-                >
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-              </label>
+              {activePanel === "mcq" ? (
+                <>
+                  <label>
+                    <span>Questions</span>
+                    <select
+                      value={String(questionCount)}
+                      onChange={(event) => {
+                        setQuestionCount(Number(event.target.value) === 10 ? 10 : 5);
+                        resetAttempt();
+                      }}
+                    >
+                      <option value="5">5 - quick check</option>
+                      <option value="10">10 - full drill</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Difficulty</span>
+                    <select
+                      value={difficulty}
+                      onChange={(event) => {
+                        setDifficulty(event.target.value);
+                        resetAttempt();
+                      }}
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </label>
+                </>
+              ) : null}
             </div>
-            <div className="exam-setup-actions">
-              <button type="button" onClick={() => void generateExamPack()} disabled={generating || !userId} className="exam-mode-primary">
-                {generating ? "Generating..." : questions.length ? "Regenerate MCQs" : "Generate MCQs"}
-              </button>
-              <button type="button" onClick={() => openPanel("papers")} className="exam-mode-secondary">
-                Upload paper
-              </button>
+            {activePanel === "mcq" ? (
+              <div className="exam-setup-actions">
+                <button type="button" onClick={() => void generateExamPack()} disabled={generating || !userId} className="exam-mode-primary">
+                  {generating ? "Generating..." : questions.length ? "Regenerate MCQs" : "Generate MCQs"}
+                </button>
+                <button type="button" onClick={() => openPanel("papers")} className="exam-mode-secondary">
+                  Upload paper
+                </button>
+              </div>
+            ) : null}
+            </section>
+          ) : null}
+
+          {attemptActive ? (
+            <div className="exam-mode-progress" aria-label={`${completion}% of questions answered`}>
+              <span style={{ width: `${completion}%` }} />
             </div>
-          </section>
-
-          <ExamReadinessStrip
-            hasPack={Boolean(questions.length)}
-            answeredCount={answeredCount}
-            totalQuestions={targetQuestionCount}
-            submitted={submitted}
-            probableCount={patternQuestionSet?.probable_questions.length || legacyProbableQuestions.length}
-            papersCount={papers.length}
-            patternReady={Boolean(patternAnalysis)}
-            writtenScore={writtenScore}
-          />
-
-          <div className="exam-mode-progress" aria-label={`${completion}% of questions answered`}>
-            <span style={{ width: `${completion}%` }} />
-          </div>
+          ) : null}
 
           {notice ? <div className="exam-mode-alert exam-mode-alert-success" role="status">{notice}</div> : null}
           {error ? <div className="exam-mode-alert" role="status">{error}</div> : null}
 
           <section className="exam-mode-workspace">
-            <div className="exam-mode-tabs" role="tablist" aria-label="Exam sections" onKeyDown={handleTabListKeyDown}>
-              {tabs.map(([id, label, count]) => (
-                <button
-                  key={id}
-                  type="button"
-                  role="tab"
-                  id={`exam-section-tab-${id}`}
-                  aria-controls={`exam-section-panel-${id}`}
-                  aria-selected={activePanel === id}
-                  tabIndex={activePanel === id ? 0 : -1}
-                  onClick={() => openPanel(id)}
-                  className={activePanel === id ? "is-active" : ""}
-                >
-                  <span>{label}</span>
-                  <small>{count}</small>
-                </button>
-              ))}
-            </div>
+            {!attemptActive ? (
+              <div className="exam-mode-tabs" role="tablist" aria-label="Exam sections" onKeyDown={handleTabListKeyDown}>
+                {tabs.map(([id, label, count]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    id={`exam-section-tab-${id}`}
+                    aria-controls={`exam-section-panel-${id}`}
+                    aria-selected={activePanel === id}
+                    tabIndex={activePanel === id ? 0 : -1}
+                    onClick={() => openPanel(id)}
+                    className={activePanel === id ? "is-active" : ""}
+                  >
+                    <span>{label}</span>
+                    <small>{count}</small>
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <div
               id={`exam-section-panel-${activePanel}`}
               className="exam-mode-content"
-              role="tabpanel"
-              aria-labelledby={`exam-section-tab-${activePanel}`}
+              role={attemptActive ? "region" : "tabpanel"}
+              aria-label={attemptActive ? "Focused MCQ attempt" : undefined}
+              aria-labelledby={attemptActive ? undefined : `exam-section-tab-${activePanel}`}
             >
               {activePanel === "mcq" ? (
                 generating ? (
@@ -2027,39 +1998,6 @@ export default function ExamModePage() {
           </section>
         </div>
 
-        <aside className="exam-mode-brief-rail exam-mode-insight-grid" aria-label="Exam guidance">
-          <section className="exam-brief-panel">
-            <p className="dashboard-section-kicker">Exam brief</p>
-            <h2>{selectedTopic.label}</h2>
-            <p>{SUBJECT} / {classLevel} / {selectedChapter.label}</p>
-            <div className="exam-brief-topic">
-              <span>Uploaded papers</span>
-              <strong>{papers.length}</strong>
-            </div>
-          </section>
-
-          <section className="exam-brief-panel">
-            <p className="dashboard-section-kicker">Pattern signal</p>
-            <h2>{patternAnalysis ? formatConfidence(patternAnalysis.confidence_score) : EMPTY_VALUE}</h2>
-            <p>{patternAnalysis?.pattern_summary || "Run pattern analysis after uploading papers."}</p>
-          </section>
-
-          <section className="exam-brief-panel">
-            <p className="dashboard-section-kicker">Grounding rules</p>
-            <div className="exam-brief-list">
-              {[
-                "MCQs stay on selected study material.",
-                "Uploaded-paper probable prompts show the disclaimer.",
-                "Written feedback reveals marking points only after submission.",
-              ].map((item) => (
-                <div key={item}>
-                  <AppIcon name="check" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </aside>
       </div>
     </div>
   );

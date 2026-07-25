@@ -10,8 +10,12 @@ const publicRoutes = [
 
 const protectedRoutes = [
   "/dashboard",
+  "/dashboard/planning",
   "/dashboard/study",
+  "/dashboard/revision",
   "/dashboard/exam",
+  "/dashboard/analytics",
+  "/dashboard/rankings",
   "/dashboard/progress",
   "/dashboard/mission",
   "/analytics",

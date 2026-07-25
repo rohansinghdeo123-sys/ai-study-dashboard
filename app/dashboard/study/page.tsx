@@ -15,12 +15,12 @@ import {
   EmptyState,
   IconButton,
   LoadingState,
-  type AppIconName,
 } from "@/components/ui/Polished";
 import { handleTabListKeyDown } from "@/components/ui/primitives";
 import { apiFetch, apiJson, invalidateApiCache } from "@/lib/apiClient";
 import { BUILTIN_CHAPTERS, findChapterForTopic, reconcileSelection, useCatalog } from "@/lib/catalog";
 import { normalizeSubscriptGlyphs, tokenizeStudyText } from "@/lib/studyChemistry";
+import styles from "./market.module.css";
 import {
   ARTIFACT_TABS,
   DATA_GROUNDED_TUTOR_GUARDRAIL,
@@ -29,7 +29,6 @@ import {
   REASONING_FIRST_TUTOR_GUARDRAIL,
   REVISION_TOOLS,
   STAGE_ORDER,
-  STUDY_MODES,
   TUTOR_TEMPORARY_ERROR_MESSAGE,
 } from "@/features/study/studyConfig";
 import {
@@ -71,7 +70,8 @@ import type {
   StudyMode,
   TurnEventPayload,
 } from "@/features/study/types";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -1357,42 +1357,6 @@ function TutorResponseCard({
   );
 }
 
-function ModeButton({
-  active,
-  id,
-  label,
-  detail,
-  icon,
-  onClick,
-}: {
-  active: boolean;
-  id: StudyMode;
-  label: string;
-  detail: string;
-  icon: AppIconName;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      id={`study-mode-tab-${id}`}
-      aria-controls={`study-mode-panel-${id}`}
-      aria-selected={active}
-      tabIndex={active ? 0 : -1}
-      data-active={active ? "true" : "false"}
-      onClick={onClick}
-      title={detail}
-      className="study-mode-button"
-    >
-      <span className="study-mode-icon">
-        <AppIcon name={icon} className="h-3.5 w-3.5" />
-      </span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -1561,9 +1525,13 @@ type StudyConfirmDialogState =
 export default function StudyPage() {
   const { profile, userId, authLoading, loading, getAuthHeaders } = useAuth() as ReturnType<typeof useAuth> & { authLoading?: boolean };
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const initialTopic = searchParams.get("topic") || "alkanes";
   const initialChapter = searchParams.get("chapter") || findChapterValueForTopic(initialTopic) || "hydrocarbon";
+  const requestedMode: StudyMode = pathname === "/dashboard/revision" || searchParams.get("mode") === "revision"
+    ? "revision"
+    : "coach";
 
   const { chapters } = useCatalog();
   const [chapter, setChapter] = useState(initialChapter);
@@ -1579,11 +1547,11 @@ export default function StudyPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapters]);
-  const [mode, setMode] = useState<StudyMode>("coach");
+  const [mode, setMode] = useState<StudyMode>(requestedMode);
   const [coachName, setCoachName] = useState("Aria");
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [conversations, setConversations] = useState<StudyConversation[]>([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [revisionSetupOpen, setRevisionSetupOpen] = useState(true);
   const [historySearch, setHistorySearch] = useState("");
   const [showArchivedChats, setShowArchivedChats] = useState(false);
@@ -1651,6 +1619,10 @@ export default function StudyPage() {
   const selectedTopic = selectedChapter.topics.find((item) => item.value === topic) || selectedChapter.topics[0];
   const selectedTopicValue = selectedTopic.value;
   const revisionSelectionKey = `${selectedChapter.value}:${selectedTopicValue}`;
+  const courseContextQuery = `?chapter=${encodeURIComponent(selectedChapter.value)}&topic=${encodeURIComponent(selectedTopicValue)}`;
+  const companionWorkspaceHref = mode === "revision"
+    ? `/dashboard/study${courseContextQuery}`
+    : `/dashboard/revision${courseContextQuery}`;
   const displayName = profile?.name || "Student";
   const examScore = examQuestions.reduce((score, question) => score + (examAnswers[question.id] === question.correct ? 1 : 0), 0);
   const answeredExamCount = examQuestions.filter((question) => examAnswers[question.id]).length;
@@ -1697,6 +1669,13 @@ export default function StudyPage() {
       setRevisionSetupOpen(false);
     }
   }, []);
+
+  useEffect(() => {
+    setMode(requestedMode);
+    if (requestedMode === "revision") {
+      setActiveRevisionPanel("summary");
+    }
+  }, [requestedMode]);
 
   const starterPrompts = useMemo(
     () => [
@@ -3060,37 +3039,30 @@ export default function StudyPage() {
   }
 
   return (
-    <div className="study-lab-shell flex h-full min-h-0 w-full flex-col overflow-hidden">
+    <div
+      className={`${styles.workspace} study-lab-shell flex h-full min-h-0 w-full flex-col overflow-hidden`}
+      data-workspace={mode}
+    >
       <h1 className="sr-only">Study with your AI tutor</h1>
-      <section className="study-lab-header px-3 py-2.5 sm:px-5">
-        <div data-mode={mode} className="study-workspace-bar flex w-full flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
-          <div className="study-mode-segment" role="tablist" aria-label="Study mode" onKeyDown={handleTabListKeyDown}>
-            {STUDY_MODES.map((item) => (
-              <ModeButton
-                key={item.id}
-                active={mode === item.id}
-                id={item.id}
-                label={item.label}
-                detail={item.detail}
-                icon={item.icon}
-                onClick={() => {
-                  setMode(item.id);
-                  if (item.id === "revision") {
-                    setActiveRevisionPanel("summary");
-                  }
-                }}
-              />
-            ))}
-          </div>
-
+      <header className={styles.contextHeader}>
+        <div className={styles.contextCopy}>
+          <span>{mode === "revision" ? "Revision Lab" : "Study Lab"}</span>
+          <strong>{mode === "revision" ? "Turn learning into recall." : "Learn with focused, grounded guidance."}</strong>
+          <small>{selectedChapter.label} / {selectedTopic.label}</small>
         </div>
-      </section>
+        {(mode === "coach" || mode === "revision") ? (
+          <Link className={styles.companionLink} href={companionWorkspaceHref}>
+            <AppIcon name={mode === "revision" ? "study" : "book"} />
+            <span>{mode === "revision" ? "Open Study Lab" : "Open Revision Lab"}</span>
+          </Link>
+        ) : null}
+      </header>
 
       <section
         id={`study-mode-panel-${mode}`}
         className="study-lab-main flex min-h-0 flex-1 flex-col"
-        role="tabpanel"
-        aria-labelledby={`study-mode-tab-${mode}`}
+        role="region"
+        aria-label={mode === "revision" ? "Revision workspace" : mode === "coach" ? "Study workspace" : `${mode} workspace`}
       >
         {mode === "coach" ? (
           <div className="study-coach-layout flex min-h-0 flex-1" data-sidebar-open={sidebarOpen ? "true" : "false"}>
