@@ -1,42 +1,358 @@
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import { LoadingSkeleton } from "@/components/ui/Polished";
+import { useEffect, useState } from "react";
+import { AppIcon, LoadingSkeleton } from "@/components/ui/Polished";
 import {
   formatRankNumber,
   leaderboardDisplayName,
   learnerInitials,
   type LeaderboardEntry,
 } from "@/features/rankings/leaderboard";
+import {
+  remainingChallengeSeconds,
+  type RivalChallenge,
+  type RivalMission,
+} from "@/features/rankings/rival";
 import { useRankings } from "@/features/rankings/useRankings";
 
-type RankingScope = "global" | "class";
+const BATTLE_COPY: Record<
+  RivalChallenge["battleStatus"],
+  { label: string; message: string }
+> = {
+  leading: {
+    label: "You are winning",
+    message: "Keep your lead — every focused session counts.",
+  },
+  trailing: {
+    label: "Rival ahead",
+    message: "One strong session can flip this battle.",
+  },
+  tied: {
+    label: "Dead heat",
+    message: "Perfectly tied. The next session takes the lead.",
+  },
+  unmatched: {
+    label: "Open week",
+    message: "No rival this week — race your own record instead.",
+  },
+};
 
-function badgeClasses(rank: number) {
-  if (rank === 1) return "border-amber-300 bg-amber-50 text-amber-800";
-  if (rank === 2) return "border-slate-300 bg-slate-100 text-slate-700";
-  if (rank === 3) return "border-orange-200 bg-orange-50 text-orange-700";
-  return "border-slate-200 bg-white text-slate-500";
+function formatCountdown(totalSeconds: number) {
+  const seconds = Math.max(0, totalSeconds);
+  const days = Math.floor(seconds / 86_400);
+  const hours = Math.floor((seconds % 86_400) / 3_600);
+  const minutes = Math.floor((seconds % 3_600) / 60);
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  return `${hours}h ${minutes}m ${String(Math.floor(seconds % 60)).padStart(2, "0")}s`;
 }
 
-function RankingsLoading() {
+function formatActivityTime(value: string) {
+  const time = new Date(value).getTime();
+  if (!value || !Number.isFinite(time)) return "This week";
+  const minutes = Math.max(1, Math.round((Date.now() - time) / 60_000));
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  return hours < 24 ? `${hours}h ago` : `${Math.round(hours / 24)}d ago`;
+}
+
+function getLevelLabel(level: number) {
+  if (level >= 10) return "Master";
+  if (level >= 7) return "Advanced";
+  if (level >= 4) return "Intermediate";
+  return "Beginner";
+}
+
+function LastWeekBanner({
+  lastWeek,
+  badge,
+}: {
+  lastWeek: NonNullable<RivalChallenge["lastWeek"]>;
+  badge: string;
+}) {
+  const tone =
+    lastWeek.outcome === "won"
+      ? "won"
+      : lastWeek.outcome === "tied"
+        ? "tied"
+        : "lost";
+  const message =
+    tone === "won"
+      ? `You beat ${lastWeek.rival_name} last week — +${lastWeek.reward_xp} XP · ${badge}`
+      : tone === "tied"
+        ? `Last week ended level with ${lastWeek.rival_name} — +${lastWeek.reward_xp} XP each`
+        : `${lastWeek.rival_name} took last week. New week, clean slate.`;
+
   return (
-    <div className="mx-auto min-h-[calc(100svh-105px)] w-full max-w-[1480px] space-y-5 py-5">
-      <LoadingSkeleton className="h-60 rounded-[2rem] border border-slate-200 bg-white p-6" />
-      <LoadingSkeleton className="h-[34rem] rounded-[2rem] border border-slate-200 bg-white p-6" />
+    <div className="dashboard-rival-lastweek" data-tone={tone} role="status">
+      <AppIcon name={tone === "won" ? "spark" : "history"} />
+      <p>{message}</p>
     </div>
   );
 }
 
-function RankRow({
+function RivalBattleCard({
+  challenge,
+  displayName,
+  secondsLeft,
+}: {
+  challenge: RivalChallenge;
+  displayName: string;
+  secondsLeft: number;
+}) {
+  const rivalName = challenge.rival?.name || "Awaiting rival";
+  const totalXp = Math.max(1, challenge.myWeekXp + challenge.rivalWeekXp);
+  const myShare = challenge.rival
+    ? Math.round((challenge.myWeekXp / totalXp) * 100)
+    : 100;
+  const copy = BATTLE_COPY[challenge.battleStatus];
+
+  return (
+    <article
+      className="dashboard-final-panel dashboard-rival-battle"
+      data-status={challenge.battleStatus}
+    >
+      <div className="dashboard-rival-battle-top">
+        <div>
+          <p className="dashboard-section-kicker">Weekly Rival Challenge</p>
+          <h2>
+            {challenge.rival ? (
+              <>
+                You <span>vs</span> {rivalName}
+              </>
+            ) : (
+              "Your open training week"
+            )}
+          </h2>
+          <p className="dashboard-rival-battle-message">{copy.message}</p>
+        </div>
+        <div
+          className="dashboard-rival-countdown"
+          role="timer"
+          aria-label="Time left this week"
+        >
+          <span className="dashboard-rival-live-dot" aria-hidden="true" />
+          <div>
+            <strong>{formatCountdown(secondsLeft)}</strong>
+            <small>left this week</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-rival-versus" aria-label="Weekly XP comparison">
+        <div className="dashboard-rival-side" data-side="me">
+          <span className="dashboard-rival-avatar" aria-hidden="true">
+            {learnerInitials(displayName)}
+          </span>
+          <div>
+            <p>{displayName.split(" ")[0] || "You"}</p>
+            <strong>{formatRankNumber(challenge.myWeekXp)} XP</strong>
+            <small>
+              {challenge.me.sessions} sessions · {challenge.me.accuracy}% acc ·{" "}
+              {challenge.me.active_days}/7 days
+            </small>
+          </div>
+        </div>
+
+        <div
+          className="dashboard-rival-status-chip"
+          data-status={challenge.battleStatus}
+        >
+          <strong>{copy.label}</strong>
+          {challenge.rival && challenge.battleStatus !== "tied" ? (
+            <small>by {formatRankNumber(challenge.xpGap)} XP</small>
+          ) : null}
+        </div>
+
+        <div className="dashboard-rival-side" data-side="rival">
+          <span className="dashboard-rival-avatar" aria-hidden="true">
+            {challenge.rival ? learnerInitials(rivalName) : "?"}
+          </span>
+          <div>
+            <p>{rivalName}</p>
+            <strong>
+              {challenge.rival
+                ? `${formatRankNumber(challenge.rivalWeekXp)} XP`
+                : "—"}
+            </strong>
+            <small>
+              {challenge.rival
+                ? `${challenge.rival.sessions} sessions · ${challenge.rival.accuracy}% acc · ${challenge.rival.active_days}/7 days`
+                : "Matched from monthly exam ranks"}
+            </small>
+          </div>
+        </div>
+      </div>
+
+      {challenge.rival ? (
+        <div
+          className="dashboard-rival-tug"
+          role="progressbar"
+          aria-label={`Your share of this week's battle XP: ${myShare}%`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={myShare}
+        >
+          <span style={{ width: `${Math.max(4, Math.min(96, myShare))}%` }} />
+        </div>
+      ) : null}
+
+      <div className="dashboard-rival-battle-foot">
+        <span className="dashboard-rival-reward">
+          <AppIcon name="spark" />
+          Weekly prize: +{challenge.rewardWinXp} XP · {challenge.rewardBadge}
+        </span>
+        <span className="dashboard-rival-basis">
+          Rivals are matched by Monthly Exam performance and stay fixed all week.
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function MissionBoard({ missions }: { missions: RivalMission[] }) {
+  const completeCount = missions.filter((mission) => mission.completed).length;
+
+  return (
+    <article className="dashboard-final-panel dashboard-rival-missions">
+      <div className="dashboard-final-panel-header">
+        <div>
+          <p className="dashboard-section-kicker">Today&apos;s Missions</p>
+          <h2>What to complete today</h2>
+          <p>Missions update from your real learning activity.</p>
+        </div>
+        <div className="dashboard-final-panel-actions">
+          <span>
+            {completeCount}/{missions.length} done
+          </span>
+        </div>
+      </div>
+
+      {missions.length ? (
+        <ol className="dashboard-rival-mission-list">
+          {missions.map((mission) => {
+            const percent = Math.round(
+              Math.min(1, mission.progress / mission.target) * 100,
+            );
+            return (
+              <li
+                key={mission.id}
+                data-completed={mission.completed ? "true" : "false"}
+              >
+                <span className="dashboard-rival-mission-check" aria-hidden="true">
+                  {mission.completed ? <AppIcon name="check" /> : null}
+                </span>
+                <div className="dashboard-rival-mission-main">
+                  <p>{mission.title}</p>
+                  <small>{mission.detail}</small>
+                  <div
+                    className="dashboard-rival-mission-bar"
+                    role="progressbar"
+                    aria-label={`${mission.title} progress`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={percent}
+                  >
+                    <span
+                      style={{
+                        width: `${Math.max(mission.completed ? 100 : 3, percent)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+                <span className="dashboard-rival-mission-state">
+                  {mission.completed ? "Done" : `${percent}%`}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <p className="px-5 pb-5 text-sm text-slate-500">
+          Your next missions will appear as the weekly challenge updates.
+        </p>
+      )}
+    </article>
+  );
+}
+
+function RivalPulse({ challenge }: { challenge: RivalChallenge }) {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const peak = Math.max(
+    1,
+    ...challenge.me.daily_xp,
+    ...(challenge.rival?.daily_xp ?? [0]),
+  );
+
+  return (
+    <article className="dashboard-final-panel dashboard-rival-activity">
+      <div className="dashboard-final-panel-header">
+        <div>
+          <p className="dashboard-section-kicker">Battle Pulse</p>
+          <h2>This week, day by day</h2>
+          <p>Your XP against your rival&apos;s, updating live.</p>
+        </div>
+      </div>
+      <div className="dashboard-rival-week-chart" aria-hidden="true">
+        {days.map((day, index) => (
+          <div className="dashboard-rival-week-day" key={day}>
+            <div className="dashboard-rival-week-bars">
+              <span
+                data-series="me"
+                style={{
+                  height: `${Math.max(4, Math.round(((challenge.me.daily_xp[index] || 0) / peak) * 100))}%`,
+                }}
+              />
+              {challenge.rival ? (
+                <span
+                  data-series="rival"
+                  style={{
+                    height: `${Math.max(4, Math.round(((challenge.rival.daily_xp[index] || 0) / peak) * 100))}%`,
+                  }}
+                />
+              ) : null}
+            </div>
+            <small>{day}</small>
+          </div>
+        ))}
+      </div>
+      {challenge.rival ? (
+        <>
+          <div className="dashboard-rival-legend" aria-hidden="true">
+            <span data-series="me">You</span>
+            <span data-series="rival">{challenge.rival.name}</span>
+          </div>
+          <ul className="dashboard-rival-feed">
+            {challenge.rival.activity.length ? (
+              challenge.rival.activity.slice(0, 4).map((item, index) => (
+                <li key={`${item.completed_at}-${index}`}>
+                  <span className="dashboard-rival-feed-dot" aria-hidden="true" />
+                  <p>
+                    {challenge.rival?.name} finished <strong>{item.type}</strong>
+                    {item.topic ? ` on ${item.topic}` : ""}
+                  </p>
+                  <small>
+                    +{item.xp_earned} XP · {formatActivityTime(item.completed_at)}
+                  </small>
+                </li>
+              ))
+            ) : (
+              <li data-empty="true">
+                <p>No rival activity yet this week — strike first.</p>
+              </li>
+            )}
+          </ul>
+        </>
+      ) : null}
+    </article>
+  );
+}
+
+function LeaderboardRow({
   entry,
-  displayedRank,
   currentUserId,
   currentDisplayName,
 }: {
   entry: LeaderboardEntry;
-  displayedRank: number;
   currentUserId: string;
   currentDisplayName: string;
 }) {
@@ -46,319 +362,201 @@ function RankRow({
     currentUserId,
     currentDisplayName,
   );
+  const level = Math.floor(entry.xp / 100) + 1;
 
   return (
     <li
-      className={`grid min-h-[76px] grid-cols-[54px_minmax(0,1fr)_auto] items-center gap-3 border-b border-slate-200/75 px-4 py-3 transition last:border-0 sm:grid-cols-[64px_minmax(0,1fr)_110px_90px_100px] sm:px-5 ${
-        isCurrent ? "bg-teal-50/80" : "hover:bg-slate-50/80"
-      }`}
+      className="dashboard-leaderboard-row"
+      data-current={isCurrent ? "true" : "false"}
     >
       <div
-        className={`flex h-10 w-10 items-center justify-center rounded-xl border font-mono text-xs font-bold ${badgeClasses(displayedRank)}`}
-        aria-label={`Rank ${displayedRank}`}
+        className="dashboard-rank-cell"
+        data-rank={entry.rank <= 3 ? entry.rank : undefined}
       >
-        #{displayedRank}
+        <strong>{entry.rank}</strong>
       </div>
-
-      <div className="flex min-w-0 items-center gap-3">
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-xs font-semibold ${
-            isCurrent
-              ? "border-teal-300 bg-teal-100 text-teal-800"
-              : "border-slate-200 bg-slate-100 text-slate-600"
-          }`}
-        >
+      <div className="dashboard-student-cell">
+        <span className="dashboard-student-avatar" aria-hidden="true">
           {learnerInitials(displayName)}
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-semibold text-slate-900">
-              {displayName}
-            </p>
-            {isCurrent ? (
-              <span className="shrink-0 rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-teal-700">
-                You
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-0.5 truncate text-[11px] text-slate-500">
-            {entry.class_level || "Class not added yet"} / {entry.total_tests}{" "}
-            {entry.total_tests === 1 ? "test" : "tests"}
-          </p>
-        </div>
-      </div>
-
-      <div className="hidden text-right sm:block">
-        <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">
-          Class
         </span>
-        <span className="mt-1 block truncate text-xs text-slate-600">
-          {entry.class_level || "--"}
+        <span className="min-w-0">
+          <span className="dashboard-student-name">
+            {displayName}
+            {isCurrent ? <span className="dashboard-you-label">You</span> : null}
+          </span>
+          <span className="dashboard-student-note">
+            {entry.class_level
+              ? `${entry.class_level}${entry.class_rank ? ` · Class rank #${entry.class_rank}` : ""}`
+              : `${entry.total_tests} completed tests`}
+          </span>
+          <span className="dashboard-student-mobile-meta">
+            Level {level} · {entry.streak} day streak
+          </span>
         </span>
       </div>
-
-      <div className="hidden text-right sm:block">
-        <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">
-          Streak
-        </span>
-        <span className="mt-1 block text-xs font-semibold text-slate-800">
-          {entry.streak}d
-        </span>
+      <div className="dashboard-leaderboard-stat dashboard-leaderboard-level">
+        <strong>{level}</strong>
+        <span>{getLevelLabel(level)}</span>
       </div>
-
-      <div className="text-right">
-        <span className="block text-[10px] uppercase tracking-[0.14em] text-slate-400">
-          XP
-        </span>
-        <strong className="mt-1 block text-sm text-teal-700">
-          {formatRankNumber(entry.xp)}
+      <div className="dashboard-leaderboard-stat dashboard-leaderboard-streak">
+        <strong>
+          <AppIcon name="clock" />
+          {entry.streak} d
         </strong>
+        <span>Current</span>
+      </div>
+      <div className="dashboard-leaderboard-xp">
+        <strong>{formatRankNumber(entry.xp)}</strong>
+        <span>XP</span>
       </div>
     </li>
+  );
+}
+
+function RankingsLoading() {
+  return (
+    <div className="mx-auto min-h-full w-full space-y-5 py-4">
+      <LoadingSkeleton className="h-24 rounded-[1.5rem]" />
+      <LoadingSkeleton className="h-72 rounded-[1.5rem]" />
+      <LoadingSkeleton className="h-[32rem] rounded-[1.5rem]" />
+    </div>
   );
 }
 
 export function RankingsPage() {
   const {
     entries,
+    challenge,
     currentEntry,
     currentDisplayName,
-    currentClassLevel,
     userId,
     loading,
     error,
     retry,
   } = useRankings();
-  const [scope, setScope] = useState<RankingScope>("global");
-  const [visibleCount, setVisibleCount] = useState(25);
+  const [clockTime, setClockTime] = useState(() => Date.now());
 
-  const classEntries = useMemo(() => {
-    if (!currentClassLevel) return [];
-    return entries
-      .filter((entry) => entry.class_level === currentClassLevel)
-      .sort(
-        (left, right) =>
-          (left.class_rank ?? Number.MAX_SAFE_INTEGER) -
-            (right.class_rank ?? Number.MAX_SAFE_INTEGER) ||
-          right.xp - left.xp,
-      );
-  }, [currentClassLevel, entries]);
+  useEffect(() => {
+    if (!challenge) return;
+    const timer = window.setInterval(() => setClockTime(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [challenge]);
 
-  const scopedEntries = scope === "class" ? classEntries : entries;
-  const shownEntries = scopedEntries.slice(0, visibleCount);
-  const effectiveClassRank =
-    currentEntry?.class_rank ??
-    (classEntries.findIndex((entry) => entry.user_id === userId) + 1 || null);
-  const topPercent =
-    currentEntry && entries.length
-      ? Math.max(1, Math.ceil((currentEntry.rank / entries.length) * 100))
-      : null;
+  const secondsLeft = challenge
+    ? remainingChallengeSeconds(challenge, clockTime)
+    : 0;
 
   if (loading) return <RankingsLoading />;
 
   return (
-    <div className="mx-auto min-h-[calc(100svh-105px)] w-full max-w-[1480px] space-y-6 py-4 text-[var(--agentify-primary-text)]">
-      <section className="agentify-card overflow-hidden rounded-[2rem] border border-[var(--agentify-border)] bg-[var(--agentify-card-bg)]">
-        <div className="grid xl:grid-cols-[minmax(0,1fr)_390px]">
-          <div className="p-6 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-teal-700">
-                Rankings
-              </span>
-              <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                {formatRankNumber(entries.length)} learners
-              </span>
-            </div>
-
-            <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-              See where your consistency is taking you.
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              Compare XP and study momentum while keeping the focus on steady
-              learning and stronger understanding.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                href="/dashboard/analytics"
-                className="agentify-action agentify-action-primary rounded-full px-5 py-3 text-xs font-bold uppercase tracking-[0.14em]"
-              >
-                View my analytics
-              </Link>
-              <Link
-                href="/dashboard/study"
-                className="agentify-action rounded-full border border-slate-200 bg-white px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                Open Study Lab
-              </Link>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-200 bg-slate-50/70 p-6 xl:border-l xl:border-t-0">
-            {currentEntry ? (
-              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-700">
-                  Your position
-                </p>
-                <div className="mt-4 flex items-end gap-3">
-                  <strong className="text-6xl font-semibold tracking-tight text-slate-950">
-                    #{currentEntry.rank}
-                  </strong>
-                  <span className="pb-2 text-xs text-slate-500">
-                    global rank
-                  </span>
-                </div>
-
-                <div className="mt-5 grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <span className="text-[10px] text-slate-500">Class</span>
-                    <strong className="mt-1 block text-sm text-slate-900">
-                      {effectiveClassRank ? `#${effectiveClassRank}` : "--"}
-                    </strong>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <span className="text-[10px] text-slate-500">Top</span>
-                    <strong className="mt-1 block text-sm text-teal-700">
-                      {topPercent ? `${topPercent}%` : "--"}
-                    </strong>
-                  </div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <span className="text-[10px] text-slate-500">XP</span>
-                    <strong className="mt-1 block text-sm text-teal-700">
-                      {formatRankNumber(currentEntry.xp)}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white p-5">
-                <p className="text-sm font-semibold text-slate-900">
-                  Your first rank is waiting
-                </p>
-                <p className="mt-2 text-xs leading-6 text-slate-600">
-                  Complete a tracked study or exam session to join the board.
-                </p>
-              </div>
-            )}
-          </div>
+    <div className="dashboard-overview dashboard-final-overview mx-auto min-h-full w-full space-y-5">
+      <header className="agentify-card flex flex-col gap-4 rounded-[1.5rem] border border-[var(--agentify-border)] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="dashboard-section-kicker">Global Rankings</p>
+          <h1 className="mt-1 text-2xl font-semibold text-[var(--agentify-primary-text)]">
+            Weekly rival and leaderboard
+          </h1>
         </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[var(--agentify-muted-text)]">
+            {formatRankNumber(entries.length)} learners
+          </span>
+          {currentEntry ? (
+            <strong className="rounded-full border border-teal-300/30 bg-teal-500/10 px-4 py-2 text-sm text-teal-700">
+              Your rank #{currentEntry.rank}
+            </strong>
+          ) : null}
+          {error ? (
+            <button
+              type="button"
+              onClick={retry}
+              className="agentify-action rounded-full border border-amber-300/40 px-4 py-2 text-xs font-semibold text-amber-700"
+            >
+              Retry
+            </button>
+          ) : null}
+        </div>
+      </header>
+
+      <section className="dashboard-rival-section" aria-label="Weekly Rival Challenge">
+        {challenge?.lastWeek ? (
+          <LastWeekBanner
+            lastWeek={challenge.lastWeek}
+            badge={challenge.rewardBadge}
+          />
+        ) : null}
+
+        {challenge ? (
+          <>
+            <RivalBattleCard
+              challenge={challenge}
+              displayName={currentDisplayName}
+              secondsLeft={secondsLeft}
+            />
+            <div className="dashboard-rival-columns">
+              <MissionBoard missions={challenge.missions} />
+              <RivalPulse challenge={challenge} />
+            </div>
+          </>
+        ) : (
+          <article
+            className="dashboard-final-panel dashboard-rival-battle"
+            data-status="unmatched"
+            role="status"
+          >
+            <div className="dashboard-rival-battle-top">
+              <div>
+                <p className="dashboard-section-kicker">Weekly Rival Challenge</p>
+                <h2>Rival battle unavailable right now</h2>
+                <p className="dashboard-rival-battle-message">
+                  Your leaderboard remains available while the weekly challenge reconnects.
+                </p>
+              </div>
+            </div>
+          </article>
+        )}
       </section>
 
-      {error ? (
-        <section className="agentify-card rounded-[1.5rem] border border-slate-200 bg-white p-7 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-700">
-            Connection update
-          </p>
-          <h2 className="mt-3 text-xl font-semibold text-slate-950">
-            Rankings are taking a pause
-          </h2>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
-            {error}
-          </p>
-          <button
-            type="button"
-            onClick={retry}
-            className="agentify-action agentify-action-primary mt-5 rounded-full px-5 py-2.5 text-xs font-bold uppercase tracking-[0.14em]"
-          >
-            Try again
-          </button>
-        </section>
-      ) : (
-        <section className="agentify-card overflow-hidden rounded-[1.5rem] border border-[var(--agentify-border)] bg-[var(--agentify-card-bg)]">
-          <div className="flex flex-col gap-4 border-b border-slate-200 bg-white/70 px-5 py-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-slate-950">
-                {scope === "class" ? "Your class board" : "Global board"}
-              </h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Ranked by XP, then streak and completed tests.
-              </p>
-            </div>
-
-            <div
-              className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1"
-              aria-label="Ranking scope"
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setScope("global");
-                  setVisibleCount(25);
-                }}
-                className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
-                  scope === "global"
-                    ? "bg-teal-700 text-white"
-                    : "text-slate-500 hover:bg-white hover:text-slate-800"
-                }`}
-              >
-                Everyone
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setScope("class");
-                  setVisibleCount(25);
-                }}
-                disabled={!currentClassLevel}
-                title={
-                  currentClassLevel
-                    ? `Show ${currentClassLevel}`
-                    : "Add your class in your profile to use this view"
-                }
-                className={`min-h-10 rounded-lg px-4 text-xs font-semibold transition ${
-                  scope === "class"
-                    ? "bg-teal-700 text-white"
-                    : "text-slate-500 hover:bg-white hover:text-slate-800"
-                } disabled:cursor-not-allowed disabled:opacity-40`}
-              >
-                My class
-              </button>
-            </div>
+      <section
+        className="dashboard-final-panel dashboard-final-leaderboard"
+        aria-labelledby="leaderboard-title"
+        data-ranking-scope="all-active-students"
+      >
+        <div className="dashboard-final-panel-header">
+          <div>
+            <h2 id="leaderboard-title">Student Leaderboard</h2>
+            <p>Ranked by total XP, then streak and completed tests.</p>
           </div>
+          <div className="dashboard-final-panel-actions">
+            <span>All time</span>
+          </div>
+        </div>
 
-          {shownEntries.length ? (
-            <>
-              <ol aria-label="AgentifyAI learner rankings">
-                {shownEntries.map((entry, index) => (
-                  <RankRow
-                    key={entry.user_id}
-                    entry={entry}
-                    displayedRank={
-                      scope === "class"
-                        ? entry.class_rank ?? index + 1
-                        : entry.rank
-                    }
-                    currentUserId={userId}
-                    currentDisplayName={currentDisplayName}
-                  />
-                ))}
-              </ol>
-              {visibleCount < scopedEntries.length ? (
-                <div className="border-t border-slate-200 bg-slate-50/50 p-4 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount((count) => count + 25)}
-                    className="agentify-action min-h-11 rounded-xl border border-slate-200 bg-white px-5 text-xs font-bold uppercase tracking-[0.14em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
-                  >
-                    Show more learners
-                  </button>
-                </div>
-              ) : null}
-            </>
-          ) : (
-            <div className="bg-white/60 px-6 py-16 text-center">
-              <h3 className="text-lg font-semibold text-slate-950">
-                No rankings here yet
-              </h3>
-              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600">
-                {scope === "class"
-                  ? `No ranked learners from ${currentClassLevel} are available yet.`
-                  : "Complete a tracked learning session and check back soon."}
-              </p>
-            </div>
-          )}
-        </section>
-      )}
+        <div className="dashboard-leaderboard-columns" aria-hidden="true">
+          <span>Rank</span>
+          <span>Student</span>
+          <span>Level</span>
+          <span>Streak</span>
+          <span>XP</span>
+        </div>
+
+        {entries.length ? (
+          <ol className="dashboard-leaderboard-list">
+            {entries.map((entry) => (
+              <LeaderboardRow
+                key={entry.user_id}
+                entry={entry}
+                currentUserId={userId}
+                currentDisplayName={currentDisplayName}
+              />
+            ))}
+          </ol>
+        ) : (
+          <p className="px-6 py-12 text-center text-sm text-[var(--agentify-muted-text)]">
+            No ranked learners are available yet.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

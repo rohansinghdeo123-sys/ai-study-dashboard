@@ -1,1 +1,5 @@
-export { default } from "../progress/page";
+import AnalyticsPage from "@/components/analytics/AnalyticsPage";
+
+export default function AnalyticsRoute() {
+  return <AnalyticsPage />;
+}

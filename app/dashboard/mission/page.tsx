@@ -1,8 +1,5 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Planning | AgentifyAI",
-  alternates: { canonical: "/dashboard/planning" },
-};
-
-export { default } from "@/features/planning/PlanningPage";
+export default function MissionRedirectPage() {
+  redirect("/dashboard/planning");
+}

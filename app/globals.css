@@ -6307,16 +6307,17 @@ body {
 }
 
 .dashboard-shell:has(.study-lab-shell) {
-  width: 100vw !important;
+  width: 100% !important;
   max-width: none !important;
-  min-height: 100svh !important;
+  min-height: 0 !important;
   overflow: hidden !important;
 }
 
 .dashboard-shell:has(.study-lab-shell) > main {
-  width: 100vw !important;
+  width: 100% !important;
   max-width: none !important;
-  height: 100svh !important;
+  height: 100% !important;
+  min-height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   overflow: hidden !important;
@@ -6337,11 +6338,11 @@ body {
 }
 
 .dashboard-shell .study-lab-shell {
-  height: 100svh !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 .dashboard-shell .study-lab-header {
-  padding-top: 4.85rem !important;
   padding-bottom: 0.8rem !important;
   border: 0 !important;
   background: transparent !important;
@@ -6909,11 +6910,6 @@ body {
   .dashboard-shell .dashboard-nav-card {
     border-radius: 0.95rem !important;
     padding-inline: 0.65rem !important;
-  }
-
-  .dashboard-shell > main:not(:has(.study-lab-shell)) {
-    padding-inline: 0.85rem !important;
-    padding-top: 4.85rem !important;
   }
 
   .study-clear-history-button span {
@@ -9434,7 +9430,6 @@ body {
 
 .study-coach-sidebar {
   height: 100%;
-  padding-top: 5.8rem;
   background: transparent !important;
   box-shadow: none !important;
 }
@@ -9495,10 +9490,6 @@ body {
   opacity: 0.38;
 }
 
-.dashboard-shell .study-chat-scroll {
-  padding-top: 6.5rem !important;
-}
-
 .study-chat-landing h2,
 .study-revision-heading h2,
 .study-content-card h2 {
@@ -9509,10 +9500,6 @@ body {
 .study-revision-heading > p:last-child,
 .study-content-card p.text-slate-500 {
   color: var(--study-muted) !important;
-}
-
-.study-mode-fullscreen {
-  padding-top: 8rem !important;
 }
 
 .study-revision-toolbar {
@@ -9677,26 +9664,6 @@ body {
 }
 
 @media (max-width: 767px) {
-  .study-lab-header {
-    padding-top: 4.9rem !important;
-  }
-
-  .study-coach-sidebar {
-    padding-top: 9rem;
-  }
-
-  .study-sidebar-restore {
-    top: 9rem;
-  }
-
-  .dashboard-shell .study-chat-scroll {
-    padding-top: 9.5rem !important;
-  }
-
-  .study-mode-fullscreen {
-    padding-top: 9.5rem !important;
-  }
-
   .study-revision-selectors {
     grid-template-columns: 1fr;
   }
@@ -9717,7 +9684,7 @@ body {
   --dashboard-faint: #687489;
   width: 100%;
   max-width: none;
-  min-height: calc(100svh - 6.5rem);
+  min-height: 100%;
   padding: 0.45rem 0 1.25rem;
   color: #17233A;
   font-variant-numeric: tabular-nums;
@@ -9733,10 +9700,6 @@ body {
   --dashboard-muted: #B3C0D0;
   --dashboard-faint: #91A0B4;
   color: #F7F8FA;
-}
-
-.dashboard-shell:has(.dashboard-final-overview) > main {
-  padding-top: 6rem !important;
 }
 
 .dashboard-final-data-alert {
@@ -10359,12 +10322,8 @@ body {
 }
 
 @media (max-width: 767px) {
-  .dashboard-shell:has(.dashboard-final-overview) > main {
-    padding-top: 4.85rem !important;
-  }
-
   .dashboard-final-overview {
-    min-height: auto;
+    min-height: 100%;
     padding-top: 0.15rem;
   }
 
@@ -10864,7 +10823,7 @@ body {
   }
 
   .study-chat-landing {
-    min-height: calc(100svh - 9.5rem) !important;
+    min-height: 100% !important;
     padding: 1.5rem 0.15rem 3rem;
     justify-content: flex-start !important;
   }
@@ -10885,10 +10844,6 @@ body {
 
   .study-chat-landing .study-hero-composer {
     margin-top: 0.2rem;
-  }
-
-  .study-mode-fullscreen {
-    padding-top: 9.5rem !important;
   }
 
   .study-revision-layout {

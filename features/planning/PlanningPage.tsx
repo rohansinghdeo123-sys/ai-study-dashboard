@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 function PlanningFallback() {
   return (
-    <div className="flex min-h-[calc(100svh-6.5rem)] items-center justify-center text-sm font-semibold text-[#0E7490]">
+    <div className="flex h-full min-h-0 w-full items-center justify-center text-sm font-semibold text-[#0E7490]">
       Preparing Planning...
     </div>
   );

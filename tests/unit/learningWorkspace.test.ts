@@ -59,11 +59,14 @@ describe("learning workspace journey", () => {
     );
   });
 
-  it("renders only the four canonical landing destinations", () => {
+  it("renders one visible route with only the four canonical landing destinations", () => {
     const markup = renderToStaticMarkup(createElement(LearningJourney));
     const destinationLinks = markup.match(/href="\/dashboard\/(?:planning|study|revision|exam)"/g) ?? [];
 
     expect(destinationLinks).toHaveLength(4);
+    expect(markup).toContain("One clear route from");
+    expect(markup).toContain("Start here");
+    expect(markup).toContain("Finish ready");
     expect(markup).not.toContain("<header");
     expect(markup).not.toContain("<aside");
     expect(markup).not.toContain("<nav");

@@ -1,7 +1,6 @@
 "use client";
 
 import BackendStatus from "@/components/BackendStatus";
-import ThemeToggle from "@/components/ThemeToggle";
 import { AppIcon } from "@/components/ui/Polished";
 import Link from "next/link";
 import { useEffect, useRef } from "react";
@@ -79,26 +78,6 @@ export default function UserMenu({
           <span>Learning services</span>
           <BackendStatus />
         </div>
-
-        <ThemeToggle />
-
-        <Link
-          href="/dashboard/analytics"
-          className="market-user-action"
-          onClick={() => detailsRef.current?.removeAttribute("open")}
-        >
-          <AppIcon name="analytics" />
-          <span>Analytics</span>
-        </Link>
-
-        <Link
-          href="/dashboard/rankings"
-          className="market-user-action"
-          onClick={() => detailsRef.current?.removeAttribute("open")}
-        >
-          <AppIcon name="spark" />
-          <span>Rankings</span>
-        </Link>
 
         {isAdmin ? (
           <Link

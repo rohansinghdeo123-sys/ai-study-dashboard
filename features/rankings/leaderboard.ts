@@ -33,7 +33,9 @@ export function normalizeLeaderboard(payload: unknown): LeaderboardEntry[] {
 
   rowsFromPayload(payload).forEach((row, index) => {
     if (!isRecord(row)) return;
-    const userId = String(row.user_id ?? row.uid ?? row.id ?? "").trim();
+    const userId = String(
+      row.user_id ?? row.uid ?? row.id ?? row.terminal_id ?? "",
+    ).trim();
     if (!userId) return;
 
     const existing = unique.get(userId);
