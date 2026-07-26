@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { normalizeLeaderboard } from "@/features/rankings/leaderboard";
+import {
+  createRankChase,
+  leagueDivisionForXp,
+  normalizeLeaderboard,
+} from "@/features/rankings/leaderboard";
 import {
   normalizeRivalChallenge,
   remainingChallengeSeconds,
@@ -106,6 +110,7 @@ describe("rankings contracts", () => {
 
   it("keeps unavailable and unmatched rival states safe", () => {
     expect(normalizeRivalChallenge(null)).toBeNull();
+    expect(normalizeRivalChallenge({})).toBeNull();
 
     const challenge = normalizeRivalChallenge({
       week: { seconds_remaining: -10 },
@@ -118,5 +123,71 @@ describe("rankings contracts", () => {
     expect(challenge?.rival).toBeNull();
     expect(challenge?.secondsRemaining).toBe(0);
     expect(challenge?.rewardWinXp).toBe(150);
+  });
+
+  it("derives rival scores, status, and gap from week totals when battle duplicates are absent", () => {
+    const challenge = normalizeRivalChallenge({
+      week: { seconds_remaining: 60 },
+      me: { name: "Rohan", week_xp: 90 },
+      rival: { name: "Amit", week_xp: 120 },
+      battle: {},
+    });
+
+    expect(challenge).toEqual(
+      expect.objectContaining({
+        battleStatus: "trailing",
+        myWeekXp: 90,
+        rivalWeekXp: 120,
+        xpGap: 30,
+      }),
+    );
+  });
+
+  it("derives learning divisions and the nearest truthful rank chase", () => {
+    const entries = normalizeLeaderboard([
+      { user_id: "leader", rank: 1, xp: 1500, streak: 8, total_tests: 12 },
+      { user_id: "me", rank: 2, xp: 1180, streak: 5, total_tests: 9 },
+      { user_id: "third", rank: 3, xp: 900, streak: 3, total_tests: 7 },
+    ]);
+
+    expect([
+      leagueDivisionForXp(0).shortLabel,
+      leagueDivisionForXp(300).shortLabel,
+      leagueDivisionForXp(600).shortLabel,
+      leagueDivisionForXp(900).shortLabel,
+      leagueDivisionForXp(1400).shortLabel,
+    ]).toEqual(["Explorer", "Scholar", "Strategist", "Vanguard", "Luminary"]);
+    expect(createRankChase(entries, "me")).toEqual(
+      expect.objectContaining({
+        mode: "chasing",
+        opponent: expect.objectContaining({ user_id: "leader" }),
+        xpGap: 321,
+        targetXp: 1501,
+      }),
+    );
+  });
+
+  it("turns the top learner's closest rival into a lead-defense chase", () => {
+    const entries = normalizeLeaderboard([
+      { user_id: "me", rank: 1, xp: 800, streak: 6, total_tests: 10 },
+      { user_id: "second", rank: 2, xp: 725, streak: 4, total_tests: 8 },
+    ]);
+
+    expect(createRankChase(entries, "me")).toEqual(
+      expect.objectContaining({
+        mode: "defending",
+        opponent: expect.objectContaining({ user_id: "second" }),
+        xpGap: 75,
+      }),
+    );
+  });
+
+  it("does not invent a chase when the current learner or an opponent is missing", () => {
+    const solo = normalizeLeaderboard([
+      { user_id: "solo", rank: 1, xp: 300, streak: 2, total_tests: 4 },
+    ]);
+
+    expect(createRankChase(solo, "solo")).toBeNull();
+    expect(createRankChase(solo, "missing")).toBeNull();
   });
 });

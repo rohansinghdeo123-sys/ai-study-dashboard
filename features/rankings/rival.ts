@@ -76,44 +76,67 @@ export function normalizeRivalChallenge(
   value: unknown,
   fetchedAt = Date.now(),
 ): RivalChallenge | null {
-  if (!isRecord(value)) return null;
+  if (
+    !isRecord(value)
+    || !isRecord(value.week)
+    || !isRecord(value.me)
+    || !isRecord(value.battle)
+  ) {
+    return null;
+  }
 
-  const week = isRecord(value.week) ? value.week : {};
-  const battle = isRecord(value.battle) ? value.battle : {};
+  const week = value.week;
+  const battle = value.battle;
   const reward = isRecord(value.reward) ? value.reward : {};
   const lastWeek = isRecord(value.last_week) ? value.last_week : null;
   const rivalSource = isRecord(value.rival) ? value.rival : null;
+  const me = normalizeWeekSide(value.me);
+  const rival = rivalSource
+    ? {
+        ...normalizeWeekSide(rivalSource),
+        activity: (Array.isArray(rivalSource.activity)
+          ? rivalSource.activity
+          : []
+        )
+          .filter(isRecord)
+          .map((item) => ({
+            type: String(item.type || "Study practice"),
+            topic: String(item.topic || ""),
+            xp_earned: Math.max(0, toNumber(item.xp_earned)),
+            completed_at: String(item.completed_at || ""),
+          })),
+      }
+    : null;
+  const myWeekXp = Math.max(0, toNumber(battle.my_week_xp, me.week_xp));
+  const rivalWeekXp = Math.max(
+    0,
+    toNumber(battle.rival_week_xp, rival?.week_xp ?? 0),
+  );
   const rawStatus = String(battle.status || "unmatched");
   const battleStatus =
     rawStatus === "leading" || rawStatus === "trailing" || rawStatus === "tied"
       ? rawStatus
-      : "unmatched";
+      : rival
+        ? myWeekXp > rivalWeekXp
+          ? "leading"
+          : myWeekXp < rivalWeekXp
+            ? "trailing"
+            : "tied"
+        : "unmatched";
 
   return {
     weekEndUtc: String(week.end_utc || ""),
     secondsRemaining: Math.max(0, toNumber(week.seconds_remaining)),
     fetchedAt,
-    me: normalizeWeekSide(value.me),
-    rival: rivalSource
-      ? {
-          ...normalizeWeekSide(rivalSource),
-          activity: (Array.isArray(rivalSource.activity)
-            ? rivalSource.activity
-            : []
-          )
-            .filter(isRecord)
-            .map((item) => ({
-              type: String(item.type || "Study practice"),
-              topic: String(item.topic || ""),
-              xp_earned: Math.max(0, toNumber(item.xp_earned)),
-              completed_at: String(item.completed_at || ""),
-            })),
-        }
-      : null,
+    me,
+    rival,
     battleStatus,
-    myWeekXp: Math.max(0, toNumber(battle.my_week_xp)),
-    rivalWeekXp: Math.max(0, toNumber(battle.rival_week_xp)),
-    xpGap: Math.max(0, toNumber(battle.xp_gap)),
+    myWeekXp,
+    rivalWeekXp,
+    xpGap: Math.max(
+      0,
+      toNumber(battle.xp_gap, Math.abs(myWeekXp - rivalWeekXp)),
+    ),
     missions: (Array.isArray(value.missions) ? value.missions : [])
       .filter(isRecord)
       .map((item) => ({

@@ -10,6 +10,21 @@ export type LeaderboardEntry = {
   total_tests: number;
 };
 
+export type LeagueDivision = {
+  key: "explorer" | "scholar" | "strategist" | "vanguard" | "luminary";
+  label: string;
+  shortLabel: string;
+};
+
+export type RankChase = {
+  me: LeaderboardEntry;
+  opponent: LeaderboardEntry;
+  mode: "chasing" | "defending";
+  xpGap: number;
+  targetXp: number;
+  progress: number;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
@@ -51,7 +66,7 @@ export function normalizeLeaderboard(payload: unknown): LeaderboardEntry[] {
         ? String(row.display_name)
         : existing?.display_name,
       class_level: row.class_level
-        ? String(row.class_level)
+        ? String(row.class_level).trim()
         : existing?.class_level,
       xp: Math.max(0, toNumber(row.xp ?? row.total_xp, existing?.xp ?? 0)),
       streak: Math.max(0, toNumber(row.streak, existing?.streak ?? 0)),
@@ -93,4 +108,58 @@ export function learnerInitials(name: string) {
 
 export function formatRankNumber(value: number) {
   return new Intl.NumberFormat("en-IN").format(Math.max(0, value));
+}
+
+export function leagueDivisionForXp(xp: number): LeagueDivision {
+  const level = Math.floor(Math.max(0, xp) / 100) + 1;
+
+  if (level >= 15) {
+    return { key: "luminary", label: "Luminary Division", shortLabel: "Luminary" };
+  }
+  if (level >= 10) {
+    return { key: "vanguard", label: "Vanguard Division", shortLabel: "Vanguard" };
+  }
+  if (level >= 7) {
+    return { key: "strategist", label: "Strategist Division", shortLabel: "Strategist" };
+  }
+  if (level >= 4) {
+    return { key: "scholar", label: "Scholar Division", shortLabel: "Scholar" };
+  }
+  return { key: "explorer", label: "Explorer Division", shortLabel: "Explorer" };
+}
+
+export function createRankChase(
+  entries: LeaderboardEntry[],
+  currentUserId: string,
+): RankChase | null {
+  const me = entries.find((entry) => entry.user_id === currentUserId);
+  if (!me) return null;
+
+  const opponent = me.rank > 1
+    ? [...entries]
+        .filter((entry) => entry.rank < me.rank)
+        .sort((left, right) => right.rank - left.rank)[0]
+    : [...entries]
+        .filter((entry) => entry.user_id !== currentUserId)
+        .sort((left, right) => left.rank - right.rank)[0];
+
+  if (!opponent) return null;
+
+  const mode = me.rank === 1 ? "defending" : "chasing";
+  const targetXp = mode === "chasing" ? opponent.xp + 1 : me.xp;
+  const xpGap = mode === "chasing"
+    ? Math.max(1, targetXp - me.xp)
+    : Math.max(0, me.xp - opponent.xp);
+  const progress = mode === "chasing"
+    ? Math.round((me.xp / Math.max(1, targetXp)) * 100)
+    : Math.round((me.xp / Math.max(1, me.xp + opponent.xp)) * 100);
+
+  return {
+    me,
+    opponent,
+    mode,
+    xpGap,
+    targetXp,
+    progress: Math.max(0, Math.min(100, progress)),
+  };
 }
