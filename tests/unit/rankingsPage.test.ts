@@ -27,6 +27,8 @@ describe("Global Rankings UI contracts", () => {
   it("keeps Rankings parent-sized, responsive, and motion-safe", () => {
     const css = readSource("components/rankings/rankings.module.css");
 
+    expect(css).toContain("width: 100%");
+    expect(css).toContain("max-width: none");
     expect(css).toContain("min-height: 100%");
     expect(css).not.toMatch(/100(?:d|s|l|v)?vh/);
     expect(css).toContain("@media (max-width: 767px)");

@@ -18,9 +18,10 @@
   --league-coral: #c45d3e;
   --league-coral-soft: rgba(196, 93, 62, 0.12);
   --league-shadow: 0 22px 70px rgba(15, 42, 41, 0.09);
-  width: min(100%, 92rem);
+  width: 100%;
+  max-width: none;
   min-height: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: clamp(0.15rem, 1vw, 0.6rem) 0 clamp(2rem, 4vw, 4rem);
   color: var(--league-text);
 }
