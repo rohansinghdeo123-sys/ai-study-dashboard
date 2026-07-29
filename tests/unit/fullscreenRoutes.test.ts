@@ -40,19 +40,19 @@ describe("authenticated full-screen route contracts", () => {
     expect(fallback).not.toContain("100svh");
   });
 
-  it("keeps the focused Exam attempt in a parent-sized flex chain", () => {
-    const css = readSource("app/dashboard/exam/market.module.css");
+  it("keeps every focused Exam workspace parent-sized with one route scroll owner", () => {
+    const sharedCss = readSource("components/exam/exam-screen.module.css");
+    const hubCss = readSource("app/dashboard/exam/hub.module.css");
+    const mcqCss = readSource("app/dashboard/exam/mcq/mcq.module.css");
+    const writtenCss = readSource("app/dashboard/exam/workspace/workspace.module.css");
+    const combined = [sharedCss, hubCss, mcqCss, writtenCss].join("\n");
 
-    expect(css).not.toContain("calc(100dvh");
-    expect(css).toContain(
-      "padding-top: max(4.15rem, calc(env(safe-area-inset-top) + 3.55rem))",
-    );
-    expect(css).toMatch(
-      /\.workspace\[data-phase="results"\]\s*\{[^}]*padding-top:\s*max\(4\.15rem/,
-    );
-    expect(css).toMatch(
-      /\.workspace\[data-phase="attempt"\][\s\S]*?\.exam-mode-content[\s\S]*?overflow-y:\s*auto/,
-    );
+    expect(combined).not.toMatch(/100(?:d|s|l)?vh/);
+    expect(sharedCss).toMatch(/\.screen\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
+    expect(hubCss).toMatch(/\.hub\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
+    expect(mcqCss).toMatch(/\.workspace\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0/);
+    expect(writtenCss).toMatch(/\.page\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow:\s*hidden/);
+    expect(writtenCss).toMatch(/\.frame\s*\{[^}]*height:\s*100%[^}]*overflow-y:\s*auto/);
   });
 
   it("redirects legacy dashboard routes on the server", () => {
