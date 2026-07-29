@@ -55,6 +55,20 @@ describe("authenticated full-screen route contracts", () => {
     expect(writtenCss).toMatch(/\.frame\s*\{[^}]*height:\s*100%[^}]*overflow-y:\s*auto/);
   });
 
+  it("keeps Revision parent-sized with one route scroll owner and no nested viewport math", () => {
+    const sharedCss = readSource("components/revision/revision-screen.module.css");
+    const hubCss = readSource("app/dashboard/revision/hub.module.css");
+    const sessionCss = readSource("app/dashboard/revision/[chapterSlug]/session.module.css");
+    const toolsCss = readSource("app/dashboard/revision/[chapterSlug]/tools/tools.module.css");
+    const artifactCss = readSource("components/revision/revision-artifacts.module.css");
+    const combined = [sharedCss, hubCss, sessionCss, toolsCss, artifactCss].join("\n");
+
+    expect(combined).not.toMatch(/100(?:d|s|l)?vh/);
+    expect(sharedCss).toMatch(/\.screen\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow:\s*hidden/);
+    expect(sharedCss).toMatch(/\.frame\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
+    expect(hubCss).toMatch(/\.hub\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
+  });
+
   it("redirects legacy dashboard routes on the server", () => {
     const missionRoute = readSource("app/dashboard/mission/page.tsx");
     const adminRoute = readSource("app/dashboard/admin/page.tsx");

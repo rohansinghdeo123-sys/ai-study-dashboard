@@ -1,0 +1,410 @@
+.content {
+  display: grid;
+  min-width: 0;
+  gap: 0.75rem;
+}
+
+.readyPill,
+.lessonLink {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  gap: 0.42rem;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface);
+  padding: 0.5rem 0.78rem;
+  box-shadow: var(--ds-shadow-sm);
+  color: var(--ds-text-secondary);
+  font-size: 0.69rem;
+  font-weight: 760;
+}
+
+.readyPill {
+  border-color: color-mix(in srgb, var(--ds-success) 25%, var(--ds-border));
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+}
+
+.readyPill strong {
+  color: inherit;
+  font-family: var(--ds-font-mono);
+}
+
+.readyPill svg,
+.lessonLink svg {
+  width: 0.86rem;
+  height: 0.86rem;
+}
+
+.lessonLink {
+  text-decoration: none;
+  transition:
+    border-color var(--ds-duration-fast) var(--ds-ease-standard),
+    color var(--ds-duration-fast) var(--ds-ease-standard),
+    transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.lessonLink:hover {
+  border-color: var(--ds-border-strong);
+  color: var(--ds-text-primary);
+  transform: translateY(-1px);
+}
+
+.lessonLink:focus-visible,
+.scopeBar select:focus-visible,
+.refreshButton:focus-visible,
+.emptyTools button:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-shadow-focus);
+}
+
+.scopeBar {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  grid-template-columns: minmax(12rem, 1fr) minmax(22rem, 1.25fr) auto;
+  gap: 0.8rem;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: color-mix(in srgb, var(--ds-surface-elevated) 90%, transparent);
+  padding: 0.8rem;
+  box-shadow: var(--ds-shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.scopeIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.68rem;
+}
+
+.scopeIdentity > span {
+  display: inline-flex;
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--ds-accent-teal) 25%, var(--ds-border));
+  border-radius: 0.85rem;
+  background: var(--ds-accent-teal-soft);
+  color: var(--ds-accent-teal);
+}
+
+.scopeIdentity > span svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.scopeIdentity div {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.scopeIdentity small,
+.selectors label > span {
+  color: var(--ds-text-muted);
+  font-size: 0.58rem;
+  font-weight: 770;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.scopeIdentity strong,
+.scopeIdentity div > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scopeIdentity strong {
+  color: var(--ds-text-primary);
+  font-size: 0.78rem;
+}
+
+.scopeIdentity div > span {
+  color: var(--ds-text-muted);
+  font-size: 0.64rem;
+}
+
+.selectors {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.selectors label {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.selectors select {
+  width: 100%;
+  min-height: 2.45rem;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface);
+  padding: 0 0.68rem;
+  color: var(--ds-text-primary);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 680;
+}
+
+.refreshButton,
+.emptyTools button {
+  display: inline-flex;
+  min-height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid #0f766e;
+  border-radius: var(--ds-radius-full);
+  background: #0f766e;
+  padding: 0.52rem 0.78rem;
+  color: #fff;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 770;
+  white-space: nowrap;
+  box-shadow: 0 0.5rem 1.2rem rgba(15, 118, 110, 0.17);
+}
+
+.refreshButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.refreshButton svg,
+.emptyTools button svg {
+  width: 0.84rem;
+  height: 0.84rem;
+}
+
+.content :global([role="alert"]) strong {
+  display: block;
+  color: var(--ds-text-primary);
+}
+
+.content :global([role="alert"]) span {
+  display: block;
+  margin-top: 0.12rem;
+}
+
+.content :global([role="alert"]) button {
+  margin-top: 0.5rem;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface);
+  padding: 0.38rem 0.65rem;
+  color: var(--ds-text-primary);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 760;
+}
+
+.toolsSkeleton,
+.emptyTools {
+  border: 1px solid var(--ds-border);
+  border-radius: clamp(1.2rem, 2vw, 1.55rem);
+  background: color-mix(in srgb, var(--ds-surface-elevated) 92%, transparent);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.toolsSkeleton {
+  display: grid;
+  gap: 0.75rem;
+  padding: clamp(1rem, 2.2vw, 1.4rem);
+}
+
+.toolsSkeleton > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+}
+
+.pulse {
+  width: 2.6rem;
+  height: 2.6rem;
+  flex: 0 0 auto;
+  border-radius: 0.88rem;
+  background: var(--ds-accent-teal-soft);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ds-accent-teal) 20%, transparent);
+  animation: pulse 1.4s ease-out infinite;
+}
+
+.toolsSkeleton p {
+  display: grid;
+  gap: 0.1rem;
+  margin: 0;
+}
+
+.toolsSkeleton strong {
+  color: var(--ds-text-primary);
+  font-size: 0.82rem;
+}
+
+.toolsSkeleton small {
+  color: var(--ds-text-muted);
+  font-size: 0.66rem;
+}
+
+.skeletonTabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.skeletonTabs span {
+  height: 2.6rem;
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-muted);
+}
+
+.skeletonCanvas {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-xl);
+  padding: 1rem;
+}
+
+.skeletonCanvas span {
+  height: 0.72rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ds-surface-muted), var(--ds-surface), var(--ds-surface-muted));
+  background-size: 200% 100%;
+  animation: shimmer 1.35s linear infinite;
+}
+
+.skeletonCanvas span:nth-child(2) { width: 83%; }
+.skeletonCanvas span:nth-child(3) { width: 68%; }
+
+.emptyTools {
+  display: flex;
+  min-height: 27rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: clamp(1.4rem, 4vw, 3rem);
+  text-align: center;
+}
+
+.emptyTools > span {
+  display: inline-flex;
+  width: 3.2rem;
+  height: 3.2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--ds-accent-teal) 24%, var(--ds-border));
+  border-radius: 1rem;
+  background: var(--ds-accent-teal-soft);
+  color: var(--ds-accent-teal);
+}
+
+.emptyTools > span svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.emptyTools > p:first-of-type {
+  margin: 0.9rem 0 0;
+  color: var(--ds-accent-teal);
+  font-size: 0.62rem;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.emptyTools h2 {
+  max-width: 24ch;
+  margin: 0.42rem 0 0;
+  color: var(--ds-text-primary);
+  font-size: clamp(1.35rem, 2.5vw, 2rem);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.emptyTools > p:last-of-type {
+  max-width: 50ch;
+  margin: 0.6rem 0 0;
+  color: var(--ds-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.58;
+}
+
+.emptyTools button {
+  margin-top: 1rem;
+}
+
+.disclosure {
+  margin: 0.05rem 0 0;
+  color: var(--ds-text-muted);
+  font-size: 0.62rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+@keyframes pulse {
+  70% { box-shadow: 0 0 0 0.7rem transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (max-width: 58rem) {
+  .scopeBar {
+    grid-template-columns: 1fr auto;
+  }
+
+  .selectors {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 40rem) {
+  .scopeBar {
+    grid-template-columns: 1fr;
+  }
+
+  .selectors,
+  .refreshButton {
+    grid-column: 1;
+  }
+
+  .selectors {
+    grid-template-columns: 1fr;
+  }
+
+  .refreshButton {
+    width: 100%;
+  }
+
+  .skeletonTabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lessonLink {
+    transition: none;
+  }
+
+  .pulse,
+  .skeletonCanvas span {
+    animation: none;
+  }
+
+  .lessonLink:hover {
+    transform: none;
+  }
+}

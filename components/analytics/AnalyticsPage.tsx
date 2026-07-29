@@ -784,7 +784,8 @@ export default function AnalyticsPage() {
 
   const handleReviseTopic = useCallback((topic: string) => {
     const normalizedTopic = topic.trim().toLowerCase().replace(/\s+/g, "_");
-    router.push(`/dashboard/study?chapter=${encodeURIComponent(getChapterForTopic(topic))}&topic=${encodeURIComponent(normalizedTopic)}`);
+    const chapter = getChapterForTopic(topic);
+    router.push(`/dashboard/revision/${encodeURIComponent(chapter)}?topic=${encodeURIComponent(normalizedTopic)}`);
   }, [router]);
 
   if (loading) {

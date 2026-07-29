@@ -140,7 +140,7 @@ export default function McqExamPage() {
   );
   const scopeQuery = `chapter=${encodeURIComponent(activeChapterValue)}&topic=${encodeURIComponent(activeTopicValue)}`;
   const hubHref = `/dashboard/exam?${scopeQuery}`;
-  const revisionHref = `/dashboard/revision?${scopeQuery}`;
+  const revisionHref = `/dashboard/revision/${encodeURIComponent(activeChapterValue)}?topic=${encodeURIComponent(activeTopicValue)}`;
   const workspaceHref = `/dashboard/exam/workspace?${scopeQuery}`;
 
   const answeredCount = questions.reduce(

@@ -15,12 +15,19 @@ import { apiJson } from "@/lib/apiClient";
 import { useEffect, useState } from "react";
 
 export type CatalogTopic = { label: string; value: string };
-export type CatalogChapter = { label: string; value: string; topics: CatalogTopic[] };
+export type CatalogChapter = {
+  label: string;
+  value: string;
+  topics: CatalogTopic[];
+  subject?: string;
+  classLevel?: string;
+};
 
 export const BUILTIN_CHAPTERS: CatalogChapter[] = [
   {
     label: "Hydrocarbons",
     value: "hydrocarbon",
+    subject: "Chemistry",
     topics: [
       { label: "Alkanes", value: "alkanes" },
       { label: "Alkenes", value: "alkenes" },
@@ -31,6 +38,7 @@ export const BUILTIN_CHAPTERS: CatalogChapter[] = [
   {
     label: "Basic Concepts of Chemistry",
     value: "matter",
+    subject: "Chemistry",
     topics: [
       { label: "Definition of Chemistry", value: "chemistry_definition" },
       { label: "Alchemy and Iatrochemistry", value: "historical_alchemy" },
@@ -92,10 +100,14 @@ function mapBackendCatalog(payload: BackendCatalog, preferredClassLevel: string)
   const preferred =
     subjects.find((group) => group.class_level && group.class_level === preferredClassLevel) ||
     subjects[0];
+  const subject = String(preferred.subject || "");
+  const classLevel = String(preferred.class_level || preferredClassLevel || "");
   const chapters = (preferred.chapters || [])
     .map((chapter) => ({
       label: String(chapter.name || chapter.slug || ""),
       value: String(chapter.slug || ""),
+      subject,
+      classLevel,
       topics: (chapter.topics || [])
         .map((topic) => ({ label: String(topic.label || topic.id || ""), value: String(topic.id || "") }))
         .filter((topic) => topic.value),
@@ -104,18 +116,30 @@ function mapBackendCatalog(payload: BackendCatalog, preferredClassLevel: string)
   return chapters;
 }
 
-export function useCatalog(): { chapters: CatalogChapter[]; source: "builtin" | "published" } {
+export function useCatalog(): {
+  chapters: CatalogChapter[];
+  source: "builtin" | "published";
+  settled: boolean;
+} {
   const { userId, loading, getAuthHeaders, profile } = useAuth();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
   const [chapters, setChapters] = useState<CatalogChapter[]>(BUILTIN_CHAPTERS);
   const [source, setSource] = useState<"builtin" | "published">("builtin");
+  const [settled, setSettled] = useState(false);
   const classLevel = profile?.classLevel || "";
 
   useEffect(() => {
-    if (loading || !userId) return;
+    if (loading) return;
     let active = true;
 
     async function loadCatalog() {
+      await Promise.resolve();
+      if (!active) return;
+      setSettled(false);
+      if (!userId) {
+        setSettled(true);
+        return;
+      }
       try {
         const payload = await apiJson<BackendCatalog>(`${backendURL}/catalog`, {
           headers: await getAuthHeaders(),
@@ -132,6 +156,8 @@ export function useCatalog(): { chapters: CatalogChapter[]; source: "builtin" | 
         }
       } catch {
         // Built-in catalog keeps every selector working.
+      } finally {
+        if (active) setSettled(true);
       }
     }
 
@@ -141,5 +167,5 @@ export function useCatalog(): { chapters: CatalogChapter[]; source: "builtin" | 
     };
   }, [backendURL, classLevel, getAuthHeaders, loading, userId]);
 
-  return { chapters, source };
+  return { chapters, source, settled };
 }

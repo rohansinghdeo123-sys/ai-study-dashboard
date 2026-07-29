@@ -1,0 +1,777 @@
+.workspace {
+  display: grid;
+  min-width: 0;
+  align-items: start;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: 0.85rem;
+}
+
+.brief,
+.tabs,
+.stage {
+  border: 1px solid var(--ds-border);
+  background: color-mix(in srgb, var(--ds-surface-elevated) 92%, transparent);
+  box-shadow: var(--ds-shadow-md);
+  backdrop-filter: blur(18px);
+}
+
+.stage[hidden] {
+  display: none;
+}
+
+.brief {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  overflow: hidden;
+  flex-direction: column;
+  border-radius: var(--ds-radius-xl);
+  padding: 1.05rem;
+}
+
+.brief::after {
+  position: absolute;
+  top: -5rem;
+  right: -4rem;
+  width: 10rem;
+  height: 10rem;
+  border-radius: 999px;
+  background: var(--ds-accent-teal-soft);
+  content: "";
+  pointer-events: none;
+}
+
+.briefIcon,
+.stageIcon {
+  display: inline-flex;
+  width: 2.7rem;
+  height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--ds-accent-teal) 25%, var(--ds-border));
+  border-radius: 0.88rem;
+  background: var(--ds-accent-teal-soft);
+  color: var(--ds-accent-teal);
+}
+
+.briefIcon {
+  position: relative;
+  z-index: 1;
+}
+
+.briefIcon svg,
+.stageIcon svg {
+  width: 1.08rem;
+  height: 1.08rem;
+}
+
+.brief > p,
+.stageHeader p {
+  margin: 0.9rem 0 0;
+  color: var(--ds-accent-teal);
+  font-size: 0.61rem;
+  font-weight: 820;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.brief h2 {
+  margin: 0.34rem 0 0;
+  color: var(--ds-text-primary);
+  font-size: 1.05rem;
+  font-weight: 760;
+  letter-spacing: -0.03em;
+  line-height: 1.18;
+}
+
+.brief > span:not(.briefIcon) {
+  margin-top: 0.48rem;
+  color: var(--ds-text-muted);
+  font-size: 0.69rem;
+  line-height: 1.55;
+}
+
+.signalList {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--ds-border-subtle);
+  padding-top: 0.8rem;
+}
+
+.signalList span {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.38rem;
+  color: var(--ds-text-muted);
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.signalList svg {
+  width: 0.78rem;
+  height: 0.78rem;
+  flex: 0 0 auto;
+  margin-top: 0.06rem;
+  color: var(--ds-success);
+}
+
+.toolArea {
+  display: grid;
+  min-width: 0;
+  gap: 0.65rem;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  border-radius: var(--ds-radius-xl);
+  padding: 0.42rem;
+}
+
+.tab {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid transparent;
+  border-radius: var(--ds-radius-lg);
+  background: transparent;
+  padding: 0.46rem 0.58rem;
+  color: var(--ds-text-muted);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 750;
+  transition:
+    border-color var(--ds-duration-fast) var(--ds-ease-standard),
+    background var(--ds-duration-fast) var(--ds-ease-standard),
+    color var(--ds-duration-fast) var(--ds-ease-standard),
+    transform var(--ds-duration-fast) var(--ds-ease-standard);
+}
+
+.tab:hover {
+  color: var(--ds-text-primary);
+}
+
+.tab[data-active="true"] {
+  border-color: color-mix(in srgb, var(--ds-accent-teal) 28%, var(--ds-border));
+  background: var(--ds-accent-teal-soft);
+  color: var(--ds-accent-teal);
+}
+
+.tab:focus-visible,
+.revealButton:focus-visible,
+.ratingActions button:focus-visible,
+.deckResult button:focus-visible,
+.correctionPrompt button:focus-visible,
+.correction button:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-shadow-focus);
+}
+
+.tab svg {
+  width: 0.84rem;
+  height: 0.84rem;
+}
+
+.tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stage {
+  min-width: 0;
+  overflow: hidden;
+  border-radius: clamp(1.2rem, 2vw, 1.55rem);
+}
+
+.stageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--ds-border);
+  background:
+    linear-gradient(135deg, var(--ds-accent-teal-soft), transparent 65%),
+    color-mix(in srgb, var(--ds-surface) 84%, transparent);
+  padding: clamp(0.9rem, 1.8vw, 1.2rem);
+}
+
+.stageHeader > div {
+  min-width: 0;
+}
+
+.stageHeader p {
+  margin-top: 0;
+}
+
+.stageHeader h3 {
+  margin: 0.28rem 0 0;
+  color: var(--ds-text-primary);
+  font-size: clamp(1.05rem, 1.7vw, 1.28rem);
+  font-weight: 760;
+  letter-spacing: -0.03em;
+}
+
+.stageHeader > div > span {
+  display: block;
+  margin-top: 0.26rem;
+  color: var(--ds-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.stageBody {
+  padding: clamp(0.9rem, 2.3vw, 1.5rem);
+}
+
+.mapLayout {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.coreNode {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ds-accent-teal) 30%, var(--ds-border));
+  border-radius: var(--ds-radius-xl);
+  background:
+    linear-gradient(135deg, var(--ds-accent-teal-soft), transparent 72%),
+    var(--ds-surface);
+  padding: clamp(0.9rem, 2vw, 1.2rem);
+}
+
+.coreNode::after {
+  position: absolute;
+  top: -3rem;
+  right: -2rem;
+  width: 8rem;
+  height: 8rem;
+  border: 1px solid color-mix(in srgb, var(--ds-accent-teal) 18%, transparent);
+  border-radius: 999px;
+  content: "";
+}
+
+.coreNode > span,
+.mapNode div span,
+.cardTopline span,
+.toolProgress span,
+.mistakeCounter > span {
+  color: var(--ds-accent-teal);
+  font-size: 0.6rem;
+  font-weight: 810;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.coreNode h4,
+.mapNode h4 {
+  position: relative;
+  z-index: 1;
+  margin: 0.35rem 0 0;
+  color: var(--ds-text-primary);
+  font-size: 1rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+}
+
+.coreNode p,
+.mapNode p {
+  position: relative;
+  z-index: 1;
+  margin: 0.38rem 0 0;
+  color: var(--ds-text-muted);
+  font-size: 0.71rem;
+  line-height: 1.55;
+}
+
+.nodeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.mapNode {
+  min-width: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface-muted);
+  padding: 0.82rem;
+}
+
+.mapNode > div,
+.cardTopline,
+.toolProgress > div,
+.mistakeCounter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.mapNode div small,
+.cardTopline small {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-mono);
+  font-size: 0.58rem;
+}
+
+.connectionStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+}
+
+.connectionStrip span,
+.variableList span {
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface);
+  padding: 0.28rem 0.5rem;
+  color: var(--ds-text-muted);
+  font-size: 0.6rem;
+  font-weight: 680;
+}
+
+.cardDeck {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.toolProgress {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.toolProgress strong {
+  color: var(--ds-text-secondary);
+  font-size: 0.66rem;
+}
+
+.toolProgressTrack {
+  position: relative;
+  height: 0.36rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ds-surface-muted);
+}
+
+.toolProgressTrack > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--ds-accent-teal), var(--ds-accent-gold));
+  transition: width var(--ds-duration-slow) var(--ds-ease-standard);
+}
+
+.recallCard,
+.mistakeCard {
+  display: flex;
+  min-height: 20rem;
+  flex-direction: column;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background:
+    radial-gradient(circle at 90% 8%, var(--ds-accent-teal-soft), transparent 15rem),
+    var(--ds-surface);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  box-shadow: var(--ds-shadow-sm);
+}
+
+.cardQuestion,
+.mistakeStatement {
+  max-width: 31ch;
+  margin: auto 0;
+  color: var(--ds-text-primary);
+  font-size: clamp(1.25rem, 2.5vw, 1.85rem);
+  font-weight: 720;
+  letter-spacing: -0.035em;
+  line-height: 1.22;
+  text-wrap: balance;
+}
+
+.cardAnswer {
+  border: 1px dashed var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-muted);
+  padding: 0.75rem;
+}
+
+.cardAnswer[data-revealed="true"] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--ds-success) 28%, var(--ds-border));
+  background: var(--ds-success-soft);
+}
+
+.cardAnswer span {
+  color: var(--ds-text-muted);
+  font-size: 0.59rem;
+  font-weight: 780;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cardAnswer p {
+  margin: 0.3rem 0 0;
+  color: var(--ds-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.revealButton,
+.ratingActions button,
+.deckResult button,
+.correctionPrompt button,
+.correction button {
+  display: inline-flex;
+  min-height: 2.55rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-full);
+  background: var(--ds-surface);
+  padding: 0.5rem 0.78rem;
+  color: var(--ds-text-secondary);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 760;
+}
+
+.revealButton {
+  align-self: flex-start;
+  margin-top: 0.75rem;
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+.ratingActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.ratingActions button:last-child,
+.correction button {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+.ratingActions svg,
+.deckResult button svg,
+.correction button svg {
+  width: 0.82rem;
+  height: 0.82rem;
+}
+
+.deckResult {
+  display: flex;
+  min-height: 20rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--ds-success) 26%, var(--ds-border));
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-success-soft);
+  padding: 1.4rem;
+  text-align: center;
+}
+
+.deckResult > span {
+  display: inline-flex;
+  width: 3rem;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ds-success) 14%, var(--ds-surface));
+  color: var(--ds-success);
+}
+
+.deckResult > span svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.deckResult > p:first-of-type {
+  margin: 0.82rem 0 0;
+  color: var(--ds-success);
+  font-size: 0.62rem;
+  font-weight: 810;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.deckResult h4 {
+  margin: 0.32rem 0 0;
+  color: var(--ds-text-primary);
+  font-size: 1.35rem;
+  letter-spacing: -0.035em;
+}
+
+.deckResult > p:last-of-type {
+  max-width: 46ch;
+  margin: 0.52rem 0 0;
+  color: var(--ds-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.deckResult button {
+  margin-top: 0.9rem;
+}
+
+.formulaGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.formulaCard {
+  min-width: 0;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  background: var(--ds-surface-muted);
+  padding: 0.9rem;
+}
+
+.formulaExpression {
+  overflow-x: auto;
+  margin: 1rem 0;
+  color: var(--ds-text-primary);
+  font-family: var(--ds-font-mono);
+  font-size: clamp(1rem, 2.2vw, 1.4rem);
+  font-weight: 760;
+  line-height: 1.35;
+}
+
+.variableList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+}
+
+.formulaHint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  padding-top: 0.65rem;
+  color: var(--ds-text-muted);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
+.formulaHint svg {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: 0 0 auto;
+  margin-top: 0.08rem;
+  color: var(--ds-accent-gold-strong);
+}
+
+.mistakeWorkspace {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.mistakeCounter > div {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.mistakeCounter > div span {
+  width: 1.2rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--ds-border);
+}
+
+.mistakeCounter > div span[data-active="true"] {
+  background: var(--ds-accent-gold);
+}
+
+.mistakeCard {
+  background:
+    radial-gradient(circle at 90% 8%, var(--ds-accent-gold-soft), transparent 15rem),
+    var(--ds-surface);
+}
+
+.mistakeCard .cardTopline span {
+  color: var(--ds-accent-gold-strong);
+}
+
+.correctionPrompt,
+.correction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px dashed var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  background: var(--ds-surface-muted);
+  padding: 0.72rem;
+}
+
+.correctionPrompt span {
+  color: var(--ds-text-muted);
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+.correction {
+  align-items: flex-start;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--ds-success) 28%, var(--ds-border));
+  background: var(--ds-success-soft);
+  flex-wrap: wrap;
+}
+
+.correction > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ds-success);
+  font-size: 0.61rem;
+  font-weight: 810;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.correction > span svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.correction p {
+  width: 100%;
+  margin: 0;
+  color: var(--ds-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.55;
+}
+
+.correction button {
+  margin-left: auto;
+}
+
+.emptyTool {
+  display: flex;
+  min-height: 18rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px dashed var(--ds-border);
+  border-radius: var(--ds-radius-xl);
+  padding: 1.2rem;
+  color: var(--ds-accent-teal);
+  text-align: center;
+}
+
+.emptyTool svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.emptyTool p {
+  max-width: 44ch;
+  margin: 0.65rem 0 0;
+  color: var(--ds-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+@media (max-width: 58rem) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .brief {
+    position: static;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.75rem;
+  }
+
+  .brief > p,
+  .brief h2,
+  .brief > span:not(.briefIcon),
+  .signalList {
+    grid-column: 2;
+  }
+
+  .brief > p {
+    margin-top: 0;
+  }
+
+  .briefIcon {
+    grid-row: 1 / span 4;
+  }
+
+  .signalList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 42rem) {
+  .tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .nodeGrid,
+  .formulaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .recallCard,
+  .mistakeCard {
+    min-height: 18rem;
+  }
+}
+
+@media (max-width: 32rem) {
+  .brief {
+    display: flex;
+  }
+
+  .signalList {
+    grid-template-columns: 1fr;
+  }
+
+  .tab span {
+    font-size: 0.62rem;
+  }
+
+  .correctionPrompt,
+  .correction {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .correctionPrompt button,
+  .correction button,
+  .ratingActions,
+  .ratingActions button,
+  .revealButton {
+    width: 100%;
+  }
+
+  .correction button {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab,
+  .toolProgressTrack > span {
+    transition: none;
+  }
+}
