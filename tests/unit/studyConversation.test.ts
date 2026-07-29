@@ -52,6 +52,32 @@ describe("study conversation utilities", () => {
     expect(normalized?.messages[0]?.role).toBe("user");
   });
 
+  it("normalizes and preserves a persisted syllabus source scope", () => {
+    const scope = {
+      source: "syllabus" as const,
+      catalogSource: "published" as const,
+      subject: "Chemistry",
+      chapterId: "matter",
+      chapterLabel: "Basic Concepts of Chemistry",
+      topicId: "atomic_mass",
+      topicLabel: "Atomic Mass",
+    };
+    const normalized = normalizeServerConversation({
+      id: "server-syllabus-chat",
+      messages: [],
+      scope,
+    });
+
+    expect(normalized?.scope).toEqual(scope);
+
+    const merged = mergeConversations(
+      [conversation({ id: "shared", title: "Server copy" })],
+      [conversation({ id: "shared", title: "Device copy", scope })],
+    );
+    expect(merged[0]?.title).toBe("Server copy");
+    expect(merged[0]?.scope).toEqual(scope);
+  });
+
   it("merges, deduplicates, pins, and sorts conversations", () => {
     const merged = mergeConversations(
       [

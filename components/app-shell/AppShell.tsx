@@ -25,7 +25,8 @@ export default function AppShell({
   const isLanding = pathname === "/dashboard" || pathname === "/dashboard/";
   const immersive = pathname.startsWith("/dashboard/study")
     || pathname.startsWith("/dashboard/revision")
-    || pathname.startsWith("/dashboard/exam");
+    || pathname.startsWith("/dashboard/exam")
+    || pathname.startsWith("/dashboard/planning");
 
   return (
     <div className="dashboard-shell market-ready-shell">

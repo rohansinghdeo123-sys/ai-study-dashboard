@@ -29,13 +29,12 @@ describe("authenticated full-screen route contracts", () => {
   });
 
   it("sizes Planning from its parent and keeps scrolling inside its panels", () => {
-    const css = readSource("features/planning/planning-market.module.css");
+    const css = readSource("features/planning/planning.module.css");
     const fallback = readSource("features/planning/PlanningPage.tsx");
 
-    expect(css).not.toContain("--planning-viewport-height");
-    expect(css).not.toContain("max-width: 100rem");
-    expect(css).toMatch(/\.workspace\s*\{[^}]*height:\s*100%/);
-    expect(css).toMatch(/\.canvasBody\s*\{[^}]*overflow-y:\s*auto/);
+    expect(css).not.toMatch(/100(?:d|s|l)?vh/);
+    expect(css).toMatch(/\.screen\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow:\s*hidden/);
+    expect(css).toMatch(/\.scroll\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*overflow-y:\s*auto/);
     expect(fallback).toContain("h-full min-h-0 w-full");
     expect(fallback).not.toContain("100svh");
   });

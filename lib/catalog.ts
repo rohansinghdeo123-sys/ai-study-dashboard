@@ -94,11 +94,27 @@ type BackendCatalog = {
   }>;
 };
 
+function normalizeClassLevel(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^class_/, "")
+    .replace(/^_+|_+$/g, "");
+}
+
+export function catalogCacheKey(userId: string, classLevel: string) {
+  return `catalog:${encodeURIComponent(userId)}:${normalizeClassLevel(classLevel) || "unspecified"}`;
+}
+
 function mapBackendCatalog(payload: BackendCatalog, preferredClassLevel: string): CatalogChapter[] {
   const subjects = Array.isArray(payload?.subjects) ? payload.subjects : [];
   if (!subjects.length) return [];
+  const normalizedPreferredClass = normalizeClassLevel(preferredClassLevel);
   const preferred =
-    subjects.find((group) => group.class_level && group.class_level === preferredClassLevel) ||
+    subjects.find(
+      (group) => group.class_level && normalizeClassLevel(group.class_level) === normalizedPreferredClass,
+    ) ||
     subjects[0];
   const subject = String(preferred.subject || "");
   const classLevel = String(preferred.class_level || preferredClassLevel || "");
@@ -136,6 +152,8 @@ export function useCatalog(): {
       await Promise.resolve();
       if (!active) return;
       setSettled(false);
+      setChapters(BUILTIN_CHAPTERS);
+      setSource("builtin");
       if (!userId) {
         setSettled(true);
         return;
@@ -143,7 +161,7 @@ export function useCatalog(): {
       try {
         const payload = await apiJson<BackendCatalog>(`${backendURL}/catalog`, {
           headers: await getAuthHeaders(),
-          cacheKey: "catalog",
+          cacheKey: catalogCacheKey(userId, classLevel),
           cacheTtlMs: 300000,
           retries: 1,
           timeoutMs: 8000,

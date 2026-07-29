@@ -56,20 +56,40 @@ export function normalizeServerConversation(value: unknown): StudyConversation |
     pinned: Boolean(value.pinned),
     archived: Boolean(value.archived),
     titleLocked: Boolean(value.titleLocked),
+    ...(isPlainRecord(value.scope)
+      ? {
+          scope: {
+            source: value.scope.source === "syllabus" ? "syllabus" : "open",
+            catalogSource: value.scope.catalogSource === "published" ? "published" : "starter",
+            subject: String(value.scope.subject || ""),
+            chapterId: String(value.scope.chapterId || ""),
+            chapterLabel: String(value.scope.chapterLabel || "Open tutor"),
+            topicId: String(value.scope.topicId || ""),
+            topicLabel: String(value.scope.topicLabel || "Any subject"),
+          },
+        }
+      : {}),
   };
 }
 
 export function mergeConversations(primary: StudyConversation[], secondary: StudyConversation[]) {
-  const seen = new Set<string>();
-  const merged: StudyConversation[] = [];
+  const merged = new Map<string, StudyConversation>();
 
   for (const conversation of [...primary, ...secondary]) {
-    if (!conversation?.id || seen.has(conversation.id)) continue;
-    seen.add(conversation.id);
-    merged.push(conversation);
+    if (!conversation?.id) continue;
+    const existing = merged.get(conversation.id);
+    if (!existing) {
+      merged.set(conversation.id, conversation);
+      continue;
+    }
+    // The backend remains authoritative for messages and metadata, while the
+    // local cache may carry the richer source scope until the API returns it.
+    if (!existing.scope && conversation.scope) {
+      merged.set(conversation.id, { ...existing, scope: conversation.scope });
+    }
   }
 
-  return merged
+  return [...merged.values()]
     .sort((left, right) => {
       if (Boolean(left.pinned) !== Boolean(right.pinned)) return Number(Boolean(right.pinned)) - Number(Boolean(left.pinned));
       return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();

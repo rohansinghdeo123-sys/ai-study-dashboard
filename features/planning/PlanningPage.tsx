@@ -1,5 +1,5 @@
-import PlanningWorkspace from "./PlanningWorkspace";
 import { Suspense } from "react";
+import PlanningHome from "./PlanningHome";
 
 function PlanningFallback() {
   return (
@@ -12,7 +12,7 @@ function PlanningFallback() {
 export default function PlanningPage() {
   return (
     <Suspense fallback={<PlanningFallback />}>
-      <PlanningWorkspace />
+      <PlanningHome />
     </Suspense>
   );
 }

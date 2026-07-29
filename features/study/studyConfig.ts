@@ -1,54 +1,13 @@
-import type { AppIconName } from "@/components/ui/Polished";
-import type {
-  AgentStageId,
-  ArtifactType,
-  ExamPanel,
-  RevisionTool,
-  StudyMode,
-} from "@/features/study/types";
+import type { AgentStageId } from "@/features/study/types";
 
-export const REVISION_TOOLS: RevisionTool[] = [
-  {
-    id: "summary",
-    title: "Summary",
-    detail: "A clean revision note from the selected chapter data.",
-    mode: "summary",
-    prompt: (topic) => `Create simple revision notes for ${topic} from the selected study material only.`,
-  },
-  {
-    id: "explain",
-    title: "Deep Dive",
-    detail: "A deeper teacher-style explanation while staying grounded in the material.",
-    mode: "explain",
-    prompt: (topic) => `Deeply explain ${topic} from the selected study material only, with examples if available in the data.`,
-  },
-  {
-    id: "keypoints",
-    title: "Quick Recall",
-    detail: "High-yield recall bullets for fast exam revision.",
-    mode: "keypoints",
-    prompt: (topic) => `Extract the most important key points for ${topic} from the selected study material only.`,
-  },
+export const STAGE_ORDER: AgentStageId[] = [
+  "received",
+  "understanding",
+  "drafting",
+  "reviewing",
+  "formatting",
+  "delivering",
 ];
-
-export const ARTIFACT_TABS: Array<{ id: ArtifactType; label: string; icon: AppIconName }> = [
-  { id: "flip_cards", label: "Cards", icon: "copy" },
-  { id: "mistake_cards", label: "Mistakes", icon: "check" },
-];
-
-export const EXAM_TABS: Array<{ id: ExamPanel; label: string; detail: string; icon: AppIconName }> = [
-  { id: "mcq", label: "MCQ", detail: "Attempt grounded multiple-choice questions.", icon: "check" },
-  { id: "probable", label: "Probable", detail: "Review likely theory questions from the chapter.", icon: "book" },
-  { id: "practice", label: "Practice", detail: "Use the same question set as a quick drill.", icon: "study" },
-  { id: "review", label: "Review", detail: "Check score, explanations, and sources.", icon: "analytics" },
-];
-
-export const STUDY_MODES: Array<{ id: StudyMode; label: string; detail: string; icon: AppIconName }> = [
-  { id: "coach", label: "Chat", detail: "Ask doubts and continue your study conversation.", icon: "study" },
-  { id: "revision", label: "Revision", detail: "Open summaries, explanations, recall notes, and study tools.", icon: "book" },
-];
-
-export const STAGE_ORDER: AgentStageId[] = ["received", "understanding", "drafting", "reviewing", "formatting", "delivering"];
 
 export const MATERIAL_NOT_FOUND_MESSAGE = "I could not find this in your study material. Please upload or select the correct chapter/data.";
 export const TUTOR_TEMPORARY_ERROR_MESSAGE = "I could not complete that response right now. Please try again.";

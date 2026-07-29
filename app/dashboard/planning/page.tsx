@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PlanningHome from "@/features/planning/PlanningHome";
 
 export const metadata: Metadata = {
   title: "Planning | AgentifyAI",
@@ -6,4 +7,4 @@ export const metadata: Metadata = {
   alternates: { canonical: "/dashboard/planning" },
 };
 
-export { default } from "@/features/planning/PlanningPage";
+export default PlanningHome;

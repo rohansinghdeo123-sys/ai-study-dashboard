@@ -1,11 +1,8 @@
 export type CoachRole = "user" | "coach";
 export type AgentStageId = "received" | "understanding" | "drafting" | "reviewing" | "formatting" | "delivering";
 export type AgentStageStatus = "pending" | "active" | "done";
-export type StudyMode = "coach" | "revision" | "exam" | "history";
-export type RevisionType = "summary" | "explain" | "keypoints";
-export type RevisionPanel = RevisionType | "artifact";
-export type ExamPanel = "mcq" | "probable" | "practice" | "review";
 export type ArtifactType = "concept_map" | "flip_cards" | "formula_lab" | "mistake_cards";
+export type StudySourceMode = "open" | "syllabus";
 export type LearningIntent = "concept" | "exam" | "revision" | "practice" | "planning" | "curiosity";
 export type LearningLevel = "beginner" | "intermediate" | "advanced";
 export type EmotionalState = "steady" | "confused" | "anxious" | "curious" | "confident";
@@ -28,6 +25,16 @@ export interface CoachMessage {
   attachments?: DisplayAttachment[];
 }
 
+export interface StudyScope {
+  source: StudySourceMode;
+  catalogSource?: "published" | "starter";
+  subject: string;
+  chapterId: string;
+  chapterLabel: string;
+  topicId: string;
+  topicLabel: string;
+}
+
 export interface StudyConversation {
   id: string;
   sessionId?: string;
@@ -39,6 +46,7 @@ export interface StudyConversation {
   pinned?: boolean;
   archived?: boolean;
   titleLocked?: boolean;
+  scope?: StudyScope;
 }
 
 export interface CoachCitation {
@@ -108,14 +116,6 @@ export type StreamProcessResult =
   | { kind: "none" }
   | { kind: "delta"; value: string }
   | { kind: "answer"; value: string };
-
-export interface RevisionTool {
-  id: RevisionType;
-  title: string;
-  detail: string;
-  mode: "summary" | "explain" | "keypoints";
-  prompt: (topic: string) => string;
-}
 
 export interface ArtifactNode {
   id: string;
@@ -191,22 +191,6 @@ export interface MentorProfile {
   nextMove: string;
   shouldTest: boolean;
   weakSignals: string[];
-}
-
-export interface ExamQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correct: string;
-  explanation?: string;
-  source?: string;
-}
-
-export interface ProbableQuestion {
-  id: string;
-  marks: number;
-  question: string;
-  source?: string;
 }
 
 export type SpeechRecognitionEventLike = {
