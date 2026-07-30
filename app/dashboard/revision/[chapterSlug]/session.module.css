@@ -28,7 +28,7 @@
 
 .progressPill span,
 .progressPill strong {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
 }
 
 .progressPill > div > span {
@@ -124,7 +124,7 @@
 .documentHeader p {
   margin: 0;
   color: var(--ds-accent-teal);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 820;
   letter-spacing: 0.13em;
   line-height: 1.4;
@@ -144,7 +144,7 @@
   display: block;
   margin-top: 0.38rem;
   color: var(--ds-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   line-height: 1.5;
 }
 
@@ -155,7 +155,7 @@
 
 .chapterSelect > span {
   color: var(--ds-text-muted);
-  font-size: 0.59rem;
+  font-size: 0.7rem;
   font-weight: 760;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -218,7 +218,7 @@
 .topicNumber {
   color: var(--ds-text-muted);
   font-family: var(--ds-font-mono);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
 }
 
 .topicCopy {
@@ -236,22 +236,22 @@
 
 .topicCopy strong {
   color: inherit;
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 710;
 }
 
 .topicCopy small {
   color: var(--ds-text-muted);
-  font-size: 0.56rem;
+  font-size: 0.7rem;
 }
 
 .topicLink[data-status="reviewed"] .topicCopy small,
 .topicLink[data-status="reviewed"] .topicMarker {
-  color: var(--ds-success);
+  color: var(--revision-success-ink, var(--ds-success));
 }
 
 .topicLink[data-status="needs_review"] .topicCopy small {
-  color: var(--ds-warning);
+  color: var(--revision-warning-ink, var(--ds-warning));
 }
 
 .topicLink[data-status="reviewing"] .topicCopy small {
@@ -275,7 +275,7 @@
   border-top: 1px solid var(--ds-border-subtle);
   padding-top: 0.72rem;
   color: var(--ds-text-muted);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   line-height: 1.45;
 }
 
@@ -317,7 +317,7 @@
   padding: 0.38rem 0.65rem;
   color: var(--ds-text-primary);
   font: inherit;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 760;
 }
 
@@ -366,7 +366,7 @@
 
 .skeletonHeading small {
   color: var(--ds-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
 }
 
 .lessonSkeleton > span {
@@ -412,7 +412,7 @@
 .emptyLesson > p:first-of-type {
   margin: 1rem 0 0;
   color: var(--ds-accent-teal);
-  font-size: 0.63rem;
+  font-size: 0.7rem;
   font-weight: 820;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -521,7 +521,7 @@
   display: block;
   margin-top: 0.18rem;
   color: var(--ds-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
 }
 
 .refreshButton {
@@ -536,7 +536,7 @@
   padding: 0.48rem 0.72rem;
   color: var(--ds-text-secondary);
   font: inherit;
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 750;
 }
 
@@ -581,7 +581,7 @@
   background: var(--ds-surface-muted);
   color: var(--ds-text-muted);
   font-family: var(--ds-font-mono);
-  font-size: 0.61rem;
+  font-size: 0.7rem;
 }
 
 .sectionHeading h3 {
@@ -759,7 +759,7 @@
 
 .memoryPrompt label > span {
   color: var(--ds-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 760;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -826,7 +826,7 @@
   padding: 0.5rem 0.76rem;
   color: var(--ds-text-secondary);
   font: inherit;
-  font-size: 0.69rem;
+  font-size: 0.7rem;
   font-weight: 750;
 }
 
@@ -851,17 +851,17 @@
   align-items: center;
   gap: 0.65rem;
   margin-top: 0.9rem;
-  border: 1px solid color-mix(in srgb, var(--ds-warning) 28%, var(--ds-border));
+  border: 1px solid color-mix(in srgb, var(--revision-warning-ink, var(--ds-warning)) 30%, var(--ds-border));
   border-radius: var(--ds-radius-lg);
   background: var(--ds-warning-soft);
   padding: 0.76rem;
-  color: var(--ds-warning);
+  color: var(--revision-warning-ink, var(--ds-warning));
 }
 
 .checkResult[data-status="reviewed"] {
-  border-color: color-mix(in srgb, var(--ds-success) 27%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-success-ink, var(--ds-success)) 30%, var(--ds-border));
   background: var(--ds-success-soft);
-  color: var(--ds-success);
+  color: var(--revision-success-ink, var(--ds-success));
 }
 
 .checkResult > svg {
@@ -884,7 +884,7 @@
 
 .checkResult span {
   color: var(--ds-text-muted);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   line-height: 1.42;
 }
 
@@ -912,13 +912,13 @@
 
 .documentFooter > div:first-child span {
   color: var(--ds-text-secondary);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 750;
 }
 
 .documentFooter small {
   color: var(--ds-text-muted);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
 }
 
 .previousLink,
@@ -930,7 +930,7 @@
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-full);
   padding: 0.48rem 0.74rem;
-  font-size: 0.67rem;
+  font-size: 0.7rem;
   font-weight: 760;
   text-decoration: none;
 }
@@ -1017,7 +1017,7 @@
   .mobileOutline summary strong {
     color: var(--ds-accent-teal);
     font-family: var(--ds-font-mono);
-    font-size: 0.64rem;
+    font-size: 0.7rem;
   }
 
   .mobileOutline[open] .chapterSelect {

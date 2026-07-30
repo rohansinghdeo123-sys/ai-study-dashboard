@@ -1,13 +1,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   readRevisionScope,
   revisionHomeHref,
   revisionLessonHref,
   revisionToolsHref,
 } from "@/features/revision/routes";
-import { buildRevisionNotes } from "@/features/revision/api";
+import {
+  REVISION_MATERIAL_NOT_FOUND,
+  buildRevisionNotes,
+  generateRevisionLesson,
+} from "@/features/revision/api";
 
 function source(relativePath: string) {
   return readFileSync(join(process.cwd(), relativePath), "utf8");
@@ -108,6 +112,47 @@ describe("Revision note extraction", () => {
     expect(notes).toContain("Gases expand");
     expect(notes).toContain("Temperature can drive interconversion");
     expect(notes.split("\n")).toHaveLength(4);
+  });
+});
+
+describe("Revision API failure handling", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const context = {
+    backendURL: "https://backend.example",
+    getAuthHeaders: async () => ({ Authorization: "Bearer test" }),
+    userId: "student-1",
+  };
+  const scope = {
+    subject: "Chemistry",
+    chapterId: "published-chapter",
+    chapterLabel: "Some Basic Concepts of Chemistry",
+    topicId: "atomic_mass",
+    topicLabel: "Atomic Mass of an Element",
+  };
+
+  it("does not mislabel a provider outage as missing study material", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ answer: "AI service encountered an error. Please try again." }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )));
+
+    await expect(generateRevisionLesson(context, scope)).rejects.toMatchObject({
+      code: "service_unavailable",
+      status: 503,
+    });
+  });
+
+  it("keeps the published-material error specific to a true retrieval miss", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(
+      JSON.stringify({ answer: REVISION_MATERIAL_NOT_FOUND }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )));
+
+    await expect(generateRevisionLesson(context, scope)).rejects.toMatchObject({
+      code: "material_missing",
+      status: 404,
+    });
   });
 });
 

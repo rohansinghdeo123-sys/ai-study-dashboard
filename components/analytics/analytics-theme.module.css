@@ -1,0 +1,73 @@
+.toneAccent,
+.accentText {
+  color: #67e8f9;
+}
+
+.accentValue {
+  color: #2dd4bf;
+}
+
+.tonePositive {
+  color: #6ee7b7;
+}
+
+.toneWarning {
+  color: #fcd34d;
+}
+
+.toneDanger {
+  color: #fca5a5;
+}
+
+.toneNeutral {
+  color: #cbd5e1;
+}
+
+.microType {
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+.metaLabel {
+  color: #aebed0;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+.supportingText {
+  color: #9eacbd;
+}
+
+.emptyTitle {
+  color: #a5f3fc;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+:global([data-theme="light"]) .toneAccent,
+:global([data-theme="light"]) .accentText,
+:global([data-theme="light"]) .emptyTitle {
+  color: #0e6478;
+}
+
+:global([data-theme="light"]) .accentValue {
+  color: #0f766e;
+}
+
+:global([data-theme="light"]) .tonePositive {
+  color: #047857;
+}
+
+:global([data-theme="light"]) .toneWarning {
+  color: #92400e;
+}
+
+:global([data-theme="light"]) .toneDanger {
+  color: #b91c1c;
+}
+
+:global([data-theme="light"]) .toneNeutral,
+:global([data-theme="light"]) .metaLabel,
+:global([data-theme="light"]) .supportingText {
+  color: #475569;
+}

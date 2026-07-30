@@ -38,11 +38,18 @@
 }
 
 .workspace {
+  --exam-functional-teal-ink: #075f73;
+  --exam-functional-gold-ink: #8a5a00;
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(300px, 0.75fr) minmax(0, 1.75fr);
   min-height: 100%;
   width: 100%;
+}
+
+:global([data-theme="dark"]) .workspace {
+  --exam-functional-teal-ink: var(--ds-accent-teal);
+  --exam-functional-gold-ink: var(--ds-accent-gold-strong);
 }
 
 .builder,
@@ -92,7 +99,7 @@
   background: var(--color-surface-2);
   border-color: color-mix(in srgb, var(--color-agent-teal) 22%, var(--color-border-default));
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
 }
 
 .modeSwitch button > svg {
@@ -137,7 +144,7 @@
   background: color-mix(in srgb, var(--color-agent-teal) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-agent-teal) 27%, transparent);
   border-radius: 9px;
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   display: flex;
   font-size: 0.62rem;
   font-weight: 900;
@@ -208,7 +215,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--color-agent-gold) 13%, transparent);
   border-radius: 9px;
-  color: var(--color-agent-gold);
+  color: var(--exam-functional-gold-ink);
   display: flex;
   height: 34px;
   justify-content: center;
@@ -229,7 +236,7 @@
 }
 
 .noSource a {
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   font-size: 0.7rem;
   font-weight: 850;
   grid-column: 2;
@@ -250,7 +257,7 @@
 }
 
 .groundingNote svg {
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   flex: 0 0 auto;
 }
 
@@ -319,7 +326,7 @@
 }
 
 .confidence strong {
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   font-size: 0.87rem;
   margin-top: 2px;
 }
@@ -368,14 +375,14 @@
 }
 
 .listNumber {
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   font-size: 0.68rem;
   font-weight: 900;
   padding-top: 2px;
 }
 
 .questionItem[data-priority="high"] .listNumber {
-  color: var(--color-agent-gold);
+  color: var(--exam-functional-gold-ink);
 }
 
 .listCopy {
@@ -431,7 +438,7 @@
   background: color-mix(in srgb, var(--color-agent-teal) 11%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-agent-teal) 24%, transparent);
   border-radius: 10px;
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   display: flex;
   font-size: 0.67rem;
   font-weight: 900;
@@ -502,7 +509,7 @@
 .sourceLine {
   align-items: flex-start;
   border-top: 1px solid var(--color-border-default);
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   display: flex;
   gap: 9px;
   margin-top: 18px;
@@ -576,7 +583,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--color-agent-teal) 11%, transparent);
   border-radius: 14px;
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   display: flex;
   height: 54px;
   justify-content: center;
@@ -601,7 +608,7 @@
   background: color-mix(in srgb, var(--color-agent-teal) 11%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-agent-teal) 26%, transparent);
   border-radius: 11px;
-  color: var(--color-agent-teal);
+  color: var(--exam-functional-teal-ink);
   font-size: 0.75rem;
   font-weight: 850;
   gap: 7px;
@@ -625,7 +632,7 @@
   align-items: center;
   background: color-mix(in srgb, var(--color-agent-gold) 13%, transparent);
   border-radius: 8px;
-  color: var(--color-agent-gold);
+  color: var(--exam-functional-gold-ink);
   display: flex;
   flex: 0 0 auto;
   height: 30px;

@@ -6,6 +6,7 @@ import { LoadingSkeleton } from "@/components/ui/Polished";
 import { apiJson } from "@/lib/apiClient";
 import { fetchRevisionQueue, BUCKET_LABELS, type RevisionBucket, type RevisionEntry } from "@/lib/revision";
 import { useRouter } from "next/navigation";
+import styles from "./analytics-theme.module.css";
 
 // Types
 type Session = {
@@ -130,19 +131,19 @@ function getScoreTone(value: number): Tone {
 }
 
 function toneText(tone: Tone) {
-  if (tone === "green") return "text-emerald-400";
-  if (tone === "blue") return "text-[#0E7490]";
-  if (tone === "amber") return "text-amber-400";
-  if (tone === "red") return "text-red-400";
-  return "text-gray-300";
+  if (tone === "green") return styles.tonePositive;
+  if (tone === "blue") return styles.toneAccent;
+  if (tone === "amber") return styles.toneWarning;
+  if (tone === "red") return styles.toneDanger;
+  return styles.toneNeutral;
 }
 
 function toneBadge(tone: Tone) {
-  if (tone === "green") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-  if (tone === "blue") return "border-[#0E7490]/30 bg-[#0E7490]/10 text-[#0E7490]";
-  if (tone === "amber") return "border-amber-400/30 bg-amber-400/10 text-amber-400";
-  if (tone === "red") return "border-red-500/30 bg-red-500/10 text-red-400";
-  return "border-white/10 bg-white/5 text-gray-400";
+  if (tone === "green") return cn("border-emerald-500/30 bg-emerald-500/10", styles.tonePositive);
+  if (tone === "blue") return cn("border-[#0E7490]/30 bg-[#0E7490]/10", styles.toneAccent);
+  if (tone === "amber") return cn("border-amber-400/30 bg-amber-400/10", styles.toneWarning);
+  if (tone === "red") return cn("border-red-500/30 bg-red-500/10", styles.toneDanger);
+  return cn("border-white/10 bg-white/5", styles.toneNeutral);
 }
 
 // Grouping and chart helpers
@@ -374,7 +375,7 @@ function GlassCard({ label, value, tone = "neutral", active = false }: { label: 
       <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#14B8A6]/7 blur-2xl transition group-hover:bg-[#14B8A6]/10" />
       <div className="relative">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-xs font-semibold text-slate-500">{label}</div>
+          <div className={cn("font-semibold", styles.metaLabel)}>{label}</div>
           <span className={cn("h-1.5 w-1.5 rounded-full", tone === "green" ? "bg-emerald-400" : tone === "amber" ? "bg-amber-400" : tone === "red" ? "bg-red-400" : "bg-[#14B8A6]")} />
         </div>
         <div className={cn("mt-3 text-3xl font-semibold tracking-tight", toneText(tone))}>{value}</div>
@@ -391,7 +392,7 @@ function GlassPanel({ title, tag, right, className, children }: { title: string;
         <div className="flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-[#14B8A6] shadow-[0_0_18px_rgba(20,184,166,0.8)]" />
           <h2 id={titleId} className="text-sm font-semibold tracking-[-0.01em] text-slate-100">{title.replace(/_/g, " ")}</h2>
-          {tag && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-amber-300">{tag}</span>}
+          {tag && <span className={cn("rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-1 font-bold uppercase tracking-[0.16em]", styles.microType, styles.toneWarning)}>{tag}</span>}
         </div>
         {right}
       </div>
@@ -402,7 +403,7 @@ function GlassPanel({ title, tag, right, className, children }: { title: string;
 
 function TonePill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: Tone }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]", toneBadge(tone))}>
+    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-1 font-semibold uppercase tracking-[0.16em]", styles.microType, toneBadge(tone))}>
       {children}
     </span>
   );
@@ -428,7 +429,7 @@ function Rail({ value, tone = "neutral", label = "Progress" }: { value: number; 
 function EmptyState({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="agentify-state-panel progress-empty-state flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-cyan-100/12 bg-white/[0.025] px-6 text-center">
-      <div className="text-[10px] font-bold uppercase tracking-[0.34em] text-cyan-200/45">{title}</div>
+      <div className={cn("font-bold uppercase tracking-[0.28em]", styles.emptyTitle)}>{title}</div>
       <p className="mt-4 max-w-md text-sm leading-6 text-slate-400">{detail}</p>
     </div>
   );
@@ -470,8 +471,10 @@ function TrendRangeToggle({ range, setRange }: { range: TrendRange; setRange: (v
           onKeyDown={(event) => handleKeyDown(event, item)}
           className={cn(
             "agentify-action",
-            "rounded-md border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] transition-all font-mono",
-            item === range ? "border-amber-400/40 bg-amber-400/10 text-amber-300" : "border-white/10 text-gray-500 hover:border-white/30 hover:text-white"
+            cn("rounded-md border px-3 py-1 font-bold uppercase tracking-[0.22em] transition-all font-mono", styles.microType),
+            item === range
+              ? cn("border-amber-400/40 bg-amber-400/10", styles.toneWarning)
+              : cn("border-white/10 hover:border-white/30 hover:text-white", styles.metaLabel)
           )}
         >
           {item}
@@ -526,11 +529,11 @@ function LineChart({
       <div className="progress-chart-wash pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_36%,rgba(255,170,10,0.045),transparent_26%),linear-gradient(180deg,rgba(5,10,13,0)_0%,rgba(5,10,13,0.84)_100%)]" />
 
       <div className="relative mb-7 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.28em] text-slate-400">
+        <div className={cn("flex items-center gap-3 uppercase tracking-[0.28em] text-slate-400", styles.microType)}>
           <span className="h-px w-8 bg-[#FFAA0A]" />
           <span>XP Velocity</span>
         </div>
-        <div className="rounded-full border border-emerald-400/20 bg-emerald-400/7 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-emerald-300">
+        <div className={cn("rounded-full border border-emerald-400/20 bg-emerald-400/7 px-2.5 py-1 font-bold uppercase tracking-[0.14em]", styles.microType, styles.tonePositive)}>
           Live
         </div>
       </div>
@@ -656,10 +659,10 @@ function downloadCSV(sessions: Session[]) {
 // Main Analytics page component
 // Dark-surface tones for the revision queue buckets (this page's palette).
 const QUEUE_TONES: Record<RevisionBucket, { card: string; text: string; chip: string }> = {
-  overdue: { card: "border-red-500/20 bg-red-500/5", text: "text-red-400", chip: "border-red-500/30 bg-red-500/10 text-red-400" },
-  due: { card: "border-amber-500/20 bg-amber-500/5", text: "text-amber-400", chip: "border-amber-500/30 bg-amber-500/10 text-amber-400" },
-  strengthen: { card: "border-cyan-500/20 bg-cyan-500/5", text: "text-cyan-400", chip: "border-cyan-500/30 bg-cyan-500/10 text-cyan-400" },
-  fresh: { card: "border-gray-500/20 bg-gray-500/5", text: "text-gray-400", chip: "border-gray-500/30 bg-gray-500/10 text-gray-400" },
+  overdue: { card: "border-red-500/20 bg-red-500/5", text: styles.toneDanger, chip: cn("border-red-500/30 bg-red-500/10", styles.toneDanger) },
+  due: { card: "border-amber-500/20 bg-amber-500/5", text: styles.toneWarning, chip: cn("border-amber-500/30 bg-amber-500/10", styles.toneWarning) },
+  strengthen: { card: "border-cyan-500/20 bg-cyan-500/5", text: styles.toneAccent, chip: cn("border-cyan-500/30 bg-cyan-500/10", styles.toneAccent) },
+  fresh: { card: "border-gray-500/20 bg-gray-500/5", text: styles.toneNeutral, chip: cn("border-gray-500/30 bg-gray-500/10", styles.toneNeutral) },
 };
 
 export default function AnalyticsPage() {
@@ -813,11 +816,11 @@ export default function AnalyticsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <TonePill tone="blue">Analytics</TonePill>
                 <TonePill tone={error ? "amber" : "green"}>{error ? "Degraded" : "Live sync"}</TonePill>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                <span className={cn("rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-bold uppercase tracking-[0.18em]", styles.metaLabel)}>
                   Learner: {currentDisplayName}
                 </span>
                 {classLevel ? (
-                  <span className="rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200">
+                  <span className={cn("rounded-full border border-amber-300/20 bg-amber-300/10 px-3 py-1 font-bold uppercase tracking-[0.18em]", styles.microType, styles.toneWarning)}>
                     {classLevel}
                   </span>
                 ) : null}
@@ -831,11 +834,11 @@ export default function AnalyticsPage() {
               </p>
               {error ? (
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300">{error}</p>
+                  <p className={cn("text-xs font-semibold uppercase tracking-[0.16em]", styles.toneWarning)}>{error}</p>
                   <button
                     type="button"
                     onClick={retry}
-                    className="agentify-action rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-300 transition hover:bg-amber-400/16"
+                    className={cn("agentify-action rounded-full border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 font-bold uppercase tracking-[0.16em] transition hover:bg-amber-400/16", styles.microType, styles.toneWarning)}
                   >
                     Retry sync
                   </button>
@@ -844,15 +847,15 @@ export default function AnalyticsPage() {
 
               <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Priority action</p>
+                  <p className={cn("font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Priority action</p>
                   <p className="mt-2 text-sm font-semibold text-white">{priorityCommand}</p>
                 </div>
                 <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Tracked sessions</p>
-                  <p className="mt-2 text-2xl font-semibold text-[#14B8A6]">{sessions.length}</p>
+                  <p className={cn("font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Tracked sessions</p>
+                  <p className={cn("mt-2 text-2xl font-semibold", styles.accentValue)}>{sessions.length}</p>
                 </div>
                 <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Latest topic</p>
+                  <p className={cn("font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Latest topic</p>
                   <p className="mt-2 truncate text-sm font-semibold text-white">{latestSession?.topic || "No session yet"}</p>
                 </div>
                 <button
@@ -863,7 +866,7 @@ export default function AnalyticsPage() {
                   title={sessions.length ? "Download session data as CSV" : "Complete one tracked session to export data"}
                   className="agentify-action rounded-2xl border border-[#14B8A6]/30 bg-[#14B8A6]/10 p-4 text-left transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/16 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 >
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-[#67E8F9]">Export</span>
+                  <span className={cn("block font-bold uppercase tracking-[0.16em]", styles.microType, styles.accentText)}>Export</span>
                   <span className="mt-2 block text-sm font-semibold text-white">Download CSV</span>
                 </button>
               </div>
@@ -872,31 +875,31 @@ export default function AnalyticsPage() {
             <div className="progress-readiness-pane border-t border-cyan-100/10 bg-white/[0.025] p-6 xl:border-l xl:border-t-0">
               <div className="progress-readiness-card rounded-[2rem] border border-cyan-100/12 bg-black/20 p-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Readiness score</p>
+                  <p className={cn("text-xs font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Readiness score</p>
                   <TonePill tone={readinessTone}>{readinessScore >= 70 ? "Stable" : "Needs work"}</TonePill>
                 </div>
                 <div className="mt-6 flex items-end gap-3">
                   <span className={cn("text-7xl font-semibold tracking-tight", toneText(readinessTone))}>{readinessScore}</span>
-                  <span className="pb-3 text-sm font-semibold text-slate-500">/ 100</span>
+                  <span className={cn("pb-3 text-sm font-semibold", styles.supportingText)}>/ 100</span>
                 </div>
                 <div className="mt-5">
                   <Rail value={readinessScore} tone={readinessTone} label="Readiness score" />
                 </div>
                 <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
                   <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                    <span className="block text-slate-500">Accuracy</span>
+                    <span className={cn("block", styles.supportingText)}>Accuracy</span>
                     <span className="mt-1 block text-lg font-semibold text-white">{avgAccuracy}%</span>
                   </div>
                   <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                    <span className="block text-slate-500">Focus</span>
+                    <span className={cn("block", styles.supportingText)}>Focus</span>
                     <span className="mt-1 block text-lg font-semibold text-white">{avgFocus}</span>
                   </div>
                   <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                    <span className="block text-slate-500">Level</span>
+                    <span className={cn("block", styles.supportingText)}>Level</span>
                     <span className="mt-1 block text-lg font-semibold text-white">{progress.level || 1}</span>
                   </div>
                   <div className="progress-mini-card rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                    <span className="block text-slate-500">Next XP</span>
+                    <span className={cn("block", styles.supportingText)}>Next XP</span>
                     <span className="mt-1 block text-lg font-semibold text-white">{xpToNext}</span>
                   </div>
                 </div>
@@ -912,7 +915,7 @@ export default function AnalyticsPage() {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <TonePill tone={primaryWeakTopic ? "amber" : "green"}>Next move</TonePill>
-                <span className="rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <span className={cn("rounded-full border border-white/10 bg-white/[0.045] px-3 py-1 font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>
                   {priorityCommand}
                 </span>
               </div>
@@ -928,7 +931,7 @@ export default function AnalyticsPage() {
                     }
                     router.push(sessions.length ? "/dashboard/exam" : "/dashboard/study");
                   }}
-                  className="agentify-action rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] text-[#67E8F9] transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/20"
+                  className={cn("agentify-action rounded-full border border-[#14B8A6]/30 bg-[#14B8A6]/10 px-5 py-3 text-xs font-bold uppercase tracking-[0.14em] transition hover:-translate-y-0.5 hover:bg-[#14B8A6]/20", styles.accentText)}
                 >
                   {actionPlanTarget}
                 </button>
@@ -945,7 +948,7 @@ export default function AnalyticsPage() {
             <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
               <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Readiness</p>
+                  <p className={cn("font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Readiness</p>
                   <span className={cn("text-sm font-semibold", toneText(readinessTone))}>{readinessScore}%</span>
                 </div>
                 <div className="mt-3">
@@ -953,14 +956,14 @@ export default function AnalyticsPage() {
                 </div>
               </div>
               <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Focus signal</p>
+                <p className={cn("font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Focus signal</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{avgFocus || 0}</p>
-                <p className="mt-1 text-xs text-slate-500">{avgFocus >= 75 ? "Strong session discipline" : "Short focused loops will help"}</p>
+                <p className={cn("mt-1 text-xs", styles.supportingText)}>{avgFocus >= 75 ? "Strong session discipline" : "Short focused loops will help"}</p>
               </div>
               <div className="progress-action-card rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Momentum</p>
+                <p className={cn("font-bold uppercase tracking-[0.16em]", styles.metaLabel)}>Momentum</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{progress.streak} day{progress.streak === 1 ? "" : "s"}</p>
-                <p className="mt-1 text-xs text-slate-500">{sessions.length ? `${sessions.length} tracked sessions` : "No tracked session yet"}</p>
+                <p className={cn("mt-1 text-xs", styles.supportingText)}>{sessions.length ? `${sessions.length} tracked sessions` : "No tracked session yet"}</p>
               </div>
             </div>
           </div>
@@ -982,7 +985,7 @@ export default function AnalyticsPage() {
           title="XP progress over time"
           right={
             <div className="flex items-center gap-4">
-              <span className="text-[10px] uppercase tracking-[0.24em] text-emerald-400 font-mono">LIVE</span>
+              <span className={cn("font-mono uppercase tracking-[0.24em]", styles.microType, styles.tonePositive)}>LIVE</span>
               <TrendRangeToggle range={range} setRange={setRange} />
             </div>
           }
@@ -1007,7 +1010,7 @@ export default function AnalyticsPage() {
                   insight.type === "negative" ? "border-red-500/30 bg-red-500/5" :
                   "border-white/10 bg-white/5"
                 )}>
-                  <p className={cn("text-xs", insight.type === "positive" ? "text-emerald-400" : insight.type === "negative" ? "text-red-400" : "text-gray-300")}>
+                  <p className={cn("text-xs", insight.type === "positive" ? styles.tonePositive : insight.type === "negative" ? styles.toneDanger : styles.toneNeutral)}>
                     {insight.message}
                   </p>
                 </div>
@@ -1021,14 +1024,14 @@ export default function AnalyticsPage() {
               <div className="grid grid-cols-2 gap-4">
                 {progress.consistency_index > 0 && (
                   <div>
-                    <div className="text-[10px] uppercase text-gray-500 mb-1">Consistency</div>
+                    <div className={cn("mb-1 uppercase", styles.metaLabel)}>Consistency</div>
                     <div className="text-2xl font-bold text-white">{progress.consistency_index}%</div>
                     <Rail value={progress.consistency_index} tone="blue" label="Consistency index" />
                   </div>
                 )}
                 {progress.learning_efficiency > 0 && (
                   <div>
-                    <div className="text-[10px] uppercase text-gray-500 mb-1">Efficiency</div>
+                    <div className={cn("mb-1 uppercase", styles.metaLabel)}>Efficiency</div>
                     <div className="text-2xl font-bold text-white">{progress.learning_efficiency}%</div>
                     <Rail value={progress.learning_efficiency} tone="green" label="Learning efficiency" />
                   </div>
@@ -1051,7 +1054,7 @@ export default function AnalyticsPage() {
             <div className="h-2 bg-white/5 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500" style={{ width: `${levelProgress}%` }} />
             </div>
-            <div className="flex justify-between text-[10px] uppercase text-gray-500">
+            <div className={cn("flex justify-between uppercase", styles.metaLabel)}>
               <span>LVL {progress.level || 1}</span>
               <span>{xpToNext} XP to next</span>
               <span>LVL {(progress.level || 1) + 1}</span>
@@ -1072,7 +1075,7 @@ export default function AnalyticsPage() {
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <h4 className={cn("text-sm font-bold uppercase truncate", tones.text)}>{entry.topic.replace(/_/g, " ")}</h4>
-                      <span className={cn("shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold", tones.chip)}>
+                      <span className={cn("shrink-0 rounded-full border px-2 py-0.5 font-bold", styles.microType, tones.chip)}>
                         {BUCKET_LABELS[entry.bucket]} · {entry.suggested_minutes}m
                       </span>
                     </div>
@@ -1086,7 +1089,7 @@ export default function AnalyticsPage() {
                   <button
                     type="button"
                     onClick={() => handleReviseTopic(entry.topic)}
-                    className="agentify-action mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold text-[#14B8A6] hover:bg-[#0E7490]/20 transition-all"
+                    className={cn("agentify-action mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold transition-all hover:bg-[#0E7490]/20", styles.accentText)}
                   >
                     REVISE NOW
                   </button>
@@ -1105,14 +1108,14 @@ export default function AnalyticsPage() {
               <div key={`${topic.subject}-${topic.topic}`} className="bg-red-500/5 border border-red-500/20 rounded-lg p-4 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-bold text-red-400 uppercase">{topic.topic}</h4>
-                    <span className="text-[10px] text-gray-500">{topic.subject}</span>
+                    <h4 className={cn("text-sm font-bold uppercase", styles.toneDanger)}>{topic.topic}</h4>
+                    <span className={styles.metaLabel}>{topic.subject}</span>
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold text-red-400">{topic.accuracy}%</span>
+                    <span className={cn("text-xl font-bold", styles.toneDanger)}>{topic.accuracy}%</span>
                     <span className="text-xs text-gray-400">{topic.sessions} sessions</span>
                     {topic.trend !== 0 && (
-                      <span className={cn("text-xs", topic.trend > 0 ? "text-emerald-400" : "text-red-400")}>
+                      <span className={cn("text-xs", topic.trend > 0 ? styles.tonePositive : styles.toneDanger)}>
                         {topic.trend > 0 ? "up improving" : "down declining"}
                       </span>
                     )}
@@ -1121,7 +1124,7 @@ export default function AnalyticsPage() {
                 <button
                   type="button"
                   onClick={() => handleReviseTopic(topic.topic)}
-                  className="agentify-action mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold text-[#0E7490] hover:bg-[#0E7490]/20 transition-all"
+                  className={cn("agentify-action mt-3 w-full rounded-md border border-[#0E7490]/30 bg-[#0E7490]/10 py-2 text-xs font-bold transition-all hover:bg-[#0E7490]/20", styles.accentText)}
                 >
                   REVISE NOW
                 </button>
@@ -1162,11 +1165,11 @@ export default function AnalyticsPage() {
                     <div key={subj.subject} className="flex items-center justify-between border-b border-white/5 pb-3 last:border-0">
                       <div>
                         <div className="text-sm font-bold text-white uppercase">{subj.subject}</div>
-                        <div className="text-[10px] text-gray-400">{subj.sessions} sessions / {formatMinutes(subj.duration)}</div>
+                        <div className={styles.metaLabel}>{subj.sessions} sessions / {formatMinutes(subj.duration)}</div>
                       </div>
                       <div className="text-right">
                         <div className={cn("text-lg font-bold", toneText(getScoreTone(subj.accuracy)))}>{subj.accuracy}%</div>
-                        <div className="text-[10px] text-gray-500">focus {subj.focus}</div>
+                        <div className={styles.metaLabel}>focus {subj.focus}</div>
                       </div>
                     </div>
                   ))}
@@ -1209,7 +1212,7 @@ export default function AnalyticsPage() {
               {topics.length ? (
                 <div className="overflow-auto">
                   <div className="min-w-[700px]">
-                    <div className="grid grid-cols-[1.6fr_0.9fr_0.8fr_0.8fr_0.8fr_0.5fr] border-b border-white/10 bg-white/[0.02] px-4 py-3 text-[10px] uppercase tracking-[0.24em] text-gray-500 font-mono">
+                    <div className={cn("grid grid-cols-[1.6fr_0.9fr_0.8fr_0.8fr_0.8fr_0.5fr] border-b border-white/10 bg-white/[0.02] px-4 py-3 font-mono uppercase tracking-[0.2em]", styles.metaLabel)}>
                       <div>Topic</div>
                       <div>Subject</div>
                       <div className="text-right">Acc</div>

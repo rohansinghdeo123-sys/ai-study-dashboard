@@ -53,13 +53,18 @@ function ownedSessionId(userId: string, topicId: string, mode: string) {
   return `revision-${userId}-${topicId}-${mode}-v2`.slice(0, 218);
 }
 
-function isFailureAnswer(answer: string) {
+function failureAnswerCode(answer: string): RevisionApiErrorCode | null {
   const normalized = answer.trim().toLowerCase();
-  return !normalized
-    || normalized === REVISION_MATERIAL_NOT_FOUND.toLowerCase()
-    || normalized.includes("ai service encountered an error")
+  if (!normalized) return "invalid_response";
+  if (
+    normalized === REVISION_MATERIAL_NOT_FOUND.toLowerCase()
+    || normalized.includes("material not found")
+  ) return "material_missing";
+  if (
+    normalized.includes("ai service encountered an error")
     || normalized.includes("could not complete that response")
-    || normalized.includes("material not found");
+  ) return "service_unavailable";
+  return null;
 }
 
 function normalizeError(error: unknown): RevisionApiError {
@@ -100,7 +105,9 @@ async function generateRevisionPart(
     method: "POST",
     headers: await context.getAuthHeaders(),
     retries: 0,
-    timeoutMs: 55000,
+    // A cold provider may use its configured fallback route after retrieval.
+    // Keep the browser deadline above the backend's bounded provider window.
+    timeoutMs: 70000,
     signal,
     forceFresh: true,
     body: JSON.stringify({
@@ -120,8 +127,15 @@ async function generateRevisionPart(
   });
 
   const answer = typeof response?.answer === "string" ? response.answer.trim() : "";
-  if (isFailureAnswer(answer)) {
-    throw new RevisionApiError(REVISION_MATERIAL_NOT_FOUND, "material_missing", 404);
+  const failureCode = failureAnswerCode(answer);
+  if (failureCode === "material_missing") {
+    throw new RevisionApiError(REVISION_MATERIAL_NOT_FOUND, failureCode, 404);
+  }
+  if (failureCode === "service_unavailable") {
+    throw new RevisionApiError("Revision material is temporarily unavailable. Your place is safe.", failureCode, 503);
+  }
+  if (failureCode) {
+    throw new RevisionApiError("The Revision Lab received an empty response. Please try again.", failureCode);
   }
   return answer;
 }

@@ -12,12 +12,14 @@
   --market-border: rgba(15, 23, 42, 0.1);
   --market-border-strong: rgba(15, 118, 110, 0.24);
   --market-text: #0f172a;
-  --market-muted: #64748b;
-  --market-faint: #94a3b8;
+  --market-muted: #59697f;
+  --market-faint: #637188;
   --market-teal: #0f766e;
   --market-teal-bright: #14b8a6;
   --market-teal-soft: rgba(20, 184, 166, 0.1);
   --market-gold: #b7791f;
+  --market-danger: #a72f43;
+  --market-danger-soft: rgba(167, 47, 67, 0.1);
   --market-shadow: 0 24px 70px rgba(15, 23, 42, 0.09);
   --market-shadow-soft: 0 12px 36px rgba(15, 23, 42, 0.06);
   position: relative;
@@ -29,6 +31,7 @@
   overflow: hidden !important;
   background: var(--market-canvas);
   color: var(--market-text);
+  color-scheme: light;
 }
 
 .market-shell-main {
@@ -131,7 +134,7 @@
 
 .market-floating-brand small {
   color: var(--market-muted);
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 680;
   letter-spacing: 0.035em;
 }
@@ -158,7 +161,7 @@
   border-radius: 0.72rem;
   padding: 0.56rem 0.78rem;
   color: var(--market-muted);
-  font-size: 0.69rem;
+  font-size: 0.7rem;
   font-weight: 740;
   text-decoration: none;
   transition:
@@ -341,7 +344,7 @@
   border-radius: 0.66rem;
   background: linear-gradient(145deg, rgba(20, 184, 166, 0.2), rgba(14, 116, 144, 0.12));
   color: var(--market-teal);
-  font-size: 0.67rem;
+  font-size: 0.7rem;
   font-weight: 850;
   letter-spacing: 0.02em;
 }
@@ -369,7 +372,7 @@
 .market-user-profile small {
   overflow: hidden;
   color: var(--market-muted);
-  font-size: 0.61rem;
+  font-size: 0.7rem;
   line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -518,7 +521,13 @@
 }
 
 .market-user-logout {
-  color: #be4452;
+  color: var(--market-danger);
+}
+
+.market-user-action.market-user-logout:hover {
+  border-color: color-mix(in srgb, var(--market-danger) 24%, var(--market-border));
+  background: var(--market-danger-soft);
+  color: var(--market-danger);
 }
 
 .market-user-logout svg {
@@ -575,7 +584,7 @@
   align-items: center;
   gap: 0.55rem;
   color: var(--market-teal);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 820;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -648,8 +657,8 @@
 }
 
 .learning-workspace-continue small {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.62rem;
+  color: #ffffff;
+  font-size: 0.7rem;
   font-weight: 760;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -722,7 +731,7 @@
   align-items: center;
   gap: 0.28rem;
   color: var(--market-teal);
-  font-size: 0.59rem;
+  font-size: 0.7rem;
   font-weight: 740;
 }
 
@@ -752,7 +761,7 @@
 
 .learning-workspace-snapshot dt {
   color: var(--market-muted);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 650;
 }
 
@@ -774,7 +783,7 @@
   background: var(--market-teal-soft);
   padding: 0.62rem 0.68rem;
   color: var(--market-teal);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 680;
   line-height: 1.35;
 }
@@ -797,7 +806,7 @@
   background: rgba(242, 184, 75, 0.09);
   padding: 0.55rem 0.65rem 0.55rem 0.85rem;
   color: var(--market-gold);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
@@ -809,7 +818,7 @@
   background: var(--market-surface);
   padding: 0 0.65rem;
   color: inherit;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 760;
   cursor: pointer;
 }
@@ -842,7 +851,7 @@
 .learning-journey-heading p,
 .learning-recent-heading p {
   color: var(--market-teal);
-  font-size: 0.59rem;
+  font-size: 0.7rem;
   font-weight: 820;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -858,7 +867,7 @@
 
 .learning-journey-heading > span {
   color: var(--market-muted);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 620;
 }
 
@@ -935,7 +944,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--market-faint);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 800;
 }
 
@@ -971,7 +980,7 @@
 
 .learning-journey-card-topline small {
   color: var(--journey-accent);
-  font-size: 0.57rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -982,7 +991,7 @@
   background: var(--journey-soft);
   padding: 0.22rem 0.42rem;
   color: var(--journey-accent);
-  font-size: 0.5rem;
+  font-size: 0.7rem;
   font-style: normal;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -1015,7 +1024,7 @@
 .learning-journey-outcome small {
   grid-column: 1 / -1;
   color: var(--market-faint);
-  font-size: 0.53rem;
+  font-size: 0.7rem;
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1024,7 +1033,7 @@
 .learning-journey-outcome span {
   overflow: hidden;
   color: var(--market-text);
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1063,7 +1072,7 @@
   border-radius: 0.55rem;
   padding: 0.45rem 0.52rem;
   color: var(--market-teal);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 720;
   text-decoration: none;
 }
@@ -1137,7 +1146,7 @@
 .learning-recent-copy > span {
   overflow: hidden;
   color: var(--market-muted);
-  font-size: 0.63rem;
+  font-size: 0.7rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1158,7 +1167,7 @@
 
 .learning-recent-stat small {
   color: var(--market-faint);
-  font-size: 0.54rem;
+  font-size: 0.7rem;
   font-weight: 650;
 }
 
@@ -1171,7 +1180,7 @@
   background: var(--market-surface-muted);
   padding: 0 0.7rem;
   color: var(--market-teal);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 760;
 }
 
@@ -1192,7 +1201,7 @@
 
 .learning-recent-empty small {
   color: var(--market-muted);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   line-height: 1.45;
 }
 
@@ -1234,14 +1243,37 @@
   --market-border-strong: rgba(45, 212, 191, 0.28);
   --market-text: #f8fafc;
   --market-muted: #a8b4c5;
-  --market-faint: #718096;
+  --market-faint: #8391a5;
   --market-teal: #5eead4;
   --market-teal-bright: #2dd4bf;
   --market-teal-soft: rgba(45, 212, 191, 0.11);
   --market-gold: #f3c96b;
+  --market-danger: #fda4af;
+  --market-danger-soft: rgba(253, 164, 175, 0.12);
   --market-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
   --market-shadow-soft: 0 12px 36px rgba(0, 0, 0, 0.2);
   background: var(--market-canvas) !important;
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .learning-journey-item {
+  --journey-accent: #5eead4;
+  --journey-soft: rgba(94, 234, 212, 0.13);
+}
+
+[data-theme="dark"] .learning-journey-item[data-mode="study"] {
+  --journey-accent: #67e8f9;
+  --journey-soft: rgba(103, 232, 249, 0.13);
+}
+
+[data-theme="dark"] .learning-journey-item[data-mode="revision"] {
+  --journey-accent: #c4b5fd;
+  --journey-soft: rgba(196, 181, 253, 0.13);
+}
+
+[data-theme="dark"] .learning-journey-item[data-mode="exam"] {
+  --journey-accent: #f6c96b;
+  --journey-soft: rgba(246, 201, 107, 0.14);
 }
 
 [data-theme="dark"] .learning-workspace-hero {
@@ -1437,7 +1469,7 @@
 
 @media (max-width: 399px) {
   .market-utility-link {
-    font-size: 0.64rem;
+    font-size: 0.7rem;
   }
 
   .learning-workspace-eyebrow span {

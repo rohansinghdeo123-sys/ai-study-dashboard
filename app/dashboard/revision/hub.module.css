@@ -1,4 +1,7 @@
 .hub {
+  --revision-hub-success-ink: #087469;
+  --revision-hub-warning-ink: #79500d;
+  --revision-hub-danger-ink: #a62f40;
   position: relative;
   width: 100%;
   height: 100%;
@@ -15,6 +18,12 @@
   background-size: 3.2rem 3.2rem, 3.2rem 3.2rem, auto, auto, auto;
   color: var(--ds-text-primary);
   scrollbar-gutter: stable;
+}
+
+:global([data-theme="dark"]) .hub {
+  --revision-hub-success-ink: #6ee7b7;
+  --revision-hub-warning-ink: #f6c96b;
+  --revision-hub-danger-ink: #fda4af;
 }
 
 .ambient {
@@ -78,7 +87,7 @@
 .panelHeading p {
   margin: 0;
   color: var(--ds-accent-teal);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 830;
   letter-spacing: 0.16em;
   line-height: 1.4;
@@ -148,7 +157,7 @@
 .continueCopy small,
 .selectionFooter small {
   color: var(--ds-text-muted);
-  font-size: 0.61rem;
+  font-size: 0.7rem;
   font-weight: 760;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -161,7 +170,7 @@
 
 .sourceCard div span {
   color: var(--ds-text-muted);
-  font-size: 0.69rem;
+  font-size: 0.7rem;
 }
 
 .workspace {
@@ -221,15 +230,15 @@
   background: var(--ds-surface-muted);
   padding: 0.28rem 0.58rem;
   color: var(--ds-text-secondary);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 760;
   white-space: nowrap;
 }
 
 .dueBadge {
-  border-color: color-mix(in srgb, var(--ds-warning) 26%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-hub-warning-ink) 30%, var(--ds-border));
   background: var(--ds-warning-soft);
-  color: var(--ds-warning);
+  color: var(--revision-hub-warning-ink);
 }
 
 .continueCard {
@@ -325,7 +334,7 @@
 
 .queueHeading small {
   color: var(--ds-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
 }
 
 .queueList {
@@ -355,7 +364,7 @@ a.queueRow:hover {
 .queueIndex {
   color: var(--ds-text-muted);
   font-family: var(--ds-font-mono);
-  font-size: 0.61rem;
+  font-size: 0.7rem;
 }
 
 .queueCopy {
@@ -378,7 +387,7 @@ a.queueRow:hover {
 
 .queueCopy small {
   color: var(--ds-text-muted);
-  font-size: 0.61rem;
+  font-size: 0.7rem;
 }
 
 .bucket {
@@ -386,20 +395,20 @@ a.queueRow:hover {
   border-radius: var(--ds-radius-full);
   padding: 0.22rem 0.44rem;
   color: var(--ds-text-muted);
-  font-size: 0.56rem;
+  font-size: 0.7rem;
   font-weight: 780;
 }
 
 .bucket[data-bucket="overdue"] {
-  border-color: color-mix(in srgb, var(--ds-danger) 28%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-hub-danger-ink) 30%, var(--ds-border));
   background: var(--ds-danger-soft);
-  color: var(--ds-danger);
+  color: var(--revision-hub-danger-ink);
 }
 
 .bucket[data-bucket="due"] {
-  border-color: color-mix(in srgb, var(--ds-warning) 30%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-hub-warning-ink) 32%, var(--ds-border));
   background: var(--ds-warning-soft);
-  color: var(--ds-warning);
+  color: var(--revision-hub-warning-ink);
 }
 
 .bucket[data-bucket="strengthen"] {
@@ -449,7 +458,7 @@ a.queueRow:hover {
 
 .queueEmpty span {
   color: var(--ds-text-muted);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   line-height: 1.45;
 }
 
@@ -460,7 +469,7 @@ a.queueRow:hover {
 
 .chapterSelect > span {
   color: var(--ds-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 770;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -516,7 +525,7 @@ a.queueRow:hover {
 .topicNumber {
   color: var(--ds-text-muted);
   font-family: var(--ds-font-mono);
-  font-size: 0.61rem;
+  font-size: 0.7rem;
 }
 
 .topicName {
@@ -533,18 +542,18 @@ a.queueRow:hover {
   align-items: center;
   justify-content: flex-end;
   color: var(--ds-text-muted);
-  font-size: 0.57rem;
+  font-size: 0.7rem;
   font-weight: 770;
 }
 
 .topicStatus svg {
   width: 0.82rem;
   height: 0.82rem;
-  color: var(--ds-success);
+  color: var(--revision-hub-success-ink);
 }
 
 .topicButton[data-status="needs_review"] .topicStatus {
-  color: var(--ds-warning);
+  color: var(--revision-hub-warning-ink);
 }
 
 .topicButton[data-status="reviewing"] .topicStatus {
@@ -576,7 +585,7 @@ a.queueRow:hover {
 
 .selectionFooter > div:first-child > span {
   color: var(--ds-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.7rem;
 }
 
 .primaryActions {
@@ -637,7 +646,7 @@ a.queueRow:hover {
 .disclosure {
   margin: -0.35rem 0 0;
   color: var(--ds-text-muted);
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   text-align: center;
 }
 

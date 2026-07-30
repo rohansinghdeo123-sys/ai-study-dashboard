@@ -418,73 +418,79 @@ function StudyComposer({
       </div>
       <div className={styles.composerCard}>
         <AttachmentChips attachments={attachments} onRemove={onRemoveAttachment} />
-        <label className="sr-only" htmlFor="study-session-message">Message your AI tutor</label>
-        <textarea
-          id="study-session-message"
-          ref={inputRef}
-          value={value}
-          rows={1}
-          onChange={(event) => onChange(event.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={listening ? "Listening…" : `Message ${coachName}…`}
-          aria-describedby="study-session-message-help"
-        />
-        <p id="study-session-message-help" className="sr-only">Press Enter to send or Shift+Enter to start a new line.</p>
-        <div className={styles.composerToolbar}>
-          <div className={styles.toolCluster}>
-            <input
-              ref={attachmentInputRef}
-              type="file"
-              multiple
-              accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"
-              onChange={onAttachmentSelect}
-              className="sr-only"
-              aria-label="Attach photos, documents, or notes"
+        <div className={styles.composerInputRow}>
+          <span className={styles.composerPromptMark} aria-hidden="true"><AppIcon name="spark" /></span>
+          <div className={styles.composerTextField}>
+            <label className="sr-only" htmlFor="study-session-message">Message your AI tutor</label>
+            <textarea
+              id="study-session-message"
+              ref={inputRef}
+              value={value}
+              rows={1}
+              className={styles.studyTextarea}
+              onChange={(event) => onChange(event.target.value)}
+              onKeyDown={onKeyDown}
+              placeholder={listening ? "Listening…" : `Ask ${coachName} anything…`}
+              aria-describedby="study-session-message-help"
             />
-            <div ref={menuRef} className={styles.menuWrap}>
-              <button
-                ref={menuTriggerRef}
-                type="button"
-                onClick={onToggleMenu}
-                disabled={loading}
-                aria-label="Open tutor tools"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                className={styles.iconButton}
-              ><AppIcon name={menuOpen ? "x" : "plus"} /></button>
-              {menuOpen ? (
-                <div className={styles.composerMenu} role="menu" aria-label="Tutor tools">
-                  <button ref={firstMenuActionRef} type="button" role="menuitem" onClick={() => attachmentInputRef.current?.click()}>
-                    <AppIcon name="plus" />
-                    <span><strong>Add photos & files</strong><small>Images, PDFs, or text notes</small></span>
-                  </button>
-                  <button type="button" role="menuitemcheckbox" aria-checked={socraticMode} onClick={onToggleSocratic}>
-                    <AppIcon name="study" />
-                    <span><strong>Guide me step by step</strong><small>Use hints before the final answer</small></span>
-                    <i data-on={socraticMode} />
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitemcheckbox"
-                    aria-checked={strictAttachmentGrounding}
-                    disabled={!attachments.length}
-                    onClick={onToggleStrictGrounding}
-                  >
-                    <AppIcon name="book" />
-                    <span><strong>Use uploaded notes only</strong><small>Available after you attach material</small></span>
-                    <i data-on={strictAttachmentGrounding} />
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            <p id="study-session-message-help" className="sr-only">Press Enter to send or Shift+Enter to start a new line.</p>
           </div>
-          <div className={styles.toolCluster}>
-            <button type="button" onClick={onVoice} disabled={!speechSupported || loading} className={styles.iconButton} aria-label={listening ? "Stop voice input" : "Start voice input"}>
-              <AppIcon name={listening ? "x" : "mic"} />
-            </button>
-            <button type="button" onClick={onSend} disabled={!canSend} className={styles.sendButton} aria-label={loading ? "Stop response" : "Send message"}>
-              <AppIcon name={loading ? "x" : "send"} />
-            </button>
+          <div className={styles.composerToolbar}>
+            <div className={styles.toolCluster}>
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                multiple
+                accept="image/png,image/jpeg,image/webp,application/pdf,text/plain"
+                onChange={onAttachmentSelect}
+                className="sr-only"
+                aria-label="Attach photos, documents, or notes"
+              />
+              <div ref={menuRef} className={styles.menuWrap}>
+                <button
+                  ref={menuTriggerRef}
+                  type="button"
+                  onClick={onToggleMenu}
+                  disabled={loading}
+                  aria-label="Open tutor tools"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                  className={styles.iconButton}
+                ><AppIcon name={menuOpen ? "x" : "plus"} /></button>
+                {menuOpen ? (
+                  <div className={styles.composerMenu} role="menu" aria-label="Tutor tools">
+                    <button ref={firstMenuActionRef} type="button" role="menuitem" onClick={() => attachmentInputRef.current?.click()}>
+                      <AppIcon name="plus" />
+                      <span><strong>Add photos & files</strong><small>Images, PDFs, or text notes</small></span>
+                    </button>
+                    <button type="button" role="menuitemcheckbox" aria-checked={socraticMode} onClick={onToggleSocratic}>
+                      <AppIcon name="study" />
+                      <span><strong>Guide me step by step</strong><small>Use hints before the final answer</small></span>
+                      <i data-on={socraticMode} />
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitemcheckbox"
+                      aria-checked={strictAttachmentGrounding}
+                      disabled={!attachments.length}
+                      onClick={onToggleStrictGrounding}
+                    >
+                      <AppIcon name="book" />
+                      <span><strong>Use uploaded notes only</strong><small>Available after you attach material</small></span>
+                      <i data-on={strictAttachmentGrounding} />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <div className={styles.toolCluster}>
+              <button type="button" onClick={onVoice} disabled={!speechSupported || loading} className={styles.iconButton} aria-label={listening ? "Stop voice input" : "Start voice input"}>
+                <AppIcon name={listening ? "x" : "mic"} />
+              </button>
+              <button type="button" onClick={onSend} disabled={!canSend} className={styles.sendButton} aria-label={loading ? "Stop response" : "Send message"}>
+                <AppIcon name={loading ? "x" : "send"} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

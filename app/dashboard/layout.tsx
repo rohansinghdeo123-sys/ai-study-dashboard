@@ -58,9 +58,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return (
       <main
         id="main-content"
-        className="flex min-h-[100dvh] items-center justify-center bg-[#f7fafc] px-5 text-sm text-[#0e7490]"
+        className="flex min-h-[100dvh] items-center justify-center bg-[var(--ds-bg-app)] px-5 text-sm text-[var(--ds-accent-teal)]"
       >
-        <div className="rounded-3xl border border-white/70 bg-white/85 px-5 py-4 shadow-[0_24px_90px_rgba(15,23,42,0.12)] backdrop-blur-2xl">
+        <div className="ds-card-elevated rounded-3xl px-5 py-4 backdrop-blur-2xl">
           Preparing AgentifyAI...
         </div>
       </main>
@@ -74,7 +74,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         className="flex min-h-[100dvh] items-center justify-center bg-[var(--agentify-page-bg)] px-5 text-center"
       >
         <div className="agentify-card max-w-lg rounded-[2rem] p-7">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0e7490]">Sign-in setup</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--ds-accent-teal)]">Sign-in setup</p>
           <h1 className="mt-3 text-2xl font-semibold text-[var(--agentify-primary-text)]">
             AgentifyAI sign-in needs configuration.
           </h1>
@@ -97,7 +97,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         className="flex min-h-[100dvh] items-center justify-center bg-[var(--agentify-page-bg)] px-5 text-center"
       >
         <div className="agentify-card max-w-md rounded-[2rem] p-7">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0e7490]">Session ended</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--ds-accent-teal)]">Session ended</p>
           <h1 className="mt-3 text-2xl font-semibold text-[var(--agentify-primary-text)]">
             Please sign in again.
           </h1>
@@ -124,7 +124,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         className="flex min-h-[100dvh] items-center justify-center bg-[var(--agentify-page-bg)] px-5 text-center"
       >
         <div className="agentify-card max-w-md rounded-[2rem] p-7">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0e7490]">Profile connection</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--ds-accent-teal)]">Profile connection</p>
           <h1 className="mt-3 text-2xl font-semibold text-[var(--agentify-primary-text)]">
             We could not prepare your account.
           </h1>

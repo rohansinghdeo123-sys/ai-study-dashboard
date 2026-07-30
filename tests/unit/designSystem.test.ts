@@ -13,6 +13,7 @@ const requiredTokens = [
   "--ds-bg-subtle",
   "--ds-surface",
   "--ds-surface-elevated",
+  "--ds-surface-muted",
   "--ds-surface-overlay",
   "--ds-border",
   "--ds-border-subtle",

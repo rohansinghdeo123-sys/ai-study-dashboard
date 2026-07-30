@@ -9,6 +9,7 @@
     --ds-bg-secondary: #edf5f3;
     --ds-surface: rgba(255, 255, 255, 0.9);
     --ds-surface-elevated: rgba(255, 255, 255, 0.98);
+    --ds-surface-muted: var(--ds-bg-subtle);
     --ds-surface-overlay: rgba(15, 23, 42, 0.58);
     --ds-border: rgba(15, 23, 42, 0.13);
     --ds-border-subtle: rgba(15, 23, 42, 0.08);

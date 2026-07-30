@@ -136,4 +136,14 @@ describe("focused Study Lab architecture", () => {
     expect(css).not.toMatch(/\b\d+(?:\.\d+)?(?:d|s|l)?vh\b/i);
     expect(source("components/study/study-session.module.css")).toContain("overflow-y: auto");
   });
+
+  it("keeps the rounded Study composer and history search transparent in light mode", () => {
+    const sessionCss = source("components/study/study-session.module.css");
+    const historyCss = source("app/dashboard/study/history/history.module.css");
+
+    expect(sessionCss).toContain("background-color: transparent !important");
+    expect(sessionCss).toContain("color: var(--study-muted) !important");
+    expect(sessionCss).toContain("box-shadow: none !important");
+    expect(historyCss).toContain("background-color: transparent !important");
+  });
 });

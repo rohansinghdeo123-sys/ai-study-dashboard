@@ -1,4 +1,8 @@
 .screen {
+  --revision-info-ink: #075f75;
+  --revision-success-ink: #087469;
+  --revision-warning-ink: #79500d;
+  --revision-danger-ink: #a62f40;
   position: relative;
   width: 100%;
   height: 100%;
@@ -12,6 +16,13 @@
     var(--ds-bg-app);
   background-size: 3.2rem 3.2rem, 3.2rem 3.2rem, auto, auto, auto;
   color: var(--ds-text-primary);
+}
+
+:global([data-theme="dark"]) .screen {
+  --revision-info-ink: #8eeafa;
+  --revision-success-ink: #6ee7b7;
+  --revision-warning-ink: #f6c96b;
+  --revision-danger-ink: #fda4af;
 }
 
 .ambient {
@@ -118,7 +129,7 @@
 .eyebrow {
   margin: 0 0 0.4rem;
   color: var(--ds-accent-teal);
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 830;
   letter-spacing: 0.17em;
   line-height: 1.35;
@@ -194,27 +205,27 @@
 }
 
 .info {
-  border-color: color-mix(in srgb, var(--ds-info) 24%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-info-ink) 30%, var(--ds-border));
   background: var(--ds-info-soft);
-  color: var(--ds-info);
+  color: var(--revision-info-ink);
 }
 
 .success {
-  border-color: color-mix(in srgb, var(--ds-success) 24%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-success-ink) 30%, var(--ds-border));
   background: var(--ds-success-soft);
-  color: var(--ds-success);
+  color: var(--revision-success-ink);
 }
 
 .warning {
-  border-color: color-mix(in srgb, var(--ds-warning) 30%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-warning-ink) 32%, var(--ds-border));
   background: var(--ds-warning-soft);
-  color: var(--ds-warning);
+  color: var(--revision-warning-ink);
 }
 
 .error {
-  border-color: color-mix(in srgb, var(--ds-danger) 24%, var(--ds-border));
+  border-color: color-mix(in srgb, var(--revision-danger-ink) 30%, var(--ds-border));
   background: var(--ds-danger-soft);
-  color: var(--ds-danger);
+  color: var(--revision-danger-ink);
 }
 
 .status > div {

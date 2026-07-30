@@ -143,13 +143,14 @@
 }
 
 .status {
+  --exam-status-ink: var(--ds-text-secondary);
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
   border: 1px solid var(--ds-border);
   border-radius: var(--ds-radius-lg);
   padding: 0.78rem 0.9rem;
-  color: var(--ds-text-secondary);
+  color: var(--exam-status-ink);
   font-size: 0.82rem;
   line-height: 1.55;
 }
@@ -165,25 +166,37 @@
 }
 
 .info {
+  --exam-status-ink: #075f73;
   border-color: color-mix(in srgb, var(--ds-info) 24%, var(--ds-border));
   background: var(--ds-info-soft);
-  color: var(--ds-info);
 }
 
 .success {
+  --exam-status-ink: #086b61;
   border-color: color-mix(in srgb, var(--ds-success) 24%, var(--ds-border));
   background: var(--ds-success-soft);
-  color: var(--ds-success);
 }
 
 .error {
+  --exam-status-ink: #a9213a;
   border-color: color-mix(in srgb, var(--ds-danger) 24%, var(--ds-border));
   background: var(--ds-danger-soft);
-  color: var(--ds-danger);
+}
+
+:global([data-theme="dark"]) .info {
+  --exam-status-ink: var(--ds-info);
+}
+
+:global([data-theme="dark"]) .success {
+  --exam-status-ink: var(--ds-success);
+}
+
+:global([data-theme="dark"]) .error {
+  --exam-status-ink: var(--ds-danger);
 }
 
 .status > div {
-  color: var(--ds-text-secondary);
+  color: inherit;
 }
 
 @media (max-width: 48rem) {

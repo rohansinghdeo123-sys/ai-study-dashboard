@@ -1,4 +1,8 @@
 .hub {
+  --exam-violet-ink: #6d28d9;
+  --exam-violet-wash: rgba(109, 40, 217, 0.11);
+  --exam-blue-ink: #1d4ed8;
+  --exam-blue-wash: rgba(29, 78, 216, 0.1);
   position: relative;
   width: 100%;
   height: 100%;
@@ -15,6 +19,13 @@
   background-size: 3.25rem 3.25rem, 3.25rem 3.25rem, auto, auto, auto;
   color: var(--ds-text-primary);
   scrollbar-gutter: stable;
+}
+
+:global([data-theme="dark"]) .hub {
+  --exam-violet-ink: #c4b5fd;
+  --exam-violet-wash: rgba(167, 139, 250, 0.16);
+  --exam-blue-ink: #93c5fd;
+  --exam-blue-wash: rgba(96, 165, 250, 0.15);
 }
 
 .ambient {
@@ -188,8 +199,8 @@
 }
 
 .card[data-tone="violet"] {
-  --card-accent: #7c3aed;
-  --card-wash: rgba(124, 58, 237, 0.11);
+  --card-accent: var(--exam-violet-ink);
+  --card-wash: var(--exam-violet-wash);
 }
 
 .card[data-tone="gold"] {
@@ -198,8 +209,8 @@
 }
 
 .card[data-tone="blue"] {
-  --card-accent: #2563eb;
-  --card-wash: rgba(37, 99, 235, 0.1);
+  --card-accent: var(--exam-blue-ink);
+  --card-wash: var(--exam-blue-wash);
 }
 
 .cardGlow {
